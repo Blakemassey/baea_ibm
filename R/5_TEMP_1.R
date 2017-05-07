@@ -1,4 +1,83 @@
 
+
+
+
+
+#' CreateRedistKernel
+#'
+#' Create a redistribution kernel matrix based on a wrapped Cauchy distribution
+#'   for direction and a Pareto distribution for distance.
+#'
+#' @usage CreateRedistKernel(max_r, cellsize, mu, rho, shape, scale,
+#'    ignore_cauchy, ignore_pareto)
+#'
+#' @param max_r maximum radius of kernel in meters, default = 300
+#' @param cellsize cell size in meters, default = 30
+#' @param mu mu parameter of wrapped Cauchy distribution, 0 radians is due east
+#'   because everything is based on the Unit Circle
+#' @param rho rho parameter of wrapped Cauchy distribution
+#' @param shape shape parameter of Pareto distribution
+#' @param scale scale parameter of Pareto distribution
+#' @param ignore_cauchy logical, removes cauchy kernel's contribution to output
+#'   raster. Default is FALSE.
+#' @param ignore_pareto logical, removes pareto kernel's contribution to output
+#'    raster. Default is FALSE.
+#'
+#' @return matrix
+#' @export
+CreateRedistKernel <- function(max_r = 300,
+                               cellsize = 30,
+                               mu,
+                               rho,
+                               shape,
+                               scale,
+                               ignore_cauchy = FALSE,
+                               ignore_pareto = FALSE) {
+  # Create the empty kernel objects
+  max_r_cells <- ceiling(max_r/cellsize)
+  size <- max_r_cells * 2 + 1
+  center <- max_r_cells + 1
+  wrpc_kernel <- new("matrix", 0, size, size)
+  gpd_kernel <- new("matrix", 0, size, size)
+  for (i in 1:size) {
+    for (j in 1:size) {
+      r = sqrt((i - center)^2 + (j - center)^2) * cellsize
+      b = AngleToPoint(center, center, j, i)
+      if(r <= max_r){
+        wrpc_kernel[i, j] <- round(suppressWarnings(circular::dwrappedcauchy(b,
+          mu=mu, rho=rho)), 5)
+        gpd_kernel[i, j] <- texmex::dgpd(r, sigma=scale, xi=shape, log=FALSE)
+      }
+    }
+  }
+  wrpc_kernel <- apply(wrpc_kernel, 2, rev)
+  gpd_kernel[center, center] <- 1/scale
+  # This last part deletes the cells at the edge if they are all zero
+  if (all(wrpc_kernel[1, ] == 0, wrpc_kernel[, 1] == 0,
+    wrpc_kernel[nrow(wrpc_kernel),] == 0, wrpc_kernel[, ncol(wrpc_kernel)] ==0))
+    wrpc_kernel <- wrpc_kernel[2:(nrow(wrpc_kernel) - 1), 2:(ncol(wrpc_kernel)
+      - 1)]
+  if (all(gpd_kernel[1, ] == 0, gpd_kernel[, 1] == 0,
+    gpd_kernel[nrow(gpd_kernel),] == 0, gpd_kernel[, ncol(gpd_kernel)] == 0))
+    gpd_kernel <- gpd_kernel[2:(nrow(gpd_kernel) - 1), 2:(ncol(gpd_kernel) - 1)]
+  # Multiply the two kernels together and re-normalize
+  if (ignore_cauchy) wrpc_kernel <- 1
+  if (ignore_pareto) gpd_kernel <- 1
+  redist_kernel <- gpd_kernel*wrpc_kernel
+  redist_kernel <- redist_kernel/sum(redist_kernel)
+  return(redist_kernel)
+}
+
+
+
+
+
+
+
+
+
+
+
 max_r = 12000
 cellsize = 30
 mu = 0
