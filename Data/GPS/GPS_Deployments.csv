@@ -1,0 +1,28 @@
+serial,on_hand,deployed,end_data,failed,removed,recovered,deploy_location,bird_ID,sex,deploy_seq,notes,icon_color,icon_color_classic
+1B570,20150723,,,,,,,,,,,#E41A1C,#7E6E85
+1D6F4,20150723,,,,,,,,,,,#9E425A,#974661
+1D658,20150723,,,,,,,,,,,#596A98,#4A72A6
+1B55A,20150709,20150913,20160304,,20160418,20160418,Onawa,1515,female,18,,#3B87A2,#3E8E93
+1DCE4,20150709,20150721,,,,,Branch,1514,male,17,,#449B75,#D16948
+45895,20140101,20140202,,20140326,,,Cherryfield,1401,unknown,3,,#4DAF4A,#E41A1C
+72179,20130715,20131109,,,,,Madagascal,1302,female,2,,#6B886D,#974661
+72187,20130715,20130922,20140304,,20140411,20140411,Crooked,1301,unknown,1,"Eagle recovered from under a tree on 20140411.  Appears to have died about 2 weeks earlier, potentially due to territorial interactions.",#896191,#4A72A6
+1B557,20150414,20150622,,,,,Crooked,1510,female,13,,#AC5782,#48A462
+1B571,20150414,20150603,,,,,Musquash,1503,female,6,,#D56B41,#5D995D
+1B578,20150414,20150513,20150925,,20151009,20151009,Norway,1501,male,4,"Eagle died after 20150925 3pm, probably over the next 24-48 hours.  Body recovered on 20151009.",#FF7F00,#E41A1C
+1CBA5,20150414,20150620,,,,,Wilson,1509,male,12,,#FFB214,#A35390
+1D4C9,20150414,20150603,,,,,Eskutassis,1504,female,7,,#FFE528,#FF7F00
+1DFAB,20150414,20150519,20151005,,20151006,20151009,Phillips,1502,female,5,Eagle hit by a car on Route 1A shortly after 3pm on 201501005.  Eagle taken to Avian Haven where the GPS transmitter was removed the following day.,#EDDD30,#FFB716
+1E07F,20150414,20150608,,,,,Ellis,1506,female,9,,#C9992C,#FFF02D
+27ABC,20150414,20150708,,,,,Webb,1511,female,14,,#A65628,#E1C62F
+27AD4,20150414,20150618,,,,,Sandy,1508,female,11,,#C66764,#B97B2A
+27ADE,20150414,20150619,20160221,,20160508,20160508,Sheepscot,1507,female,10,,#E678A0,#B75F49
+27AF6,20150414,20150717,20160313,,20160417,20160417,Davis,1512,unknown,15,"Actually trapped at Onawa, but probably from Davis. Recovered GPS unit from carcass at last location.",#E485B7,#DB728C
+27B02,20150414,20150604,,,,,Three,1505,female,8,,#BE8FA8,#EC83BA
+154DB,20150414,20150720,,,,,Hebron,1513,female,16,,#999999,#C28EA9
+1B57D,20150414,,,,,,,,,,Returned 20150707,,
+1CF56,20150414,,,,,,,,,,Returned 20150707,,
+50958,20140101,,,,,,,,,,Returned 20150707,,
+51055,20140101,,,,,,,,,,Returned 20150707,,
+72187,20140412,,,,,,,,,,Returned 20150707,,
+73102,20140101,,,,,,,,,,Returned 20150707,,

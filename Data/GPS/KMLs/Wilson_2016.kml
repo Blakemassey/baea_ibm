@@ -1,0 +1,1265 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2"
+xmlns:gx="http://www.google.com/kml/ext/2.2"
+xmlns:atom="http://www.w3.org/2005/Atom">
+
+<Document>
+	<name>Wilson_2016.kml</name>
+	<StyleMap id="Point_Wilson">
+		<Pair>
+			<key>normal</key>
+				<Style>
+					<LabelStyle>
+					<scale>0</scale>
+					</LabelStyle>
+					<IconStyle>
+						<color>FF14b2ff</color>
+						<scale>0.7</scale>
+					<Icon>
+					<href>http://maps.google.com/mapfiles/kml/shapes/placemark_square.png</href>
+					</Icon>
+					</IconStyle>
+					<BalloonStyle>
+					<text>$[description]</text>
+						<bgColor>ff333333</bgColor>
+						<textColor>ffffffff</textColor>
+					</BalloonStyle>
+				</Style>
+		</Pair>
+		<Pair>
+			<key>highlight</key>
+				<Style>
+					<LabelStyle>
+					<scale>0.75</scale>
+					</LabelStyle>
+					<IconStyle>
+						<color>FF14b2ff</color>
+						<scale>0.8</scale>
+					<Icon>
+					<href>http://maps.google.com/mapfiles/kml/shapes/placemark_square.png</href>
+					</Icon>
+					</IconStyle>
+					<BalloonStyle>
+					<text>$[description]</text>
+						<bgColor>ff333333</bgColor>
+						<textColor>ffffffff</textColor>
+					</BalloonStyle>
+				</Style>
+		</Pair>
+	</StyleMap>
+	<StyleMap id="Track_Wilson">
+		<Pair>
+			<key>normal</key>
+				<Style>
+					<LabelStyle>
+					<scale>0</scale>
+					</LabelStyle>
+			<IconStyle>
+				<scale>1</scale>
+				<Icon>
+					<href>http://earth.google.com/images/kml-icons/track-directional/track-0.png</href>
+				</Icon>
+			</IconStyle>
+					<BalloonStyle>
+					<text>Wilson - Path</text>
+						<bgColor>ff333333</bgColor>
+						<textColor>ffffffff</textColor>
+					</BalloonStyle>
+			<LineStyle>
+				<color>dd14b2ff</color>
+				<width>1</width>
+			</LineStyle>
+				</Style>
+		</Pair>
+		<Pair>
+			<key>highlight</key>
+				<Style>
+					<LabelStyle>
+					<scale>0</scale>
+					</LabelStyle>
+			<IconStyle>
+				<scale>1</scale>
+				<Icon>
+					<href>http://earth.google.com/images/kml-icons/track-directional/track-0.png</href>
+				</Icon>
+			</IconStyle>
+					<BalloonStyle>
+					<text>Wilson - Path</text>
+						<bgColor>ff333333</bgColor>
+						<textColor>ffffffff</textColor>
+					</BalloonStyle>
+			<LineStyle>
+				<color>ee14b2ff</color>
+				<width>1</width>
+			</LineStyle>
+				</Style>
+		</Pair>
+	</StyleMap>
+<Folder>
+<name>Wilson</name>
+<open>0</open>
+	<Folder>
+	<name>Wilson - Locations</name>
+	<open>0</open>
+	<Placemark>
+		<name>2016-01-14 12:33 PM</name>
+		<TimeSpan>
+			<begin>2016-01-14T12:33</begin> 
+			<end>2016-01-14T13:04:58</end> 
+		</TimeSpan>
+			<Snippet></Snippet>
+				<description>
+					ID: Wilson
+					Date: 2016-01-14
+					Time: 12:33 PM
+					Longitude: -68.75442
+					Latitude: 44.53046
+					Altitude: 19
+					Speed: 1
+				</description>
+			<styleUrl>#Point_Wilson</styleUrl>
+			<Point>
+				<extrude>FALSE</extrude>
+				<altitudeMode>absolute</altitudeMode>
+					<coordinates>-68.75442,44.53046,19</coordinates>
+			</Point>
+	</Placemark>
+	<Placemark>
+		<name>2016-01-14 01:04 PM</name>
+		<TimeSpan>
+			<begin>2016-01-14T13:04</begin> 
+			<end>2016-01-14T13:38:42</end> 
+		</TimeSpan>
+			<Snippet></Snippet>
+				<description>
+					ID: Wilson
+					Date: 2016-01-14
+					Time: 01:04 PM
+					Longitude: -68.75513
+					Latitude: 44.53077
+					Altitude: 17
+					Speed: 0
+				</description>
+			<styleUrl>#Point_Wilson</styleUrl>
+			<Point>
+				<extrude>FALSE</extrude>
+				<altitudeMode>absolute</altitudeMode>
+					<coordinates>-68.75513,44.53077,17</coordinates>
+			</Point>
+	</Placemark>
+	<Placemark>
+		<name>2016-01-14 01:38 PM</name>
+		<TimeSpan>
+			<begin>2016-01-14T13:38</begin> 
+			<end>2016-01-14T14:23:38</end> 
+		</TimeSpan>
+			<Snippet></Snippet>
+				<description>
+					ID: Wilson
+					Date: 2016-01-14
+					Time: 01:38 PM
+					Longitude: -68.75262
+					Latitude: 44.52812
+					Altitude: 22
+					Speed: 0
+				</description>
+			<styleUrl>#Point_Wilson</styleUrl>
+			<Point>
+				<extrude>FALSE</extrude>
+				<altitudeMode>absolute</altitudeMode>
+					<coordinates>-68.75262,44.52812,22</coordinates>
+			</Point>
+	</Placemark>
+	<Placemark>
+		<name>2016-01-14 02:23 PM</name>
+		<TimeSpan>
+			<begin>2016-01-14T14:23</begin> 
+			<end>2016-01-14T14:38:05</end> 
+		</TimeSpan>
+			<Snippet></Snippet>
+				<description>
+					ID: Wilson
+					Date: 2016-01-14
+					Time: 02:23 PM
+					Longitude: -68.75657
+					Latitude: 44.51676
+					Altitude: 21
+					Speed: 1
+				</description>
+			<styleUrl>#Point_Wilson</styleUrl>
+			<Point>
+				<extrude>FALSE</extrude>
+				<altitudeMode>absolute</altitudeMode>
+					<coordinates>-68.75657,44.51676,21</coordinates>
+			</Point>
+	</Placemark>
+	<Placemark>
+		<name>2016-01-14 02:38 PM</name>
+		<TimeSpan>
+			<begin>2016-01-14T14:38</begin> 
+			<end>2016-01-14T14:53:24</end> 
+		</TimeSpan>
+			<Snippet></Snippet>
+				<description>
+					ID: Wilson
+					Date: 2016-01-14
+					Time: 02:38 PM
+					Longitude: -68.75642
+					Latitude: 44.51414
+					Altitude: 28
+					Speed: 0
+				</description>
+			<styleUrl>#Point_Wilson</styleUrl>
+			<Point>
+				<extrude>FALSE</extrude>
+				<altitudeMode>absolute</altitudeMode>
+					<coordinates>-68.75642,44.51414,28</coordinates>
+			</Point>
+	</Placemark>
+	<Placemark>
+		<name>2016-01-14 02:53 PM</name>
+		<TimeSpan>
+			<begin>2016-01-14T14:53</begin> 
+			<end>2016-01-14T15:08:59</end> 
+		</TimeSpan>
+			<Snippet></Snippet>
+				<description>
+					ID: Wilson
+					Date: 2016-01-14
+					Time: 02:53 PM
+					Longitude: -68.75642
+					Latitude: 44.51408
+					Altitude: 33
+					Speed: 0
+				</description>
+			<styleUrl>#Point_Wilson</styleUrl>
+			<Point>
+				<extrude>FALSE</extrude>
+				<altitudeMode>absolute</altitudeMode>
+					<coordinates>-68.75642,44.51408,33</coordinates>
+			</Point>
+	</Placemark>
+	<Placemark>
+		<name>2016-01-14 03:08 PM</name>
+		<TimeSpan>
+			<begin>2016-01-14T15:08</begin> 
+			<end>2016-01-14T15:24:18</end> 
+		</TimeSpan>
+			<Snippet></Snippet>
+				<description>
+					ID: Wilson
+					Date: 2016-01-14
+					Time: 03:08 PM
+					Longitude: -68.75642
+					Latitude: 44.51419
+					Altitude: 22
+					Speed: 0
+				</description>
+			<styleUrl>#Point_Wilson</styleUrl>
+			<Point>
+				<extrude>FALSE</extrude>
+				<altitudeMode>absolute</altitudeMode>
+					<coordinates>-68.75642,44.51419,22</coordinates>
+			</Point>
+	</Placemark>
+	<Placemark>
+		<name>2016-01-14 03:24 PM</name>
+		<TimeSpan>
+			<begin>2016-01-14T15:24</begin> 
+			<end>2016-01-14T15:40:04</end> 
+		</TimeSpan>
+			<Snippet></Snippet>
+				<description>
+					ID: Wilson
+					Date: 2016-01-14
+					Time: 03:24 PM
+					Longitude: -68.75643
+					Latitude: 44.51421
+					Altitude: 17
+					Speed: 0
+				</description>
+			<styleUrl>#Point_Wilson</styleUrl>
+			<Point>
+				<extrude>FALSE</extrude>
+				<altitudeMode>absolute</altitudeMode>
+					<coordinates>-68.75643,44.51421,17</coordinates>
+			</Point>
+	</Placemark>
+	<Placemark>
+		<name>2016-01-14 03:40 PM</name>
+		<TimeSpan>
+			<begin>2016-01-14T15:40</begin> 
+			<end>2016-01-14T15:55:17</end> 
+		</TimeSpan>
+			<Snippet></Snippet>
+				<description>
+					ID: Wilson
+					Date: 2016-01-14
+					Time: 03:40 PM
+					Longitude: -68.75644
+					Latitude: 44.51424
+					Altitude: 26
+					Speed: 0
+				</description>
+			<styleUrl>#Point_Wilson</styleUrl>
+			<Point>
+				<extrude>FALSE</extrude>
+				<altitudeMode>absolute</altitudeMode>
+					<coordinates>-68.75644,44.51424,26</coordinates>
+			</Point>
+	</Placemark>
+	<Placemark>
+		<name>2016-01-14 03:55 PM</name>
+		<TimeSpan>
+			<begin>2016-01-14T15:55</begin> 
+			<end>2016-01-14T16:10:36</end> 
+		</TimeSpan>
+			<Snippet></Snippet>
+				<description>
+					ID: Wilson
+					Date: 2016-01-14
+					Time: 03:55 PM
+					Longitude: -68.75643
+					Latitude: 44.51423
+					Altitude: 7
+					Speed: 0
+				</description>
+			<styleUrl>#Point_Wilson</styleUrl>
+			<Point>
+				<extrude>FALSE</extrude>
+				<altitudeMode>absolute</altitudeMode>
+					<coordinates>-68.75643,44.51423,7</coordinates>
+			</Point>
+	</Placemark>
+	<Placemark>
+		<name>2016-01-14 04:10 PM</name>
+		<TimeSpan>
+			<begin>2016-01-14T16:10</begin> 
+			<end>2016-01-14T16:25:48</end> 
+		</TimeSpan>
+			<Snippet></Snippet>
+				<description>
+					ID: Wilson
+					Date: 2016-01-14
+					Time: 04:10 PM
+					Longitude: -68.75645
+					Latitude: 44.51417
+					Altitude: 14
+					Speed: 0
+				</description>
+			<styleUrl>#Point_Wilson</styleUrl>
+			<Point>
+				<extrude>FALSE</extrude>
+				<altitudeMode>absolute</altitudeMode>
+					<coordinates>-68.75645,44.51417,14</coordinates>
+			</Point>
+	</Placemark>
+	<Placemark>
+		<name>2016-01-14 04:25 PM</name>
+		<TimeSpan>
+			<begin>2016-01-14T16:25</begin> 
+			<end>2016-01-14T16:41:02</end> 
+		</TimeSpan>
+			<Snippet></Snippet>
+				<description>
+					ID: Wilson
+					Date: 2016-01-14
+					Time: 04:25 PM
+					Longitude: -68.75643
+					Latitude: 44.5142
+					Altitude: 18
+					Speed: 0
+				</description>
+			<styleUrl>#Point_Wilson</styleUrl>
+			<Point>
+				<extrude>FALSE</extrude>
+				<altitudeMode>absolute</altitudeMode>
+					<coordinates>-68.75643,44.5142,18</coordinates>
+			</Point>
+	</Placemark>
+	<Placemark>
+		<name>2016-01-14 04:41 PM</name>
+		<TimeSpan>
+			<begin>2016-01-14T16:41</begin> 
+			<end>2016-01-14T16:56:18</end> 
+		</TimeSpan>
+			<Snippet></Snippet>
+				<description>
+					ID: Wilson
+					Date: 2016-01-14
+					Time: 04:41 PM
+					Longitude: -68.75647
+					Latitude: 44.51415
+					Altitude: 24
+					Speed: 0
+				</description>
+			<styleUrl>#Point_Wilson</styleUrl>
+			<Point>
+				<extrude>FALSE</extrude>
+				<altitudeMode>absolute</altitudeMode>
+					<coordinates>-68.75647,44.51415,24</coordinates>
+			</Point>
+	</Placemark>
+	<Placemark>
+		<name>2016-01-14 04:56 PM</name>
+		<TimeSpan>
+			<begin>2016-01-14T16:56</begin> 
+			<end>2016-01-14T17:12:01</end> 
+		</TimeSpan>
+			<Snippet></Snippet>
+				<description>
+					ID: Wilson
+					Date: 2016-01-14
+					Time: 04:56 PM
+					Longitude: -68.75647
+					Latitude: 44.51419
+					Altitude: 29
+					Speed: 0
+				</description>
+			<styleUrl>#Point_Wilson</styleUrl>
+			<Point>
+				<extrude>FALSE</extrude>
+				<altitudeMode>absolute</altitudeMode>
+					<coordinates>-68.75647,44.51419,29</coordinates>
+			</Point>
+	</Placemark>
+	<Placemark>
+		<name>2016-01-14 05:12 PM</name>
+		<TimeSpan>
+			<begin>2016-01-14T17:12</begin> 
+			<end>2016-01-14T17:27:16</end> 
+		</TimeSpan>
+			<Snippet></Snippet>
+				<description>
+					ID: Wilson
+					Date: 2016-01-14
+					Time: 05:12 PM
+					Longitude: -68.75651
+					Latitude: 44.51419
+					Altitude: 14
+					Speed: 0
+				</description>
+			<styleUrl>#Point_Wilson</styleUrl>
+			<Point>
+				<extrude>FALSE</extrude>
+				<altitudeMode>absolute</altitudeMode>
+					<coordinates>-68.75651,44.51419,14</coordinates>
+			</Point>
+	</Placemark>
+	<Placemark>
+		<name>2016-01-14 05:27 PM</name>
+		<TimeSpan>
+			<begin>2016-01-14T17:27</begin> 
+			<end>2016-01-15T06:04:05</end> 
+		</TimeSpan>
+			<Snippet></Snippet>
+				<description>
+					ID: Wilson
+					Date: 2016-01-14
+					Time: 05:27 PM
+					Longitude: -68.75656
+					Latitude: 44.51424
+					Altitude: 27
+					Speed: 0
+				</description>
+			<styleUrl>#Point_Wilson</styleUrl>
+			<Point>
+				<extrude>FALSE</extrude>
+				<altitudeMode>absolute</altitudeMode>
+					<coordinates>-68.75656,44.51424,27</coordinates>
+			</Point>
+	</Placemark>
+	<Placemark>
+		<name>2016-01-15 06:04 AM</name>
+		<TimeSpan>
+			<begin>2016-01-15T06:04</begin> 
+			<end>2016-01-15T06:32:54</end> 
+		</TimeSpan>
+			<Snippet></Snippet>
+				<description>
+					ID: Wilson
+					Date: 2016-01-15
+					Time: 06:04 AM
+					Longitude: -68.75674
+					Latitude: 44.51535
+					Altitude: -304
+					Speed: 0
+				</description>
+			<styleUrl>#Point_Wilson</styleUrl>
+			<Point>
+				<extrude>FALSE</extrude>
+				<altitudeMode>absolute</altitudeMode>
+					<coordinates>-68.75674,44.51535,-304</coordinates>
+			</Point>
+	</Placemark>
+	<Placemark>
+		<name>2016-01-15 06:32 AM</name>
+		<TimeSpan>
+			<begin>2016-01-15T06:32</begin> 
+			<end>2016-01-15T06:49:29</end> 
+		</TimeSpan>
+			<Snippet></Snippet>
+				<description>
+					ID: Wilson
+					Date: 2016-01-15
+					Time: 06:32 AM
+					Longitude: -68.75645
+					Latitude: 44.51422
+					Altitude: 9
+					Speed: 0
+				</description>
+			<styleUrl>#Point_Wilson</styleUrl>
+			<Point>
+				<extrude>FALSE</extrude>
+				<altitudeMode>absolute</altitudeMode>
+					<coordinates>-68.75645,44.51422,9</coordinates>
+			</Point>
+	</Placemark>
+	<Placemark>
+		<name>2016-01-15 06:49 AM</name>
+		<TimeSpan>
+			<begin>2016-01-15T06:49</begin> 
+			<end>2016-01-15T07:03:48</end> 
+		</TimeSpan>
+			<Snippet></Snippet>
+				<description>
+					ID: Wilson
+					Date: 2016-01-15
+					Time: 06:49 AM
+					Longitude: -68.75643
+					Latitude: 44.51414
+					Altitude: 22
+					Speed: 0
+				</description>
+			<styleUrl>#Point_Wilson</styleUrl>
+			<Point>
+				<extrude>FALSE</extrude>
+				<altitudeMode>absolute</altitudeMode>
+					<coordinates>-68.75643,44.51414,22</coordinates>
+			</Point>
+	</Placemark>
+	<Placemark>
+		<name>2016-01-15 07:03 AM</name>
+		<TimeSpan>
+			<begin>2016-01-15T07:03</begin> 
+			<end>2016-01-15T07:19:07</end> 
+		</TimeSpan>
+			<Snippet></Snippet>
+				<description>
+					ID: Wilson
+					Date: 2016-01-15
+					Time: 07:03 AM
+					Longitude: -68.75649
+					Latitude: 44.51421
+					Altitude: 33
+					Speed: 0
+				</description>
+			<styleUrl>#Point_Wilson</styleUrl>
+			<Point>
+				<extrude>FALSE</extrude>
+				<altitudeMode>absolute</altitudeMode>
+					<coordinates>-68.75649,44.51421,33</coordinates>
+			</Point>
+	</Placemark>
+	<Placemark>
+		<name>2016-01-15 07:19 AM</name>
+		<TimeSpan>
+			<begin>2016-01-15T07:19</begin> 
+			<end>2016-01-15T07:50:59</end> 
+		</TimeSpan>
+			<Snippet></Snippet>
+				<description>
+					ID: Wilson
+					Date: 2016-01-15
+					Time: 07:19 AM
+					Longitude: -68.75642
+					Latitude: 44.51408
+					Altitude: 23
+					Speed: 0
+				</description>
+			<styleUrl>#Point_Wilson</styleUrl>
+			<Point>
+				<extrude>FALSE</extrude>
+				<altitudeMode>absolute</altitudeMode>
+					<coordinates>-68.75642,44.51408,23</coordinates>
+			</Point>
+	</Placemark>
+	<Placemark>
+		<name>2016-01-15 07:50 AM</name>
+		<TimeSpan>
+			<begin>2016-01-15T07:50</begin> 
+			<end>2016-01-15T08:05:17</end> 
+		</TimeSpan>
+			<Snippet></Snippet>
+				<description>
+					ID: Wilson
+					Date: 2016-01-15
+					Time: 07:50 AM
+					Longitude: -68.7563
+					Latitude: 44.51433
+					Altitude: 5
+					Speed: 0
+				</description>
+			<styleUrl>#Point_Wilson</styleUrl>
+			<Point>
+				<extrude>FALSE</extrude>
+				<altitudeMode>absolute</altitudeMode>
+					<coordinates>-68.7563,44.51433,5</coordinates>
+			</Point>
+	</Placemark>
+	<Placemark>
+		<name>2016-01-15 08:05 AM</name>
+		<TimeSpan>
+			<begin>2016-01-15T08:05</begin> 
+			<end>2016-01-15T08:20:36</end> 
+		</TimeSpan>
+			<Snippet></Snippet>
+				<description>
+					ID: Wilson
+					Date: 2016-01-15
+					Time: 08:05 AM
+					Longitude: -68.75663
+					Latitude: 44.51409
+					Altitude: 39
+					Speed: 0
+				</description>
+			<styleUrl>#Point_Wilson</styleUrl>
+			<Point>
+				<extrude>FALSE</extrude>
+				<altitudeMode>absolute</altitudeMode>
+					<coordinates>-68.75663,44.51409,39</coordinates>
+			</Point>
+	</Placemark>
+	<Placemark>
+		<name>2016-01-15 08:20 AM</name>
+		<TimeSpan>
+			<begin>2016-01-15T08:20</begin> 
+			<end>2016-01-15T08:35:53</end> 
+		</TimeSpan>
+			<Snippet></Snippet>
+				<description>
+					ID: Wilson
+					Date: 2016-01-15
+					Time: 08:20 AM
+					Longitude: -68.75648
+					Latitude: 44.51422
+					Altitude: 21
+					Speed: 0
+				</description>
+			<styleUrl>#Point_Wilson</styleUrl>
+			<Point>
+				<extrude>FALSE</extrude>
+				<altitudeMode>absolute</altitudeMode>
+					<coordinates>-68.75648,44.51422,21</coordinates>
+			</Point>
+	</Placemark>
+	<Placemark>
+		<name>2016-01-15 08:35 AM</name>
+		<TimeSpan>
+			<begin>2016-01-15T08:35</begin> 
+			<end>2016-01-15T08:51:11</end> 
+		</TimeSpan>
+			<Snippet></Snippet>
+				<description>
+					ID: Wilson
+					Date: 2016-01-15
+					Time: 08:35 AM
+					Longitude: -68.75649
+					Latitude: 44.51423
+					Altitude: 19
+					Speed: 0
+				</description>
+			<styleUrl>#Point_Wilson</styleUrl>
+			<Point>
+				<extrude>FALSE</extrude>
+				<altitudeMode>absolute</altitudeMode>
+					<coordinates>-68.75649,44.51423,19</coordinates>
+			</Point>
+	</Placemark>
+	<Placemark>
+		<name>2016-01-15 08:51 AM</name>
+		<TimeSpan>
+			<begin>2016-01-15T08:51</begin> 
+			<end>2016-01-15T09:06:29</end> 
+		</TimeSpan>
+			<Snippet></Snippet>
+				<description>
+					ID: Wilson
+					Date: 2016-01-15
+					Time: 08:51 AM
+					Longitude: -68.75647
+					Latitude: 44.5142
+					Altitude: 26
+					Speed: 0
+				</description>
+			<styleUrl>#Point_Wilson</styleUrl>
+			<Point>
+				<extrude>FALSE</extrude>
+				<altitudeMode>absolute</altitudeMode>
+					<coordinates>-68.75647,44.5142,26</coordinates>
+			</Point>
+	</Placemark>
+	<Placemark>
+		<name>2016-01-15 09:06 AM</name>
+		<TimeSpan>
+			<begin>2016-01-15T09:06</begin> 
+			<end>2016-01-15T09:21:47</end> 
+		</TimeSpan>
+			<Snippet></Snippet>
+				<description>
+					ID: Wilson
+					Date: 2016-01-15
+					Time: 09:06 AM
+					Longitude: -68.75652
+					Latitude: 44.51423
+					Altitude: 54
+					Speed: 0
+				</description>
+			<styleUrl>#Point_Wilson</styleUrl>
+			<Point>
+				<extrude>FALSE</extrude>
+				<altitudeMode>absolute</altitudeMode>
+					<coordinates>-68.75652,44.51423,54</coordinates>
+			</Point>
+	</Placemark>
+	<Placemark>
+		<name>2016-01-15 09:21 AM</name>
+		<TimeSpan>
+			<begin>2016-01-15T09:21</begin> 
+			<end>2016-01-15T09:37:06</end> 
+		</TimeSpan>
+			<Snippet></Snippet>
+				<description>
+					ID: Wilson
+					Date: 2016-01-15
+					Time: 09:21 AM
+					Longitude: -68.75645
+					Latitude: 44.51417
+					Altitude: 2
+					Speed: 0
+				</description>
+			<styleUrl>#Point_Wilson</styleUrl>
+			<Point>
+				<extrude>FALSE</extrude>
+				<altitudeMode>absolute</altitudeMode>
+					<coordinates>-68.75645,44.51417,2</coordinates>
+			</Point>
+	</Placemark>
+	<Placemark>
+		<name>2016-01-15 09:37 AM</name>
+		<TimeSpan>
+			<begin>2016-01-15T09:37</begin> 
+			<end>2016-01-15T09:52:42</end> 
+		</TimeSpan>
+			<Snippet></Snippet>
+				<description>
+					ID: Wilson
+					Date: 2016-01-15
+					Time: 09:37 AM
+					Longitude: -68.75642
+					Latitude: 44.51416
+					Altitude: 24
+					Speed: 0
+				</description>
+			<styleUrl>#Point_Wilson</styleUrl>
+			<Point>
+				<extrude>FALSE</extrude>
+				<altitudeMode>absolute</altitudeMode>
+					<coordinates>-68.75642,44.51416,24</coordinates>
+			</Point>
+	</Placemark>
+	<Placemark>
+		<name>2016-01-15 09:52 AM</name>
+		<TimeSpan>
+			<begin>2016-01-15T09:52</begin> 
+			<end>2016-01-15T10:07:54</end> 
+		</TimeSpan>
+			<Snippet></Snippet>
+				<description>
+					ID: Wilson
+					Date: 2016-01-15
+					Time: 09:52 AM
+					Longitude: -68.75656
+					Latitude: 44.51419
+					Altitude: 35
+					Speed: 0
+				</description>
+			<styleUrl>#Point_Wilson</styleUrl>
+			<Point>
+				<extrude>FALSE</extrude>
+				<altitudeMode>absolute</altitudeMode>
+					<coordinates>-68.75656,44.51419,35</coordinates>
+			</Point>
+	</Placemark>
+	<Placemark>
+		<name>2016-01-15 10:07 AM</name>
+		<TimeSpan>
+			<begin>2016-01-15T10:07</begin> 
+			<end>2016-01-15T10:23:11</end> 
+		</TimeSpan>
+			<Snippet></Snippet>
+				<description>
+					ID: Wilson
+					Date: 2016-01-15
+					Time: 10:07 AM
+					Longitude: -68.75648
+					Latitude: 44.51424
+					Altitude: 31
+					Speed: 0
+				</description>
+			<styleUrl>#Point_Wilson</styleUrl>
+			<Point>
+				<extrude>FALSE</extrude>
+				<altitudeMode>absolute</altitudeMode>
+					<coordinates>-68.75648,44.51424,31</coordinates>
+			</Point>
+	</Placemark>
+	<Placemark>
+		<name>2016-01-15 10:23 AM</name>
+		<TimeSpan>
+			<begin>2016-01-15T10:23</begin> 
+			<end>2016-01-15T10:38:29</end> 
+		</TimeSpan>
+			<Snippet></Snippet>
+				<description>
+					ID: Wilson
+					Date: 2016-01-15
+					Time: 10:23 AM
+					Longitude: -68.75649
+					Latitude: 44.51418
+					Altitude: 29
+					Speed: 0
+				</description>
+			<styleUrl>#Point_Wilson</styleUrl>
+			<Point>
+				<extrude>FALSE</extrude>
+				<altitudeMode>absolute</altitudeMode>
+					<coordinates>-68.75649,44.51418,29</coordinates>
+			</Point>
+	</Placemark>
+	<Placemark>
+		<name>2016-01-15 10:38 AM</name>
+		<TimeSpan>
+			<begin>2016-01-15T10:38</begin> 
+			<end>2016-01-15T11:08:57</end> 
+		</TimeSpan>
+			<Snippet></Snippet>
+				<description>
+					ID: Wilson
+					Date: 2016-01-15
+					Time: 10:38 AM
+					Longitude: -68.75648
+					Latitude: 44.51424
+					Altitude: 23
+					Speed: 0
+				</description>
+			<styleUrl>#Point_Wilson</styleUrl>
+			<Point>
+				<extrude>FALSE</extrude>
+				<altitudeMode>absolute</altitudeMode>
+					<coordinates>-68.75648,44.51424,23</coordinates>
+			</Point>
+	</Placemark>
+	<Placemark>
+		<name>2016-01-15 11:08 AM</name>
+		<TimeSpan>
+			<begin>2016-01-15T11:08</begin> 
+			<end>2016-01-15T11:24:41</end> 
+		</TimeSpan>
+			<Snippet></Snippet>
+				<description>
+					ID: Wilson
+					Date: 2016-01-15
+					Time: 11:08 AM
+					Longitude: -68.75636
+					Latitude: 44.51424
+					Altitude: 8
+					Speed: 0
+				</description>
+			<styleUrl>#Point_Wilson</styleUrl>
+			<Point>
+				<extrude>FALSE</extrude>
+				<altitudeMode>absolute</altitudeMode>
+					<coordinates>-68.75636,44.51424,8</coordinates>
+			</Point>
+	</Placemark>
+	<Placemark>
+		<name>2016-01-15 11:24 AM</name>
+		<TimeSpan>
+			<begin>2016-01-15T11:24</begin> 
+			<end>2016-01-15T17:29:41</end> 
+		</TimeSpan>
+			<Snippet></Snippet>
+				<description>
+					ID: Wilson
+					Date: 2016-01-15
+					Time: 11:24 AM
+					Longitude: -68.75642
+					Latitude: 44.51426
+					Altitude: -15
+					Speed: 0
+				</description>
+			<styleUrl>#Point_Wilson</styleUrl>
+			<Point>
+				<extrude>FALSE</extrude>
+				<altitudeMode>absolute</altitudeMode>
+					<coordinates>-68.75642,44.51426,-15</coordinates>
+			</Point>
+	</Placemark>
+	<Placemark>
+		<name>2016-01-15 05:29 PM</name>
+		<TimeSpan>
+			<begin>2016-01-15T17:29</begin> 
+			<end>2016-03-09T17:34:12</end> 
+		</TimeSpan>
+			<Snippet></Snippet>
+				<description>
+					ID: Wilson
+					Date: 2016-01-15
+					Time: 05:29 PM
+					Longitude: -68.75909
+					Latitude: 44.50843
+					Altitude: 11
+					Speed: 0
+				</description>
+			<styleUrl>#Point_Wilson</styleUrl>
+			<Point>
+				<extrude>FALSE</extrude>
+				<altitudeMode>absolute</altitudeMode>
+					<coordinates>-68.75909,44.50843,11</coordinates>
+			</Point>
+	</Placemark>
+	<Placemark>
+		<name>2016-03-09 05:34 PM</name>
+		<TimeSpan>
+			<begin>2016-03-09T17:34</begin> 
+			<end>2016-03-09T17:35:48</end> 
+		</TimeSpan>
+			<Snippet></Snippet>
+				<description>
+					ID: Wilson
+					Date: 2016-03-09
+					Time: 05:34 PM
+					Longitude: -68.78489
+					Latitude: 44.44804
+					Altitude: 33
+					Speed: 0
+				</description>
+			<styleUrl>#Point_Wilson</styleUrl>
+			<Point>
+				<extrude>FALSE</extrude>
+				<altitudeMode>absolute</altitudeMode>
+					<coordinates>-68.78489,44.44804,33</coordinates>
+			</Point>
+	</Placemark>
+	<Placemark>
+		<name>2016-03-09 05:35 PM</name>
+		<TimeSpan>
+			<begin>2016-03-09T17:35</begin> 
+			<end>2016-03-09T18:39:49</end> 
+		</TimeSpan>
+			<Snippet></Snippet>
+				<description>
+					ID: Wilson
+					Date: 2016-03-09
+					Time: 05:35 PM
+					Longitude: -68.78477
+					Latitude: 44.448
+					Altitude: 23
+					Speed: 0
+				</description>
+			<styleUrl>#Point_Wilson</styleUrl>
+			<Point>
+				<extrude>FALSE</extrude>
+				<altitudeMode>absolute</altitudeMode>
+					<coordinates>-68.78477,44.448,23</coordinates>
+			</Point>
+	</Placemark>
+	<Placemark>
+		<name>2016-03-09 06:39 PM</name>
+		<TimeSpan>
+			<begin>2016-03-09T18:39</begin> 
+			<end>2016-03-10T04:53:34</end> 
+		</TimeSpan>
+			<Snippet></Snippet>
+				<description>
+					ID: Wilson
+					Date: 2016-03-09
+					Time: 06:39 PM
+					Longitude: -68.78483
+					Latitude: 44.44806
+					Altitude: 43
+					Speed: 1
+				</description>
+			<styleUrl>#Point_Wilson</styleUrl>
+			<Point>
+				<extrude>FALSE</extrude>
+				<altitudeMode>absolute</altitudeMode>
+					<coordinates>-68.78483,44.44806,43</coordinates>
+			</Point>
+	</Placemark>
+	<Placemark>
+		<name>2016-03-10 04:53 AM</name>
+		<TimeSpan>
+			<begin>2016-03-10T04:53</begin> 
+			<end>2016-03-10T18:45:11</end> 
+		</TimeSpan>
+			<Snippet></Snippet>
+				<description>
+					ID: Wilson
+					Date: 2016-03-10
+					Time: 04:53 AM
+					Longitude: -68.78525
+					Latitude: 44.44807
+					Altitude: 4
+					Speed: 0
+				</description>
+			<styleUrl>#Point_Wilson</styleUrl>
+			<Point>
+				<extrude>FALSE</extrude>
+				<altitudeMode>absolute</altitudeMode>
+					<coordinates>-68.78525,44.44807,4</coordinates>
+			</Point>
+	</Placemark>
+	<Placemark>
+		<name>2016-03-10 06:45 PM</name>
+		<TimeSpan>
+			<begin>2016-03-10T18:45</begin> 
+			<end>2016-03-11T04:51:41</end> 
+		</TimeSpan>
+			<Snippet></Snippet>
+				<description>
+					ID: Wilson
+					Date: 2016-03-10
+					Time: 06:45 PM
+					Longitude: -68.76578
+					Latitude: 44.44367
+					Altitude: 2068
+					Speed: 0
+				</description>
+			<styleUrl>#Point_Wilson</styleUrl>
+			<Point>
+				<extrude>FALSE</extrude>
+				<altitudeMode>absolute</altitudeMode>
+					<coordinates>-68.76578,44.44367,2068</coordinates>
+			</Point>
+	</Placemark>
+	<Placemark>
+		<name>2016-03-11 04:51 AM</name>
+		<TimeSpan>
+			<begin>2016-03-11T04:51</begin> 
+			<end>2016-04-07T17:20:25</end> 
+		</TimeSpan>
+			<Snippet></Snippet>
+				<description>
+					ID: Wilson
+					Date: 2016-03-11
+					Time: 04:51 AM
+					Longitude: -68.78509
+					Latitude: 44.4481
+					Altitude: 18
+					Speed: 0
+				</description>
+			<styleUrl>#Point_Wilson</styleUrl>
+			<Point>
+				<extrude>FALSE</extrude>
+				<altitudeMode>absolute</altitudeMode>
+					<coordinates>-68.78509,44.4481,18</coordinates>
+			</Point>
+	</Placemark>
+	<Placemark>
+		<name>2016-04-07 05:20 PM</name>
+		<TimeSpan>
+			<begin>2016-04-07T17:20</begin> 
+			<end>2016-04-07T17:21:56</end> 
+		</TimeSpan>
+			<Snippet></Snippet>
+				<description>
+					ID: Wilson
+					Date: 2016-04-07
+					Time: 05:20 PM
+					Longitude: -68.78497
+					Latitude: 44.44805
+					Altitude: 36
+					Speed: 0
+				</description>
+			<styleUrl>#Point_Wilson</styleUrl>
+			<Point>
+				<extrude>FALSE</extrude>
+				<altitudeMode>absolute</altitudeMode>
+					<coordinates>-68.78497,44.44805,36</coordinates>
+			</Point>
+	</Placemark>
+	<Placemark>
+		<name>2016-04-07 05:21 PM</name>
+		<TimeSpan>
+			<begin>2016-04-07T17:21</begin> 
+			<end>2016-04-07T19:19:11</end> 
+		</TimeSpan>
+			<Snippet></Snippet>
+				<description>
+					ID: Wilson
+					Date: 2016-04-07
+					Time: 05:21 PM
+					Longitude: -68.78509
+					Latitude: 44.44812
+					Altitude: 20
+					Speed: 0
+				</description>
+			<styleUrl>#Point_Wilson</styleUrl>
+			<Point>
+				<extrude>FALSE</extrude>
+				<altitudeMode>absolute</altitudeMode>
+					<coordinates>-68.78509,44.44812,20</coordinates>
+			</Point>
+	</Placemark>
+	<Placemark>
+		<name>2016-04-07 07:19 PM</name>
+		<TimeSpan>
+			<begin>2016-04-07T19:19</begin> 
+			<end>2016-04-08T03:55:02</end> 
+		</TimeSpan>
+			<Snippet></Snippet>
+				<description>
+					ID: Wilson
+					Date: 2016-04-07
+					Time: 07:19 PM
+					Longitude: -68.78502
+					Latitude: 44.44813
+					Altitude: 21
+					Speed: 0
+				</description>
+			<styleUrl>#Point_Wilson</styleUrl>
+			<Point>
+				<extrude>FALSE</extrude>
+				<altitudeMode>absolute</altitudeMode>
+					<coordinates>-68.78502,44.44813,21</coordinates>
+			</Point>
+	</Placemark>
+	<Placemark>
+		<name>2016-04-08 03:55 AM</name>
+		<TimeSpan>
+			<begin>2016-04-08T03:55</begin> 
+			<end>2016-04-08T03:55:02</end> 
+		</TimeSpan>
+			<Snippet></Snippet>
+				<description>
+					ID: Wilson
+					Date: 2016-04-08
+					Time: 03:55 AM
+					Longitude: -68.8787
+					Latitude: 44.41294
+					Altitude: 20
+					Speed: 1
+				</description>
+			<styleUrl>#Point_Wilson</styleUrl>
+			<Point>
+				<extrude>FALSE</extrude>
+				<altitudeMode>absolute</altitudeMode>
+					<coordinates>-68.8787,44.41294,20</coordinates>
+			</Point>
+	</Placemark>
+	</Folder>
+	<Placemark>
+		<name>Wilson - Path</name>
+		<styleUrl>#Track_Wilson</styleUrl>
+		<gx:balloonVisibility>0</gx:balloonVisibility>
+		<gx:Track>
+		<altitudeMode>absolute</altitudeMode>
+					<when>2016-01-14T12:33Z </when>
+					<when>2016-01-14T13:04Z </when>
+					<when>2016-01-14T13:38Z </when>
+					<when>2016-01-14T14:23Z </when>
+					<when>2016-01-14T14:38Z </when>
+					<when>2016-01-14T14:53Z </when>
+					<when>2016-01-14T15:08Z </when>
+					<when>2016-01-14T15:24Z </when>
+					<when>2016-01-14T15:40Z </when>
+					<when>2016-01-14T15:55Z </when>
+					<when>2016-01-14T16:10Z </when>
+					<when>2016-01-14T16:25Z </when>
+					<when>2016-01-14T16:41Z </when>
+					<when>2016-01-14T16:56Z </when>
+					<when>2016-01-14T17:12Z </when>
+					<when>2016-01-14T17:27Z </when>
+					<when>2016-01-15T06:04Z </when>
+					<when>2016-01-15T06:32Z </when>
+					<when>2016-01-15T06:49Z </when>
+					<when>2016-01-15T07:03Z </when>
+					<when>2016-01-15T07:19Z </when>
+					<when>2016-01-15T07:50Z </when>
+					<when>2016-01-15T08:05Z </when>
+					<when>2016-01-15T08:20Z </when>
+					<when>2016-01-15T08:35Z </when>
+					<when>2016-01-15T08:51Z </when>
+					<when>2016-01-15T09:06Z </when>
+					<when>2016-01-15T09:21Z </when>
+					<when>2016-01-15T09:37Z </when>
+					<when>2016-01-15T09:52Z </when>
+					<when>2016-01-15T10:07Z </when>
+					<when>2016-01-15T10:23Z </when>
+					<when>2016-01-15T10:38Z </when>
+					<when>2016-01-15T11:08Z </when>
+					<when>2016-01-15T11:24Z </when>
+					<when>2016-01-15T17:29Z </when>
+					<when>2016-03-09T17:34Z </when>
+					<when>2016-03-09T17:35Z </when>
+					<when>2016-03-09T18:39Z </when>
+					<when>2016-03-10T04:53Z </when>
+					<when>2016-03-10T18:45Z </when>
+					<when>2016-03-11T04:51Z </when>
+					<when>2016-04-07T17:20Z </when>
+					<when>2016-04-07T17:21Z </when>
+					<when>2016-04-07T19:19Z </when>
+					<when>2016-04-08T03:55Z </when>
+					<gx:coord>-68.754425 44.530464 19 </gx:coord>
+					<gx:coord>-68.755135 44.530773 17 </gx:coord>
+					<gx:coord>-68.752617 44.528122 22 </gx:coord>
+					<gx:coord>-68.756569 44.516762 21 </gx:coord>
+					<gx:coord>-68.756424 44.514145 28 </gx:coord>
+					<gx:coord>-68.756424 44.51408 33 </gx:coord>
+					<gx:coord>-68.756416 44.514194 22 </gx:coord>
+					<gx:coord>-68.756432 44.514214 17 </gx:coord>
+					<gx:coord>-68.756439 44.51424 26 </gx:coord>
+					<gx:coord>-68.756432 44.514225 7 </gx:coord>
+					<gx:coord>-68.756454 44.514168 14 </gx:coord>
+					<gx:coord>-68.756432 44.514202 18 </gx:coord>
+					<gx:coord>-68.75647 44.514149 24 </gx:coord>
+					<gx:coord>-68.75647 44.514187 29 </gx:coord>
+					<gx:coord>-68.756508 44.514187 14 </gx:coord>
+					<gx:coord>-68.756561 44.514244 27 </gx:coord>
+					<gx:coord>-68.756744 44.515347 -304 </gx:coord>
+					<gx:coord>-68.756454 44.514221 9 </gx:coord>
+					<gx:coord>-68.756432 44.514137 22 </gx:coord>
+					<gx:coord>-68.756493 44.514214 33 </gx:coord>
+					<gx:coord>-68.756416 44.514076 23 </gx:coord>
+					<gx:coord>-68.756302 44.514332 5 </gx:coord>
+					<gx:coord>-68.75663 44.514091 39 </gx:coord>
+					<gx:coord>-68.756485 44.514217 21 </gx:coord>
+					<gx:coord>-68.756493 44.514233 19 </gx:coord>
+					<gx:coord>-68.75647 44.514202 26 </gx:coord>
+					<gx:coord>-68.756516 44.514233 54 </gx:coord>
+					<gx:coord>-68.756447 44.514168 2 </gx:coord>
+					<gx:coord>-68.756424 44.514164 24 </gx:coord>
+					<gx:coord>-68.756561 44.514187 35 </gx:coord>
+					<gx:coord>-68.756485 44.51424 31 </gx:coord>
+					<gx:coord>-68.756493 44.514179 29 </gx:coord>
+					<gx:coord>-68.756485 44.514236 23 </gx:coord>
+					<gx:coord>-68.756363 44.514244 8 </gx:coord>
+					<gx:coord>-68.756424 44.514259 -15 </gx:coord>
+					<gx:coord>-68.759087 44.508427 11 </gx:coord>
+					<gx:coord>-68.784889 44.44804 33 </gx:coord>
+					<gx:coord>-68.784775 44.448002 23 </gx:coord>
+					<gx:coord>-68.784828 44.448063 43 </gx:coord>
+					<gx:coord>-68.785248 44.448074 4 </gx:coord>
+					<gx:coord>-68.765785 44.443668 2068 </gx:coord>
+					<gx:coord>-68.785088 44.448105 18 </gx:coord>
+					<gx:coord>-68.784973 44.448048 36 </gx:coord>
+					<gx:coord>-68.785095 44.44812 20 </gx:coord>
+					<gx:coord>-68.785019 44.448132 21 </gx:coord>
+					<gx:coord>-68.8787 44.412937 20 </gx:coord>
+		</gx:Track>
+	</Placemark>
+ 	</Folder>
+</Document>
+</kml>

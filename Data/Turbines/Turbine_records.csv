@@ -1,0 +1,6 @@
+id,model,icon_label_scale,icon_ball_bg_color,icon_ball_text_color,hi_icon_label_scale,hi_icon_ball_bg_color,hi_icon_ball_text_color
+1,GE SLE 1.5MW,0,ff333333,ffffffff,0.75,ff333333,ffffffff
+2,Vestas V100 1.8MW,0,ff333333,ffffffff,0.75,ff333333,ffffffff
+3,Gamesa G90 2MW,0,ff333333,ffffffff,0.75,ff333333,ffffffff
+4,Vestas V90 3MW,0,ff333333,ffffffff,0.75,ff333333,ffffffff
+5,Siemens 93 2.3MW,0,ff333333,ffffffff,0.75,ff333333,ffffffff

@@ -1,0 +1,26 @@
+developer,status,location,project,total_mw,num_turbine,turb_model,hub_ht_m,rotor_diam,rotor_top,rotor_btm,long,lat,show
+First Wind,Operating,Bull Hill,Bull Hill,34.2,19,Vestas V100 1.8MW,95,100,145,45,-68.16,44.71105,1
+First Wind,Operating,Mars Hill,Mars Hill,42,28,GE 1.5MW SLE,80,77,118,41,-67.8137,46.5367,1
+First Wind,Operating,Rollins Mountain,Rollins,60,40,GE 1.5MW SLE,80,77,118,41,-68.3637,45.38725,1
+First Wind,Operating,Stetson Mountain,Stetson,57,38,GE 1.5MW SLE,80,77,118,41,-67.97639,45.52611,1
+First Wind,Operating,Jimmy Mountain,Stetson II,25.5,17,GE 1.5MW SLE,80,77,118,41,-67.967,45.6098,1
+Fox Islands Electiric Cooperative,Operating,Vinalhaven,Fox Islands,4.5,3,GE 1.5MW SLE,80,77,118,41,-68.8656,44.0943,1
+Patriot Renewables,Operating,Beaver Ridge,Beaver Ridge,4.5,3,GE 1.5MW SLE,80,77,118,41,-69.3353,44.49595,1
+Patriot Renewables,Operating,Spruce Mountain,Spruce Mountain,20,10,Gamesa G90 2MW,78,90,123,33,-70.5589,44.416,1
+Record Hill Wind,Operating,Record Hill,Record Hill,50.6,22,Siemens 93 2.3MW,80,93,126,33,-70.62999,44.6552,1
+TransCanada,Operating,Kibby Mountain,Kibby Mountain,132,44,Vestas V90 3MW,80,90,125,35,-70.53673,45.39323,1
+First Wind,Proposed,Bowers Mountain,Bowers,0,0,,0,0,0,0,-68.03113,45.38172,1
+First Wind,Proposed,Black Mountain,Longfellow,0,0,,0,0,0,0,-70.6376,44.584,1
+First Wind,Proposed,Oakfield,Oakfield,0,0,,0,0,0,0,-68.15,46.1,1
+Hancock,Proposed,Schoope Ridge,Hancock,0,18,,0,0,0,0,-68.18565,44.76526,1
+Patriot Renewables,Proposed,Canton Mountain,Canton Mountain,0,0,,0,0,0,0,-70.30323,44.50763,1
+Patriot Renewables,Proposed,Saddleback Mountain,Saddleback Ridge,0,0,,0,0,0,0,-70.50326,44.6421,1
+Quantum Utility Generation,Proposed,Passadumkeag Mountain,Passadumkeag Mountain,0,14,,0,0,0,0,-68.3582,45.1292,1
+Univeristy of Maine / DeepCWind,Proposed,Moghegan Island,Aqua Ventus,0,0,,0,0,0,0,-69.31514,43.72896,1
+First Wind,Development,Bingham,Bingham,0,0,,0,0,0,0,-69.86604,45.05646,0
+Horizon Wind Energy,Development,Bridgewater,Number Nine,0,0,,0,0,0,0,-67.84272,46.41904,0
+Iberdrola,Development,Fletcher Mountain,Fletcher Mountain,0,0,,0,0,0,0,-69.94063,45.0393,0
+Independence WInd,Development,Bald Mountain,Highland,0,0,,0,0,0,0,-69.7698,45.2555,0
+Maine Mountain Power,Cancelled,Mount Redington,Redington and Black Nubble,0,0,,0,0,0,0,-70.38867,45.025,0
+Maine Mountain Power,Cancelled,Black Nubble,Redington and Black Nubble,0,0,,0,0,0,0,-70.44717,45.032,0
+Statoil,Cancelled,Boothbay,Hywind,0,0,,0,0,0,0,-69.49552,43.68558,1

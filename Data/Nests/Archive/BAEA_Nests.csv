@@ -1,0 +1,5 @@
+nest_id,nest_id_num,nest_site,eagle_id,nest_long,nest_lat,nest_long_utm,nest_lat_utm,nest_alt,active_2013,active_2014,active_2015,active_2016,active_2017,use_start_date,use_end_date,clutch_initiation,breeding_end_date,clutch_size,num_fledge,nest_notes
+619A,61901,Crooked,Crooked,-68.4525,45.3541,542920,5022431,69,TRUE,TRUE,NA,NA,NA,20130101,NA,NA,NA,NA,NA,NA
+620A,62001,Madagascal,Madagascal,-68.3569,45.2911,550435,5015512,90,TRUE,FALSE,NA,NA,NA,20130101,20131231,NA,NA,NA,NA,NA
+620S01,6201901,SilverLake,Madagascal,,,553477,5022693,90,FALSE,TRUE,NA,NA,NA,20140101,NA,NA,NA,NA,NA,NA
+524A,52401,Cherryfield,Cherryfield,-67.8875,44.7004,585334,4938305,37,TRUE,TRUE,NA,NA,NA,20130101,NA,NA,NA,NA,NA,NA

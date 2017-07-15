@@ -1,0 +1,4 @@
+id,status,icon_label_scale,icon_color,icon_scale,icon_href,icon_ball_bg_color,icon_ball_text_color,hi_icon_label_scale,hi_icon_color,hi_icon_scale,hi_icon_href,hi_icon_ball_bg_color,hi_icon_ball_text_color
+1,Operating,0.8,FF1478DC,0.9,http://maps.google.com/mapfiles/kml/paddle/ylw-circle.png,ff333333,ffffffff,0.85,FF1478DC,1,http://maps.google.com/mapfiles/kml/paddle/ylw-circle.png,ff333333,ffffffff
+2,Proposed,0.8,FF14E7FF,0.9,http://maps.google.com/mapfiles/kml/paddle/ylw-circle.png,ff333333,ffffffff,0.85,FF14E7FF,1,http://maps.google.com/mapfiles/kml/paddle/ylw-circle.png,ff333333,ffffffff
+3,Cancelled,0.8,FF780078,0.9,http://maps.google.com/mapfiles/kml/paddle/ylw-circle.png,ff333333,ffffffff,0.85,FF780078,1,http://maps.google.com/mapfiles/kml/paddle/ylw-circle.png,ff333333,ffffffff
