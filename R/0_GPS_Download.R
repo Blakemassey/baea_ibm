@@ -6,17 +6,30 @@ library(baear)
 library(gisr)
 library(ibmr)
 
+theme_massey <- theme_bw() + theme(plot.title = element_text(size = 22)) +
+    theme(text = element_text(size = 18, colour = "black")) +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1, colour = "black")) +
+    theme(text = element_text(size = 20, colour = "black")) +
+    theme(axis.text = element_text(colour = "black"))  +
+    theme(panel.background = element_rect(fill = "gray90")) +
+    theme(panel.grid.major = element_line(color = "gray80")) +
+    theme(panel.grid.minor = element_line(color = "gray80")) +
+    scale_colour_manual(values = by_colors)
+
 ## Download RECENT Deployed Data -----------------------------------------------
 DownloadCTT(units="deployed", download="recent")
 deployed_recent <- CompileDownloads(units="deployed", compile="recent")
 deployed_all <- ImportUnits(units="deployed", existing=deployed_recent,
   import=TRUE)
+saveRDS(deployed_all, file="Data/CTT/Deployed/Deployed.rds")
 
 ## Filter Deployed -------------------------------------------------------------
 week_ago <- as.character(lubridate::floor_date(lubridate::now() -
   lubridate::period(1, "week"), "day"))
 deployed <- FilterLocations(df=deployed_all, id="id", individual="",
   start=week_ago, end="")
+
+RemoveExcept(c("deployed", "deployed_all"))
 
 ## Export KML of Locations -----------------------------------------------------
 ExportKMLTelemetryBAEA(df=deployed, file="BAEA Data.kml")
@@ -26,16 +39,13 @@ PlotLocationSunriseSunset(df=deployed, by="id", individual="",
   start="", end="", breaks="1 days", tz="Etc/GMT+5", addsolartimes=TRUE,
   wrap=TRUE)
 
-## Update Weekly Data and Weekly KLM files -------------------------------------
-RemoveExcept(c("deployed", "deployed_all"))
-devtools::reload("C:/Work/R/Packages/baear")
-devtools::reload("C:/Work/R/Packages/gisr")
-devtools::reload("C:/Work/R/Packages/ibmr")
-UpdateWeeklyData(data=deployed_all, date="2017-03-12", send_email=FALSE)
-UpdateWeeklyKMLFiles(deployed_all, start="2017-01-01", end="2017-03-18")
+## Update Individual By Year KLM files -----------------------------------------
+UpdateIndByYearKMLs(data=deployed_all, update_only=TRUE, update_gdrive=TRUE)
 
-## Download ALL Deployed Data and Write a New "deployed.csv" File --------------
+## Download ALL Deployed Data and Write a new "deployed.csv" File --------------
 #DownloadCTT(units="deployed", download="all")
 deployed_all <- CompileDownloads(units="deployed", compile="all")
-write.csv(deployed_all, file=file.path("C:/Work/R/Data/BAEA/Telemetry",
-  "Deployed/Deployed.csv"), row.names=FALSE)
+saveRDS(deployed_all, file="Data/CTT/Deployed/Deployed.rds")
+
+# Send Email to Charlie and Erynn ----------------------------------------------
+SendWeeklyData(data=deployed_all, date="2017-03-12", send_email=FALSE)
