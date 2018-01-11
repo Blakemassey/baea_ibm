@@ -26,13 +26,13 @@ lc_30mc <- raster("C:/ArcGIS/Data/Landcover/Landcover/lc_30mc.tif")
 
 ################## CONVERT POINT DATA AND CROP LANDSCAPE RASTER ################
 
-ua_data_sp <- SpatialPointsDataFrame(ua_data[,c("x","y")], ua_data, 
+ua_data_sp <- SpatialPointsDataFrame(ua_data[,c("x","y")], ua_data,
   proj4string = CRS("+proj=utm +zone=19 ellps=WGS84"), bbox = NULL)
 lc_crop <- crop(lc_30mc, extend(extent(ua_data_sp), 500))
 
 ###################### CONVERT LANDSCAPE RASTER ################################
 
-# Convert all non-zero values to 1's 
+# Convert all non-zero values to 1's
 
 developed <- subs(lc_crop, data.frame(id=c(21:24), v=rep(1, 4))) ## Developed
 developed[is.na(developed)] <- 0
@@ -65,21 +65,21 @@ load(file=file.path(getwd(), "ua_data_lc_data.RData"))
 # cell = a vector of the cell numbers of each point
 # surface = a data frame with x/y coordinates and values of the raster surface
 
-  r1 <- rasterFromXYZ(surface1) 
+  r1 <- rasterFromXYZ(surface1)
 
   r2 <- rasterFromXYZ(surface2)# surface is a df with X|Y|VALUES
-#  zmat2 <- as.matrix(r2) 
+#  zmat2 <- as.matrix(r2)
 
 nll_kern_bw <- function(parms=parms, z=z, cell=cell, zmat1=zmat1, zmat2=zmat2){
   # Parameters
   b0 <- parms[1]         # intercept
   bx1 <- parms[2]         # slope of the relationship
-  bwx1 <-  exp(parms[3])+1  
+  bwx1 <-  exp(parms[3])+1
   bx2 <- parms[4]# bw/spatial scale parameter
-  bwx2 <-  exp(parms[5])+1  
+  bwx2 <-  exp(parms[5])+1
   # Create matrix
-  zmat1 <- as.matrix(r1) 
-  zmat2 <- as.matrix(r1) 
+  zmat1 <- as.matrix(r1)
+  zmat2 <- as.matrix(r1)
   # Gaussian-weighted smooth of matrix
   f <- kernel2dsmooth(zmat1,kernel.type="gauss", nx=nrow(r), ny=ncol(r),sigma=bwx1)
   values(r1) <- f
@@ -100,7 +100,7 @@ opt_mods_coef <- dplyr::left_join(opt_mods, all_mods, by = c("lc_type", "bw"))
 #   test <- eval(parse(text = lc_types[i]))
 #   print(test)
 #  }
-  
+
 # Parameters
 developed_table = opt_mods_coef %>% filter(lc_type == "developed")
 parms_developed <- c(developed_table$intercept, developed_table$slope, log(developed_table$opt_bw/15))
@@ -192,34 +192,30 @@ log(150)
 exp(5.010635)
 
 
-# FAILED 
+# FAILED
 system.time(out <- optim(par=parms, fn=nll_kern_bw, method = "L-BFGS-B",
-      lower = c(-Inf, -Inf, log(1)), upper = rep(Inf, Inf, log(500)), 
-      z=ua_data$point, cell=cell1, surface=surface, control = list(trace=3, 
+      lower = c(-Inf, -Inf, log(1)), upper = rep(Inf, Inf, log(500)),
+      z=ua_data$point, cell=cell1, surface=surface, control = list(trace=3,
         REPORT=1)))
 # FAILED
 system.time(out <- nlm(nll_kern_bw,parms,print.level=2,hessian=TRUE))
 
 
-
 ################ MULTI LAYER OPTIMX ############################################
-
-
-
 
 # Create surfaces and matrixes
 
-r1 <- surface1 
+r1 <- surface1
 r2 <- surface2
-zmat1 <- as.matrix(r1) 
-zmat2 <- as.matrix(r2)  
+zmat1 <- as.matrix(r1)
+zmat2 <- as.matrix(r2)
 
 # Likelihood function
 # z = a vector of zeros and ones corresponding to available and used points
 # cell = a vector of the cell numbers of each point
-# surface = a data frame with x/y coordinates and values of the raster surface    
-    
-nll_kern_bw <- function(parms=parms, z=z, cell=cell, r1=r1, r2=r2, 
+# surface = a data frame with x/y coordinates and values of the raster surface
+
+nll_kern_bw <- function(parms=parms, z=z, cell=cell, r1=r1, r2=r2,
     zmat1=zmat1, zmat2=zmat2){
   # Parameters
   b0 <- parms[1]             # intercept
@@ -240,23 +236,6 @@ nll_kern_bw <- function(parms=parms, z=z, cell=cell, r1=r1, r2=r2,
   ll <- -1*sum(tmp)
   return(ll)
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 for (i in 1:length(lc_types)){
   lc_type_i <- lc_types[i]
@@ -282,35 +261,35 @@ for (i in 1:length(lc_types)){
     "255"  = glm(ua_data_sub[,1]~ua_data_sub[,19], ua_data_sub, family="binomial"),
     "270"  = glm(ua_data_sub[,1]~ua_data_sub[,20], ua_data_sub, family="binomial"),
     "285"  = glm(ua_data_sub[,1]~ua_data_sub[,21], ua_data_sub, family="binomial"),
-    "300"  = glm(ua_data_sub[,1]~ua_data_sub[,22], ua_data_sub, family="binomial"),  
-    "315"  = glm(ua_data_sub[,1]~ua_data_sub[,23], ua_data_sub, family="binomial"),   
-    "330"  = glm(ua_data_sub[,1]~ua_data_sub[,24], ua_data_sub, family="binomial"), 
-    "345"  = glm(ua_data_sub[,1]~ua_data_sub[,25], ua_data_sub, family="binomial"),   
-    "360"  = glm(ua_data_sub[,1]~ua_data_sub[,26], ua_data_sub, family="binomial"),   
-    "375"  = glm(ua_data_sub[,1]~ua_data_sub[,27], ua_data_sub, family="binomial"),   
-    "390"  = glm(ua_data_sub[,1]~ua_data_sub[,28], ua_data_sub, family="binomial"),   
-    "405"  = glm(ua_data_sub[,1]~ua_data_sub[,29], ua_data_sub, family="binomial"),   
-    "420"  = glm(ua_data_sub[,1]~ua_data_sub[,30], ua_data_sub, family="binomial"),   
-    "435"  = glm(ua_data_sub[,1]~ua_data_sub[,31], ua_data_sub, family="binomial"),  
-    "450"  = glm(ua_data_sub[,1]~ua_data_sub[,32], ua_data_sub, family="binomial"),   
-    "465"  = glm(ua_data_sub[,1]~ua_data_sub[,33], ua_data_sub, family="binomial"),     
-    "480"  = glm(ua_data_sub[,1]~ua_data_sub[,34], ua_data_sub, family="binomial"),     
-    "495"  = glm(ua_data_sub[,1]~ua_data_sub[,35], ua_data_sub, family="binomial"),     
-    "510"  = glm(ua_data_sub[,1]~ua_data_sub[,36], ua_data_sub, family="binomial"),     
-    "525"  = glm(ua_data_sub[,1]~ua_data_sub[,37], ua_data_sub, family="binomial"),     
-    "540"  = glm(ua_data_sub[,1]~ua_data_sub[,38], ua_data_sub, family="binomial"),     
-    "555"  = glm(ua_data_sub[,1]~ua_data_sub[,39], ua_data_sub, family="binomial"),     
-    "570"  = glm(ua_data_sub[,1]~ua_data_sub[,40], ua_data_sub, family="binomial"),     
+    "300"  = glm(ua_data_sub[,1]~ua_data_sub[,22], ua_data_sub, family="binomial"),
+    "315"  = glm(ua_data_sub[,1]~ua_data_sub[,23], ua_data_sub, family="binomial"),
+    "330"  = glm(ua_data_sub[,1]~ua_data_sub[,24], ua_data_sub, family="binomial"),
+    "345"  = glm(ua_data_sub[,1]~ua_data_sub[,25], ua_data_sub, family="binomial"),
+    "360"  = glm(ua_data_sub[,1]~ua_data_sub[,26], ua_data_sub, family="binomial"),
+    "375"  = glm(ua_data_sub[,1]~ua_data_sub[,27], ua_data_sub, family="binomial"),
+    "390"  = glm(ua_data_sub[,1]~ua_data_sub[,28], ua_data_sub, family="binomial"),
+    "405"  = glm(ua_data_sub[,1]~ua_data_sub[,29], ua_data_sub, family="binomial"),
+    "420"  = glm(ua_data_sub[,1]~ua_data_sub[,30], ua_data_sub, family="binomial"),
+    "435"  = glm(ua_data_sub[,1]~ua_data_sub[,31], ua_data_sub, family="binomial"),
+    "450"  = glm(ua_data_sub[,1]~ua_data_sub[,32], ua_data_sub, family="binomial"),
+    "465"  = glm(ua_data_sub[,1]~ua_data_sub[,33], ua_data_sub, family="binomial"),
+    "480"  = glm(ua_data_sub[,1]~ua_data_sub[,34], ua_data_sub, family="binomial"),
+    "495"  = glm(ua_data_sub[,1]~ua_data_sub[,35], ua_data_sub, family="binomial"),
+    "510"  = glm(ua_data_sub[,1]~ua_data_sub[,36], ua_data_sub, family="binomial"),
+    "525"  = glm(ua_data_sub[,1]~ua_data_sub[,37], ua_data_sub, family="binomial"),
+    "540"  = glm(ua_data_sub[,1]~ua_data_sub[,38], ua_data_sub, family="binomial"),
+    "555"  = glm(ua_data_sub[,1]~ua_data_sub[,39], ua_data_sub, family="binomial"),
+    "570"  = glm(ua_data_sub[,1]~ua_data_sub[,40], ua_data_sub, family="binomial"),
     "585"  = glm(ua_data_sub[,1]~ua_data_sub[,41], ua_data_sub, family="binomial"),
-    "600"  = glm(ua_data_sub[,1]~ua_data_sub[,42], ua_data_sub, family="binomial"),   
-    "615"  = glm(ua_data_sub[,1]~ua_data_sub[,43], ua_data_sub, family="binomial"),     
-    "630"  = glm(ua_data_sub[,1]~ua_data_sub[,44], ua_data_sub, family="binomial"),     
-    "645"  = glm(ua_data_sub[,1]~ua_data_sub[,45], ua_data_sub, family="binomial"),     
-    "660"  = glm(ua_data_sub[,1]~ua_data_sub[,46], ua_data_sub, family="binomial"),     
-    "675"  = glm(ua_data_sub[,1]~ua_data_sub[,47], ua_data_sub, family="binomial"),     
-    "690"  = glm(ua_data_sub[,1]~ua_data_sub[,48], ua_data_sub, family="binomial"),     
-    "705"  = glm(ua_data_sub[,1]~ua_data_sub[,49], ua_data_sub, family="binomial"),     
-    "720"  = glm(ua_data_sub[,1]~ua_data_sub[,50], ua_data_sub, family="binomial"),     
+    "600"  = glm(ua_data_sub[,1]~ua_data_sub[,42], ua_data_sub, family="binomial"),
+    "615"  = glm(ua_data_sub[,1]~ua_data_sub[,43], ua_data_sub, family="binomial"),
+    "630"  = glm(ua_data_sub[,1]~ua_data_sub[,44], ua_data_sub, family="binomial"),
+    "645"  = glm(ua_data_sub[,1]~ua_data_sub[,45], ua_data_sub, family="binomial"),
+    "660"  = glm(ua_data_sub[,1]~ua_data_sub[,46], ua_data_sub, family="binomial"),
+    "675"  = glm(ua_data_sub[,1]~ua_data_sub[,47], ua_data_sub, family="binomial"),
+    "690"  = glm(ua_data_sub[,1]~ua_data_sub[,48], ua_data_sub, family="binomial"),
+    "705"  = glm(ua_data_sub[,1]~ua_data_sub[,49], ua_data_sub, family="binomial"),
+    "720"  = glm(ua_data_sub[,1]~ua_data_sub[,50], ua_data_sub, family="binomial"),
     "735"  = glm(ua_data_sub[,1]~ua_data_sub[,51], ua_data_sub, family="binomial"),
     "750"  = glm(ua_data_sub[,1]~ua_data_sub[,52], ua_data_sub, family="binomial"),
     "825"  = glm(ua_data_sub[,1]~ua_data_sub[,53], ua_data_sub, family="binomial"),
@@ -319,15 +298,15 @@ for (i in 1:length(lc_types)){
     "1050"  = glm(ua_data_sub[,1]~ua_data_sub[,56], ua_data_sub, family="binomial"),
     "1125"  = glm(ua_data_sub[,1]~ua_data_sub[,57], ua_data_sub, family="binomial"),
     "1200"  = glm(ua_data_sub[,1]~ua_data_sub[,58], ua_data_sub, family="binomial"),
-    "1275"  = glm(ua_data_sub[,1]~ua_data_sub[,59], ua_data_sub, family="binomial"),  
+    "1275"  = glm(ua_data_sub[,1]~ua_data_sub[,59], ua_data_sub, family="binomial"),
     "1350"  = glm(ua_data_sub[,1]~ua_data_sub[,60], ua_data_sub, family="binomial"),
     "1425"  = glm(ua_data_sub[,1]~ua_data_sub[,61], ua_data_sub, family="binomial"),
-    "1500"  = glm(ua_data_sub[,1]~ua_data_sub[,62], ua_data_sub, family="binomial")     
+    "1500"  = glm(ua_data_sub[,1]~ua_data_sub[,62], ua_data_sub, family="binomial")
   )
   mod_table <- aictab(lc_mods, second.ord = FALSE)
   View(mod_table)
   optimum_bw <- as.numeric(as.character(mod_table[1,1]))
-  g <- ggplot(mod_table, aes(x=as.numeric(as.character(Modnames)), y = AIC)) + 
+  g <- ggplot(mod_table, aes(x=as.numeric(as.character(Modnames)), y = AIC)) +
     geom_line(color="red") + geom_point() + xlab("Bandwidth") + theme_no_legend +
     ggtitle(lc_type_i) + geom_vline(xintercept = optimum_bw, color="blue")
   print(g)
@@ -369,7 +348,7 @@ lc_mods <- list(
 
 
 
-predict_range <- with(ua_data, data.frame(open_water15 = seq(from = 0, to = 1, 
+predict_range <- with(ua_data, data.frame(open_water15 = seq(from = 0, to = 1,
   length.out = 100)))
 
 
@@ -378,7 +357,7 @@ lc_mods <- list(
   "15"   = glm(point~open_water15,    ua_data, family="binomial")
   )
 
-predicted <- cbind(predict_range, predict(lc_mods[["15"]], 
+predicted <- cbind(predict_range, predict(lc_mods[["15"]],
   newdata=predict_range, type="link", se=TRUE))
 predicted <- within(predicted, {
   Predicted_Prob <- plogis(fit)
@@ -530,9 +509,9 @@ all_nests <- read.csv(file=file.path("C:/Work/R/Data/BAEA/Nests",
 all_nests <- ConvertNestIdToNum(all_nests)
 
 study_nests <- read.csv(file=file.path("C:/Work/R/Data/BAEA/Nests/",
-    "Nests_Study.csv"), header=TRUE, stringsAsFactors=FALSE) %>% 
-#  dplyr::filter(!name %in% c("Cherryfield", "Madagascal", "Webb", "Upper")) 
-  dplyr::filter(name %in% c("Sheepscot", "Sandy"))   
+    "Nests_Study.csv"), header=TRUE, stringsAsFactors=FALSE) %>%
+#  dplyr::filter(!name %in% c("Cherryfield", "Madagascal", "Webb", "Upper"))
+  dplyr::filter(name %in% c("Sheepscot", "Sandy"))
 study_nests <- ConvertNestIdToNum(study_nests)
 study_nests[, "nest_id"] <- study_nests[, "nest_site"]
 
@@ -541,12 +520,12 @@ base <- raster("C:/ArcGIS/Data/BlankRaster/maine_30mc.tif")
 baea_all <- read.csv("C:/Work/R/Data/BAEA/BAEA.csv", header=TRUE)
 baea_sub <-  baea_all %>%
   dplyr::filter(agl <= 67) %>%
-  dplyr::filter(speed <= 2) %>%  
+  dplyr::filter(speed <= 2) %>%
   dplyr::filter(year == 2015) %>%
 #  dplyr::filter(!id %in% c("Cherryfield", "Madagascal", "Webb", "Upper"))
-  dplyr::filter(id %in% c("Sheepscot", "Sandy"))  
-  
-used <- baea_sub %>%  
+  dplyr::filter(id %in% c("Sheepscot", "Sandy"))
+
+used <- baea_sub %>%
   mutate(x = long_utm) %>%
   mutate(y = lat_utm) %>%
   mutate(point = 1) %>%

@@ -1,6 +1,7 @@
-### This script is for importing baea data (.csv) and nest data (.RData) to
-### create raster layers of home dist and con dist, perform analyses, and plot
-###
+# ------------------------- TERRIROTIRAL ANALYSIS -----------------------------#
+# This script is for importing baea data (.csv) and nest data (.RData) to
+# create raster layers of home dist and con dist, perform analyses, and plot.
+# -----------------------------------------------------------------------------#
 
 ################################# SET UP #######################################
 
@@ -37,14 +38,13 @@ theme_no_legend <- theme_legend + theme(legend.position="none")
 
 # Image directory
 image_output <- file.path("C:/Users/blake/Documents/PhD Program",
-  "McGarigal Lab Presentations/Lab Presentation - 2017.04.25/Images")
-output_dir = "C:/Users/blake/Desktop"
+  "McGarigal Lab Presentations/Lab Presentation - 2017.10/Images")
 
 ############################  IMPORT FILES  ####################################
 
 ## Import Baea, Nests, and Base ------------------------------------------------
-load(file="C:/Work/R/Data/R_Input/BAEA/baea.RData")
-load(file="C:/Work/R/Data/R_Input/BAEA/nests_active.RData")
+baea <- readRDS(file="Data/BAEA/baea.rds")
+nests_active <- readRDS(file="Data/Nests/nests_active.RDS")
 base = raster(file.path("C:/ArcGIS/Data/BlankRaster/maine_30mc.tif"))
 
 ## Filter BAEA Data ------------------------------------------------------------
@@ -78,76 +78,75 @@ devtools::reload("C:/Work/R/Packages/gisr")
 devtools::reload("C:/Work/R/Packages/ibmr")
 
 homerange_distances <- AddHomeConEdgeDistanceBAEA(baea, nests_active, base,
-  output_dir = "C:/Work/R/Workspace/2016_Nests_Rasters", max_r = 30000,
-  write_home_dist = TRUE, write_con_dist = TRUE, write_con_dist_nest = TRUE,
-  write_edge_dist = TRUE, write_terr_edge = TRUE)
+  output_dir = "Output/GIS/Analysis_Territorial", max_r = 30000,
+  write_home_dist = TRUE, write_con_dist = FALSE, write_con_dist_nest = TRUE,
+  write_edge_dist = FALSE, write_terr_edge = FALSE)
 
 ## Merge ConDist Rasters -------------------------------------------------------
 
-con_dist_files <- list.files("C:/Work/R/Workspace/2016_Nests_Rasters/2016",
+con_dist_files <- list.files("Output/GIS/Analysis_Territorial",
   pattern="^ConDist_+.+tif$", full.names=TRUE, recursive = TRUE)
 con_dist <- list()
-for(i in 1:length(con_dist_files)){con_dist[i] <- raster(con_dist_files[i])}
+for(i in 1:length(con_dist_files)){con_dist[[i]] <- raster(con_dist_files[i])}
 con_dist <- do.call(merge, con_dist)
-writeRaster(con_dist, filename=file.path("C:/Work/R/Workspace",
-  "2016_Nests_Rasters/ConDist_All.tif"), format="GTiff", overwrite=TRUE)
+writeRaster(con_dist, filename=file.path("Output/GIS/Analysis_Territorial",
+  "ConDist_All.tif"), format="GTiff", overwrite=TRUE)
 plot(con_dist)
 
 ## Merge ConDistNest Rasters ---------------------------------------------------
 
-con_dist_nest_files <- list.files("C:/Work/R/Workspace/2016_Nests_Rasters/2016",
+con_dist_nest_files <- list.files("Output/GIS/Analysis_Territorial",
   pattern="^ConDistNest_+.+tif$", full.names=TRUE, recursive = TRUE)
 con_dist_nest <- list()
-for(i in 1:length(con_dist_nest_files)){con_dist_nest[i] <-
+for(i in 1:length(con_dist_nest_files)){con_dist_nest[[i]] <-
   raster(con_dist_nest_files[i])}
 con_dist_nest <- do.call(merge, con_dist_nest)
-writeRaster(con_dist_nest, filename=file.path("C:/Work/R/Workspace",
-  "2016_Nests_Rasters/ConDistNest_All.tif"), format="GTiff", overwrite=TRUE)
+writeRaster(con_dist_nest, filename=file.path("Output/GIS/Analysis_Territorial",
+  "ConDistNest_All.tif"), format="GTiff", overwrite=TRUE)
 plot(con_dist_nest)
 
 ## Merge EdgeDist Rasters ------------------------------------------------------
 
-edge_dist_files <- list.files("C:/Work/R/Workspace/2016_Nests_Rasters/2016",
+edge_dist_files <- list.files("Output/GIS/Analysis_Territorial",
   pattern="^EdgeDist_+.+tif$", full.names=TRUE, recursive = TRUE)
 edge_dist <- list()
-for(i in 1:length(edge_dist_files)){edge_dist[i] <- raster(edge_dist_files[i])}
+for(i in 1:length(edge_dist_files)){edge_dist[[i]] <-raster(edge_dist_files[i])}
 edge_dist <- do.call(merge, edge_dist)
-writeRaster(edge_dist, filename=file.path("C:/Work/R/Workspace",
-  "2016_Nests_Rasters/EdgeDist_All.tif"), format="GTiff", overwrite=TRUE)
+writeRaster(edge_dist, filename=file.path("Output/GIS/Analysis_Territorial",
+  "EdgeDist_All.tif"), format="GTiff", overwrite=TRUE)
 plot(edge_dist)
 
 ## Merge EdgeShiftDist Rasters -------------------------------------------------
 
-edge_dist_shift_files <- list.files(file.path("C:/Work/R/Workspace",
-  "2016_Nests_Rasters/2016"), pattern="^EdgeDistShift_+.+tif$", full.names=TRUE,
-  recursive = TRUE)
+edge_dist_shift_files <- list.files("Output/GIS/Analysis_Territorial",
+  pattern="^EdgeDistShift_+.+tif$", full.names=TRUE, recursive = TRUE)
 edge_dist_shift <- list()
-for(i in 1:length(edge_dist_shift_files)){edge_dist_shift[i] <-
+for(i in 1:length(edge_dist_shift_files)){edge_dist_shift[[i]] <-
   raster(edge_dist_shift_files[i])}
 edge_dist_shift <- do.call(merge, edge_dist_shift)
-writeRaster(edge_dist_shift, filename=file.path("C:/Work/R/Workspace",
-  "2016_Nests_Rasters/EdgeDistShift_All.tif"), format="GTiff", overwrite=TRUE)
+writeRaster(edge_dist_shift, filename=file.path("Output/GIS",
+  "Analysis_Territorial/EdgeDistShift_All.tif"), format="GTiff", overwrite=TRUE)
 plot(edge_dist_shift)
 
 ## Merge HomeDist Rasters ------------------------------------------------------
 
-home_dist_files <- list.files("C:/Work/R/Workspace/2016_Nests_Rasters/2016",
+home_dist_files <- list.files("Output/GIS/Analysis_Territorial",
   pattern="^HomeDist_+.+tif$", full.names=TRUE, recursive = TRUE)
 home_dist <- list()
-for(i in 1:length(home_dist_files)){home_dist[i] <- raster(home_dist_files[i])}
+for(i in 1:length(home_dist_files)){home_dist[[i]] <- raster(home_dist_files[i])}
 home_dist <- do.call(merge, home_dist)
 plot(home_dist)
-writeRaster(home_dist, filename=file.path("C:/Work/R/Workspace",
-  "2016_Nests_Rasters/HomeDist_All.tif"), format="GTiff", overwrite=TRUE)
+writeRaster(home_dist, filename=file.path("Output/GIS/Analysis_Territorial",
+  "HomeDist_All.tif"), format="GTiff", overwrite=TRUE)
 
 ## Merge TerrEdge Rasters ------------------------------------------------------
 
-terr_edge_dir<-"C:/Work/R/Workspace/2016_Nests_Rasters/2016/TerrEdge_Shapefiles"
-terr_edge_files <- list.files(terr_edge_dir,
-  pattern=".shp$", full.names=FALSE, recursive = TRUE)
+terr_edge_dir <- "Output/GIS/Analysis_Territorial/TerrEdge_Shapefile"
+terr_edge_files <- list.files(terr_edge_dir, pattern = ".shp$",
+  full.names = FALSE, recursive = TRUE)
 terr_edge <- list()
-for(i in 1:length(terr_edge_files)){ terr_edge[i] <- readOGR(dsn=terr_edge_dir,
-    layer=file_path_sans_ext(terr_edge_files[i]))}
+for(i in 1:length(terr_edge_files)){terr_edge[[i]] <- readOGR(dsn=terr_edge_dir,
+  layer=file_path_sans_ext(terr_edge_files[i]))}
 terr_edge <- do.call(bind, terr_edge)
 terr_edge_ll <- spTransform(terr_edge, wgs84)
 terr_edge_frt <- fortify(terr_edge_ll)
@@ -229,14 +228,13 @@ descdist(baea01$con_nest, boot=100)
 
 fits_baea01 <- list(
   exponential = fitdist(baea01$con_nest, "exp"),
-  halfnorm = fitdist(baea01$con_nest, "hnorm", start=list(sigma=
-    sqrt(pi/2))),
+  halfnorm = fitdist(baea01$con_nest, "hnorm", start=list(sigma= sqrt(pi))),
   gamma = fitdist(baea01$con_nest, "gamma"),
   pareto = fitdist(baea01$con_nest, "gpd", start=list(sigma=5, xi=5)),
   weibull = fitdist(baea01$con_nest, "weibull")
 )
 
-save(fits_baea01, file = "Output/fits_baea01.RData")
+save(fits_baea01, file = "Output/Data/fits_baea01.RData")
 
 sapply(fits_baea01, function(i) summary(i))
 sapply(fits_baea01, function(i) coef(i))

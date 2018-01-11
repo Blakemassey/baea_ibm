@@ -1,0 +1,1000 @@
+#------------------------- MOVEMENTS ANALYSIS ---------------------------------#
+# Script for analyzing baea movement patterns, fitting parameters, and plotting
+# step, turn angle, and redististribution kernels
+#------------------------------------------------------------------------------#
+suppressPackageStartupMessages(library(CircStats))
+suppressPackageStartupMessages(library(devtools))
+suppressPackageStartupMessages(library(dplyr))
+suppressPackageStartupMessages(library(fitdistrplus))
+suppressPackageStartupMessages(library(ggplot2))
+suppressPackageStartupMessages(library(ggthemes))
+suppressPackageStartupMessages(library(gridExtra))
+suppressPackageStartupMessages(library(lubridate))
+suppressPackageStartupMessages(library(raster))
+suppressPackageStartupMessages(library(scales))
+suppressPackageStartupMessages(library(stringr))
+suppressPackageStartupMessages(library(zoo))
+options(stringsAsFactors=FALSE)
+theme_update(plot.title = element_text(hjust = 0.5))
+library(baear)
+library(gisr)
+library(ibmr)
+wgs84 <- CRS("+init=epsg:4326") # WGS84 Lat/Long
+wgs84n19 <- CRS("+init=epsg:32619") # WGS84 UTM 19N
+
+############################  IMPORT FILES  ####################################
+
+## Import Baea behavior --------------------------------------------------------
+baea_behavior <- readRDS(file="Data/Baea/baea_behavior.rds")
+baea_behavior_rs <- readRDS(file="Data/Baea/baea_behavior_rs.rds")
+
+######################## ANALYZE MOVEMENTS  ####################################
+
+baea_movements <- baea_behavior %>%
+  arrange(id, datetime) %>%
+  group_by(id) %>%  #  slice(1:150) %>%
+  mutate(behavior_next = lead(behavior)) %>%
+  mutate(step_time2 = lead(datetime) - datetime) %>%
+  filter(step_time2 <= 20)  %>%  #
+  ungroup() %>%
+  mutate(behavior_behavior = paste(behavior, "->", behavior_next)) %>%
+  dplyr::select(id, datetime, step_time, step_time2, speed, alt, agl, dx, dy,
+    step_length, behavior, behavior_next, behavior_behavior, turn_angle)
+
+baea_rs_movements <- baea_movements %>%
+  group_by(behavior_behavior) %>%
+  sample_n(2000, replace = TRUE) %>%
+  ungroup(.) %>%
+  arrange(id, datetime)
+
+# All Data parameters ----------------------------------------------------------
+weibull_pars <- baea_movements %>%
+  left_join(., baea_movements %>% group_by(behavior_behavior) %>%
+      summarize(count = n()), by = "behavior_behavior") %>%
+  group_by(behavior_behavior) %>%
+  filter(step_length > 0 & count > 1) %>%
+  summarize(
+    behavior = unique(behavior),
+    behavior_next = unique(behavior_next),
+    count = n(),
+    min_step = max(step_length),
+    max_step = min(step_length),
+    weibull_shape = fitdist(step_length, distr = "weibull", method = "mle",
+      lower = c(0, 0))[[1]][1],
+    weibull_scale = fitdist(step_length, distr = "weibull", method = "mle",
+      lower = c(0, 0))[[1]][2]) %>%
+  dplyr::select(behavior, behavior_next, behavior_behavior, count, min_step,
+    max_step, weibull_shape, weibull_scale) %>%
+  ungroup()
+
+
+wrp_cauchy_pars <- baea_movements %>%
+  group_by(behavior_behavior) %>%
+  filter(!is.na(turn_angle)) %>%
+  summarize(
+    behavior = unique(behavior),
+    behavior_next = unique(behavior_next),
+    wrp_cauchy_mu_rad = CircStats::wrpcauchy.ml(turn_angle, 0, .5)[[1]],
+    wrp_cauchy_rho = CircStats::wrpcauchy.ml(turn_angle, 0, .5)[[2]]) %>%
+  mutate(wrp_cauchy_mu_deg = wrp_cauchy_mu_rad * (180/pi))  %>%
+  dplyr::select(behavior, behavior_next, behavior_behavior, wrp_cauchy_mu_rad,
+    wrp_cauchy_mu_deg, wrp_cauchy_rho) %>%
+  ungroup()
+
+redist_pars <- full_join(weibull_pars, wrp_cauchy_pars, by=c("behavior",
+  "behavior_next", "behavior_behavior"))
+
+write.csv(redist_pars, file="Output/Tables/redist_par.csv")
+
+# Random Sample parameters  ----------------------------------------------------
+weibull_rs_pars <- baea_rs_movements %>%
+  left_join(., baea_rs_movements %>% group_by(behavior_behavior) %>%
+      summarize(count = n()), by = "behavior_behavior") %>%
+  group_by(behavior_behavior) %>%
+  filter(step_length > 0 & count > 1) %>%
+  summarize(
+    behavior = unique(behavior),
+    behavior_next = unique(behavior_next),
+    count = n(),
+    min_step = max(step_length),
+    max_step = min(step_length),
+    weibull_shape = fitdist(step_length, distr = "weibull", method = "mle",
+      lower = c(0, 0))[[1]][1],
+    weibull_scale = fitdist(step_length, distr = "weibull", method = "mle",
+      lower = c(0, 0))[[1]][2]) %>%
+  dplyr::select(behavior, behavior_next, behavior_behavior, count, min_step,
+    max_step, weibull_shape, weibull_scale) %>%
+  ungroup()
+
+wrp_cauchy_rs_pars <- baea_rs_movements %>%
+  group_by(behavior_behavior) %>%
+  filter(!is.na(turn_angle)) %>%
+  summarize(
+    behavior = unique(behavior),
+    behavior_next = unique(behavior_next),
+    wrp_cauchy_mu_rad = CircStats::wrpcauchy.ml(turn_angle, 0, .5)[[1]],
+    wrp_cauchy_rho = CircStats::wrpcauchy.ml(turn_angle, 0, .5)[[2]]) %>%
+  mutate(wrp_cauchy_mu_deg = wrp_cauchy_mu_rad * (180/pi))  %>%
+  dplyr::select(behavior, behavior_next, behavior_behavior, wrp_cauchy_mu_rad,
+    wrp_cauchy_mu_deg, wrp_cauchy_rho) %>%
+  ungroup()
+
+redist_rs_pars <- full_join(weibull_rs_pars, wrp_cauchy_rs_pars,
+  by=c("behavior", "behavior_next", "behavior_behavior"))
+
+write.csv(redist_rs_pars, file="Output/Tables/redist_rs_par.csv")
+
+redist_pars_join <- full_join(redist_pars , redist_rs_pars, by = c("behavior",
+  "behavior_next", "behavior_behavior"), suffix = c("_all", "_rs")) %>%
+  dplyr::select(-c(behavior, behavior_next, contains("step"),
+    contains("_deg_"))) %>%
+  mutate(
+    weibull_shape_all = round(weibull_shape_all, 2),
+    weibull_shape_rs = round(weibull_shape_rs, 2),
+    weibull_scale_all = as.integer(weibull_scale_all),
+    weibull_scale_rs = as.integer(weibull_scale_rs),
+    wrp_cauchy_mu_rad_all = round(wrp_cauchy_mu_rad_all, 2),
+    wrp_cauchy_mu_rad_rs = round(wrp_cauchy_mu_rad_rs, 2),
+    wrp_cauchy_rho_all = round(wrp_cauchy_rho_all, 3),
+    wrp_cauchy_rho_rs = round(wrp_cauchy_rho_rs, 3)
+  )
+
+write.csv(redist_pars_join, file="Output/Tables/redist_pars_join.csv")
+
+################################ PLOTTING  #####################################
+
+### ALL DATA -------------------------------------------------------------------
+# Plotting (Weibull) -----------------------------------------------------------
+
+vec_length <- 100
+weibull_dens <- data.frame(grp=factor(), pred=numeric(), dens=numeric())
+for (i in 1:nrow(redist_pars)){
+  pars_i <- redist_pars[i,]
+  grp = rep(pars_i$behavior_behavior, vec_length)
+  pred = seq(pars_i$min_step, pars_i$max_step, length = vec_length)
+  dens = dweibull(pred, shape=pars_i$weibull_shape, scale=pars_i$weibull_scale)
+  weibull_dens <- rbind(weibull_dens, data.frame(grp, pred, dens))
+}
+
+# All plots on one figure
+ggplot(data=baea_movements %>% mutate(grp = behavior_behavior),
+    aes(x = step_length)) +
+  geom_histogram(aes(y = ..density..), binwidth = 30, boundary = 0) +
+  xlab("Step Length (m)") + ylab("Density") +
+  theme(axis.text=element_text(colour="black")) +
+  theme(axis.title.x = element_text(angle = 0, vjust = 0, hjust=0.5)) +
+  theme(axis.title.y = element_text(angle = 90, vjust = 0.5, hjust=0.5)) +
+  theme(axis.text = element_text(size = 8, colour = "black")) +
+  theme(panel.grid = element_blank()) +
+  theme(panel.background = element_rect(fill = NA, color = "grey80")) +
+  facet_wrap(~grp, scales = "free") +
+  theme(strip.background = element_rect(fill="white", color=NULL),
+    strip.text.x = element_text(size=10, colour="black",
+      margin = margin(1,0,1,0, "pt"))) +
+  geom_line(data = weibull_dens, aes(x = pred, y = dens), size = 1,
+    colour = "blue") +
+  theme(panel.border = element_rect(colour = "black", fill=NA, size=.5)) +
+  scale_y_continuous(labels = comma)
+SaveGGPlot(filename = "Step Lengths with Fitted Weibull (all).png",
+  path="Output/Plots/Step_Length")
+
+# Individual plots
+ind_list <- lapply(sort(unique(baea_movements$behavior_behavior)), function(i){
+  ggplot(baea_movements[baea_movements$behavior_behavior == i, ],
+    aes(x = step_length)) +
+  geom_histogram(aes(y = ..density..), binwidth = 30, boundary = 0) +
+  geom_line(data = weibull_dens[weibull_dens$grp == i, ], aes(x = pred,
+    y = dens), size = 2, colour = "blue") +
+  annotate("text", Inf, Inf, hjust = 1, vjust = 1, size = 5,
+    label = paste0("Weibull Distribution\n", "shape = ",
+      signif(redist_pars[redist_pars$behavior_behavior == i, "weibull_shape"],
+        3), "\n", "scale = ",
+      signif(redist_pars[redist_pars$behavior_behavior == i, "weibull_scale"],
+        3)))  +
+  xlab("Step Length (m)") + ylab("Density") +  ggtitle(paste(i, "(all)")) +
+  theme(title = element_text(size = 16)) +
+  theme(axis.text = element_text(size = 12, colour = "black")) +
+  theme(axis.title.x = element_text(angle = 0, hjust=0.5)) +
+  theme(axis.title.y = element_text(angle = 90, hjust=0.5)) +
+  theme(panel.grid = element_blank()) +
+  theme(panel.background = element_rect(fill = NA, color = "grey80")) +
+  theme(panel.border = element_rect(colour = "black", fill=NA, size=1)) +
+  scale_y_continuous(labels = comma)  +
+  theme(plot.margin = margin(15, 15, 15, 15, "pt"))
+  SaveGGPlot(filename = paste(str_replace(i, ">", ""), "(all).png"),
+    path="Output/Plots/Step_Length/All")
+  })
+
+# Plotting (Wrapped Cauchy) ----------------------------------------------------
+
+bin_width = (2*pi)/24
+breaks <- seq(0, (2*pi), by=((2*pi)/12))
+labels <- c(0, "", "", expression(pi / 2), "", "",
+   expression(pi), "", "", expression(1.5*pi), "", "",
+   expression(2*pi))
+minor_breaks <- seq(0, 2*pi, by=bin_width)
+minor_labels <- c(0, "", "", expression(pi / 4), "", "", expression(pi / 2),
+  "", "", expression(3/4*pi), "", "", expression(pi),
+  "", "", expression(5/4*pi), "", "", expression(1.5*pi),
+  "", "", expression(7/4*pi), "", "")
+limits <- c(0, 2*pi)
+vec_length <- 100
+wrp_cauchy_dens <- data.frame(grp=factor(), pred=numeric(), dens=numeric())
+
+# Cartesian Coordinates --------------------------------------------------------
+# All plots on one figure
+for (i in 1:nrow(redist_pars)){
+  pars_i <- redist_pars[i,]
+  grp = rep(pars_i$behavior_behavior, vec_length)
+  pred = seq(limits[1], limits[2], length = vec_length)
+  dens = dwrpcauchy(pred, mu = pars_i$wrp_cauchy_mu_rad,
+    rho = pars_i$wrp_cauchy_rho)
+  wrp_cauchy_dens <- rbind(wrp_cauchy_dens, data.frame(grp, pred, dens))
+}
+
+p_list = lapply(sort(unique(baea_movements$behavior_behavior)), function(i){
+  ggplot(baea_movements[baea_movements$behavior_behavior == i, ],
+      aes(x=turn_angle)) +
+    geom_histogram(aes(y = ..density..), fill = "grey20", color = "black",
+      boundary = 0, binwidth = bin_width) +
+    geom_line(data = wrp_cauchy_dens[wrp_cauchy_dens$grp == i, ],
+      aes(x = pred, y = dens), size = 1, colour = "red") +
+    scale_x_continuous(limits = limits, labels = labels,
+      breaks = breaks, minor_breaks = minor_breaks, expand = c(0,0)) +
+    facet_grid(. ~ behavior_behavior) +
+    theme(strip.background = element_rect(fill="white", color=NULL),
+      strip.text.x = element_text(size=10, colour="black",
+      margin = margin(1, 0, 1, 0, "pt"))) +
+    theme(legend.position="none") +
+    theme(axis.text.x = element_text(colour="grey20", size=8, vjust=.5, angle=0,
+      margin=margin(1, 1, 0, 1, "pt"))) +
+    theme(axis.text.y = element_text(colour="grey20", size=8)) +
+    theme(panel.grid.major = element_blank())  +
+    theme(panel.grid.minor = element_blank())  +
+    theme(panel.background = element_rect(fill = NA, color = "black")) +
+    theme(plot.margin = margin(1, 5, 1, 5, "pt")) +
+    ggtitle(NULL) +
+    labs(x=NULL, y=NULL)
+})
+do.call(grid.arrange, c(p_list, ncol=5, nrow=5, left = "Density",
+  bottom="Direction"))
+SavePlot(filename = "Turn Angles with Fitted Wrp Cauchy (all) Cartesian.png",
+  path="Output/Plots/Turn_Angle")
+
+# Individual plots
+ind_list <- lapply(sort(unique(baea_movements$behavior_behavior)), function(i){
+  ggplot(baea_movements[baea_movements$behavior_behavior == i, ],
+    aes(x=turn_angle)) +
+    geom_histogram(aes(y = ..density..), fill = "grey20", color = "black",
+      boundary = 0, binwidth = bin_width) +
+    geom_line(data = wrp_cauchy_dens[wrp_cauchy_dens$grp == i, ],
+      aes(x = pred, y = dens), size = 1, colour = "red") +
+    xlab("Turn Angle (radians)") + ylab("Density") + ggtitle(paste(i, "(all)"))+
+    annotate("text", Inf, Inf, hjust = 1, vjust = 1, size = 5,
+      label = paste0("Wrapped Cauchy Distribution\n", "mu (radians) = ",
+      signif(redist_pars[redist_pars$behavior_behavior == i,
+        "wrp_cauchy_mu_rad"], 3), "\n", "rho = ",
+      signif(redist_pars[redist_pars$behavior_behavior == i, "wrp_cauchy_rho"],
+        3)))+
+    scale_x_continuous(limits = limits, labels = labels,
+      breaks = breaks, minor_breaks = minor_breaks, expand = c(0,0)) +
+    theme(legend.position="none") +
+    theme(title = element_text(size = 16)) +
+    theme(axis.text.x = element_text(colour = "grey20", size = 12, vjust = .5,
+      angle = 0, margin=margin(1, 1, 0, 1, "pt"))) +
+    theme(axis.text.y = element_text(colour = "grey20", size = 12)) +
+    theme(panel.grid.major = element_blank())  +
+    theme(panel.grid.minor = element_blank())  +
+    theme(panel.background = element_rect(fill = NA, color = "black")) +
+    theme(plot.margin = margin(15, 15, 15, 15, "pt"))
+  SaveGGPlot(filename = paste(str_replace(i, ">", ""), "(all).png"),
+    path="Output/Plots/Turn_Angle/All/Cartesian")
+})
+
+# Polar Coordinates ------------------------------------------------------------
+# All plots on one figure
+p_list = lapply(sort(unique(baea_movements$behavior_behavior)), function(i){
+  ggplot(baea_movements[baea_movements$behavior_behavior == i, ],
+      aes(x = turn_angle)) +
+    geom_histogram(aes(y = ..density..), fill = "grey20", color = "black",
+      boundary = 0, binwidth = bin_width) +
+    geom_line(data = wrp_cauchy_dens[wrp_cauchy_dens$grp == i, ],
+      aes(x = pred, y = dens), size = 1, colour = "red") +
+    coord_polar(start = (1.5*pi), direction = -1) +
+    scale_y_continuous(labels = NULL) +
+    scale_x_continuous(limits = limits, labels = minor_labels,
+      breaks = minor_breaks[-25], minor_breaks = minor_breaks, expand = c(0,0))+
+    theme(axis.ticks = element_blank()) +
+    facet_grid(. ~ behavior_behavior) +
+    theme(strip.background = element_rect(fill = "white", color = NULL),
+      strip.text.x = element_text(size = 10, colour = "black",
+      margin = margin(1, 0, 1, 0, "pt"))) +
+    theme(legend.position="none") +
+    theme(axis.text.x = element_text(colour = "grey20", size = 7))+
+    theme(panel.grid.major = element_line(colour = "grey90"))  +
+    theme(panel.grid.minor = element_line(colour = "grey90"))  +
+    theme(panel.background = element_rect(fill = NA, color = "black")) +
+    theme(plot.margin = margin(1, 1, 1, 1, "pt")) +
+    ggtitle(NULL) +
+    labs(x = NULL, y = NULL)
+})
+do.call(grid.arrange, c(p_list, ncol=5, nrow=5, left = "Density",
+  bottom="Direction"))
+SavePlot(filename = "Turn Angles with Fitted Wrp Cauchy (all) Polar.png",
+  path="Output/Plots/Turn_Angle")
+
+# Individual plots
+ind_list = lapply(sort(unique(baea_movements$behavior_behavior)), function(i){
+  ggplot(baea_movements[baea_movements$behavior_behavior == i, ],
+    aes(x = turn_angle)) +
+    geom_histogram(aes(y = ..density..), fill = "grey20", color = "black",
+      boundary = 0, binwidth = bin_width) +
+    geom_line(data = wrp_cauchy_dens[wrp_cauchy_dens$grp == i, ],
+      aes(x = pred, y = dens), size = 1, colour = "red") +
+    labs(x = "Direction", y = "Density") + ggtitle(paste(i, "(all)"))+
+    coord_polar(start = (1.5*pi), direction = -1)  +
+    scale_y_continuous(labels = NULL) +
+    scale_x_continuous(limits = limits, labels = minor_labels,
+      breaks = minor_breaks[-25], minor_breaks = minor_breaks, expand = c(0,0))+
+    theme(title = element_text(size = 16)) +
+    theme(axis.ticks = element_blank()) +
+    theme(legend.position="none") +
+    theme(axis.text.x = element_text(colour = "grey20", size = 12))+
+    theme(panel.grid.major = element_line(colour = "grey90"))  +
+    theme(panel.grid.minor = element_line(colour = "grey90"))  +
+    theme(panel.background = element_rect(fill = NA, color = "black")) +
+    theme(plot.margin = margin(15, 15, 15, 15, "pt"))
+  SaveGGPlot(filename = paste(str_replace(i, ">", ""), "(all).png"),
+    path="Output/Plots/Turn_Angle/All/Polar")
+})
+
+# Plotting Redist Kernel -------------------------------------------------------
+
+redist_dens <- data.frame(grp=character(), x=numeric(), y=numeric(),
+  dens=numeric())
+for (i in 1:nrow(redist_pars)){
+  redist_pars_i <- redist_pars[i, ]
+  kernel_i <- CreateRedistKernelWeibull(
+      max_r = NULL,
+      cellsize = 30,
+      mu = redist_pars_i$wrp_cauchy_mu_rad[1],
+      rho = redist_pars_i$wrp_cauchy_rho[1],
+      shape = redist_pars_i$weibull_shape[1],
+      scale = redist_pars_i$weibull_scale[1])
+  r <- (30*((nrow(kernel_i)-1)/2))+(30/2)
+  kernel_raster <- raster::raster(kernel_i, xmn=-r, xmx=r, ymn=-r, ymx=r)
+  df <- data.frame(raster::rasterToPoints(kernel_raster))
+  names(df)[3] <- "dens"
+  df$behavior_behavior <- redist_pars_i$behavior_behavior
+  redist_dens <- rbind(redist_dens, df)
+}
+
+# All plots on one figure
+p_list = lapply(sort(unique(redist_dens$behavior_behavior)), function(i){
+  ggplot(redist_dens[redist_dens$behavior_behavior == i, ], aes(x = x, y = y)) +
+    geom_raster(aes(fill = dens)) +
+    coord_fixed(ratio = 1) +
+    scale_fill_gradientn(colours = RColorBrewer::brewer.pal(9, "Oranges")) +
+    theme(legend.position = "none") +
+    scale_x_continuous(expand = c(0.005, 0.005)) +
+    scale_y_continuous(expand = c(0.005, 0.005)) +
+    facet_grid(. ~ behavior_behavior) +
+    theme(strip.background = element_rect(fill="white", color=NULL),
+      strip.text.x = element_text(size=10, colour="black",
+      margin = margin(0,0,1,0, "pt"))) +
+    theme(legend.position="none") +
+    theme(axis.text = element_text(colour="grey20", size=7)) +
+    theme(axis.text.x = element_text(angle=30)) +
+    theme(panel.grid.major = element_blank())  +
+    theme(panel.grid.minor = element_blank())  +
+    theme(panel.background = element_rect(fill = NA, color = "black")) +
+    theme(plot.margin = margin(1, 1, 1, 1, "pt")) +
+    ggtitle(NULL) + labs(x=NULL, y=NULL)
+})
+do.call(grid.arrange, c(p_list, ncol=5, nrow=5, left="Y", bottom="X"))
+SavePlot(filename = "Redist Kernels with Fitted Distributions (all).png",
+  path="Output/Plots/Redist_Kernels")
+
+# Individual plots
+ind_list = lapply(sort(unique(redist_dens$behavior_behavior)), function(i){
+  ggplot(redist_dens[redist_dens$behavior_behavior == i,], aes(x = x, y = y)) +
+    geom_raster(aes(fill = dens)) +
+    labs(x = "X", y = "Y", title = paste(i, "(all)")) +
+    coord_fixed(ratio = 1) +
+    scale_fill_gradientn(colours = RColorBrewer::brewer.pal(9, "Oranges")) +
+    labs(fill = "Probability") +
+    scale_x_continuous(expand = c(0.005, 0.005)) +
+    scale_y_continuous(expand = c(0.005, 0.005)) +
+    theme(title = element_text(size = 16)) +
+    theme(axis.text = element_text(colour = "grey20", size = 12)) +
+    theme(axis.title.y = element_text(angle=0, vjust=0.5)) +
+    theme(panel.grid.major = element_blank())  +
+    theme(panel.grid.minor = element_blank())  +
+    theme(panel.background = element_rect(fill = NA, color = "black")) +
+    theme(plot.margin = margin(15, 15, 15, 15, "pt"))
+  SaveGGPlot(filename = paste(str_replace(i, ">", ""), "(all).png"),
+    path = "Output/Plots/Redist_Kernels/All")
+})
+
+### RANDOM SAMPLE DATA ---------------------------------------------------------
+# Plotting (Weibull) -----------------------------------------------------------
+
+vec_length <- 100
+weibull_rs_dens <- data.frame(grp=factor(), pred=numeric(), dens=numeric())
+for (i in 1:nrow(redist_rs_pars)){
+  pars_i <- redist_rs_pars[i,]
+  grp = rep(pars_i$behavior_behavior, vec_length)
+  pred = seq(pars_i$min_step, pars_i$max_step, length = vec_length)
+  dens = dweibull(pred, shape=pars_i$weibull_shape, scale=pars_i$weibull_scale)
+  weibull_rs_dens <- rbind(weibull_rs_dens, data.frame(grp, pred, dens))
+}
+
+# All plots on one figure
+ggplot(data=baea_rs_movements %>% mutate(grp = behavior_behavior),
+    aes(x = step_length)) +
+  geom_histogram(aes(y = ..density..), binwidth = 30, boundary = 0) +
+  geom_line(data = weibull_rs_dens, aes(x = pred, y = dens), size = 1,
+    colour = "blue") +
+  xlab("Step Length (m)") + ylab("Density") +
+  scale_y_continuous(labels = comma) +
+  theme(axis.text=element_text(colour="black")) +
+  theme(axis.title.x = element_text(angle = 0, vjust = 0, hjust=0.5)) +
+  theme(axis.title.y = element_text(angle = 90, vjust = 0.5, hjust=0.5)) +
+  theme(axis.text = element_text(size = 8, colour = "black")) +
+  theme(panel.grid = element_blank()) +
+  theme(panel.background = element_rect(fill = NA, color = "grey80")) +
+  facet_wrap(~grp, scales = "free") +
+  theme(strip.background = element_rect(fill="white", color=NULL),
+    strip.text.x = element_text(size=10, colour="black",
+      margin = margin(1,0,1,0, "pt"))) +
+  theme(panel.border = element_rect(colour = "black", fill=NA, size=.5))
+SaveGGPlot(filename = "Step Lengths with Fitted Weibull (random).png",
+  path="Output/Plots/Step_Length")
+
+# Individual plots
+ind_list <- lapply(sort(unique(baea_rs_movements$behavior_behavior)),
+    function(i){
+  ggplot(baea_rs_movements[baea_rs_movements$behavior_behavior == i, ],
+    aes(x = step_length)) +
+  geom_histogram(aes(y = ..density..), binwidth = 30, boundary = 0) +
+  geom_line(data = weibull_rs_dens[weibull_rs_dens$grp == i, ], aes(x = pred,
+    y = dens), size = 2, colour = "blue") +
+  annotate("text", Inf, Inf, hjust = 1, vjust = 1, size = 5,
+    label = paste0("Weibull Distribution\n", "shape = ",
+      signif(redist_rs_pars[redist_rs_pars$behavior_behavior == i,
+        "weibull_shape"], 3), "\n", "scale = ",
+      signif(redist_rs_pars[redist_rs_pars$behavior_behavior == i,
+        "weibull_scale"], 3)))  +
+  xlab("Step Length (m)") + ylab("Density") +  ggtitle(paste(i, "(random)")) +
+  theme(title = element_text(size = 16)) +
+  theme(axis.text = element_text(size = 12, colour = "black")) +
+  theme(axis.title.x = element_text(angle = 0, hjust=0.5)) +
+  theme(axis.title.y = element_text(angle = 90, hjust=0.5)) +
+  theme(panel.grid = element_blank()) +
+  theme(panel.background = element_rect(fill = NA, color = "grey80")) +
+  theme(panel.border = element_rect(colour = "black", fill=NA, size=1)) +
+  scale_y_continuous(labels = comma)  +
+  theme(plot.margin = margin(15, 15, 15, 15, "pt"))
+  SaveGGPlot(filename = paste(str_replace(i, ">", ""), "(random).png"),
+    path="Output/Plots/Step_Length/Random")
+  })
+
+# Plotting (Wrapped Cauchy) ----------------------------------------------------
+
+bin_width = (2*pi)/24
+breaks <- seq(0, (2*pi), by=((2*pi)/12))
+labels <- c(0, "", "", expression(pi / 2), "", "",
+   expression(pi), "", "", expression(1.5*pi), "", "",
+   expression(2*pi))
+minor_breaks <- seq(0, 2*pi, by=bin_width)
+minor_labels <- c(0, "", "", expression(pi / 4), "", "", expression(pi / 2),
+  "", "", expression(3/4*pi), "", "", expression(pi),
+  "", "", expression(5/4*pi), "", "", expression(1.5*pi),
+  "", "", expression(7/4*pi), "", "")
+limits <- c(0, 2*pi)
+vec_length <- 100
+wrp_cauchy_rs_dens <- data.frame(grp=factor(), pred=numeric(), dens=numeric())
+
+# Cartesian Coordinates --------------------------------------------------------
+# All plots on one figure
+for (i in 1:nrow(redist_rs_pars)){
+  pars_i <- redist_rs_pars[i,]
+  grp = rep(pars_i$behavior_behavior, vec_length)
+  pred = seq(limits[1], limits[2], length = vec_length)
+  dens = dwrpcauchy(pred, mu = pars_i$wrp_cauchy_mu_rad,
+    rho = pars_i$wrp_cauchy_rho)
+  wrp_cauchy_rs_dens <- rbind(wrp_cauchy_rs_dens, data.frame(grp, pred, dens))
+}
+
+p_list = lapply(sort(unique(baea_rs_movements$behavior_behavior)), function(i){
+  ggplot(baea_rs_movements[baea_rs_movements$behavior_behavior == i, ],
+      aes(x=turn_angle)) +
+    geom_histogram(aes(y = ..density..), fill = "grey20", color = "black",
+      boundary = 0, binwidth = bin_width) +
+    geom_line(data = wrp_cauchy_rs_dens[wrp_cauchy_rs_dens$grp == i, ],
+      aes(x = pred, y = dens), size = 1, colour = "red") +
+    scale_x_continuous(limits = limits, labels = labels,
+      breaks = breaks, minor_breaks = minor_breaks, expand = c(0,0)) +
+    facet_grid(. ~ behavior_behavior) +
+    theme(strip.background = element_rect(fill="white", color=NULL),
+      strip.text.x = element_text(size=10, colour="black",
+      margin = margin(1, 0, 1, 0, "pt"))) +
+    theme(legend.position="none") +
+    theme(axis.text.x = element_text(colour="grey20", size=8, vjust=.5, angle=0,
+      margin=margin(1, 1, 0, 1, "pt"))) +
+    theme(axis.text.y = element_text(colour="grey20", size=8)) +
+    theme(panel.grid.major = element_blank())  +
+    theme(panel.grid.minor = element_blank())  +
+    theme(panel.background = element_rect(fill = NA, color = "black")) +
+    theme(plot.margin = margin(1, 5, 1, 5, "pt")) +
+    ggtitle(NULL) +
+    labs(x=NULL, y=NULL)
+})
+do.call(grid.arrange, c(p_list, ncol=5, nrow=5, left = "Density",
+  bottom="Direction"))
+SavePlot(filename = "Turn Angles with Fitted Wrp Cauchy (random) Cartesian.png",
+  path="Output/Plots/Turn_Angle")
+
+# Individual plots
+ind_list <- lapply(sort(unique(baea_rs_movements$behavior_behavior)),
+    function(i){
+  ggplot(baea_rs_movements[baea_rs_movements$behavior_behavior == i, ],
+    aes(x=turn_angle)) +
+    geom_histogram(aes(y = ..density..), fill = "grey20", color = "black",
+      boundary = 0, binwidth = bin_width) +
+    geom_line(data = wrp_cauchy_rs_dens[wrp_cauchy_rs_dens$grp == i, ],
+      aes(x = pred, y = dens), size = 1, colour = "red") +
+    xlab("Turn Angle (radians)") + ylab("Density") + ggtitle(paste(i,
+      "(random)"))+
+    annotate("text", Inf, Inf, hjust = 1, vjust = 1, size = 5,
+      label = paste0("Wrapped Cauchy Distribution\n", "mu (radians) = ",
+      signif(redist_rs_pars[redist_rs_pars$behavior_behavior == i,
+        "wrp_cauchy_mu_rad"], 3), "\n", "rho = ",
+      signif(redist_rs_pars[redist_rs_pars$behavior_behavior == i,
+        "wrp_cauchy_rho"], 3)))+
+    scale_x_continuous(limits = limits, labels = labels,
+      breaks = breaks, minor_breaks = minor_breaks, expand = c(0,0)) +
+    theme(legend.position="none") +
+    theme(title = element_text(size = 16)) +
+    theme(axis.text.x = element_text(colour = "grey20", size = 12, vjust = .5,
+      angle = 0, margin=margin(1, 1, 0, 1, "pt"))) +
+    theme(axis.text.y = element_text(colour = "grey20", size = 12)) +
+    theme(panel.grid.major = element_blank())  +
+    theme(panel.grid.minor = element_blank())  +
+    theme(panel.background = element_rect(fill = NA, color = "black")) +
+    theme(plot.margin = margin(15, 15, 15, 15, "pt"))
+  SaveGGPlot(filename = paste(str_replace(i, ">", ""), "(random).png"),
+    path="Output/Plots/Turn_Angle/Random/Cartesian")
+})
+
+# Polar Coordinates ------------------------------------------------------------
+# All plots on one figure
+p_list = lapply(sort(unique(baea_rs_movements$behavior_behavior)), function(i){
+  ggplot(baea_rs_movements[baea_rs_movements$behavior_behavior == i, ],
+      aes(x = turn_angle)) +
+    geom_histogram(aes(y = ..density..), fill = "grey20", color = "black",
+      boundary = 0, binwidth = bin_width) +
+    geom_line(data = wrp_cauchy_rs_dens[wrp_cauchy_rs_dens$grp == i, ],
+      aes(x = pred, y = dens), size = 1, colour = "red") +
+    coord_polar(start = (1.5*pi), direction = -1) +
+    scale_y_continuous(labels = NULL) +
+    scale_x_continuous(limits = limits, labels = minor_labels,
+      breaks = minor_breaks[-25], minor_breaks = minor_breaks, expand = c(0,0))+
+    theme(axis.ticks = element_blank()) +
+    facet_grid(. ~ behavior_behavior) +
+    theme(strip.background = element_rect(fill = "white", color = NULL),
+      strip.text.x = element_text(size = 10, colour = "black",
+      margin = margin(1, 0, 1, 0, "pt"))) +
+    theme(legend.position="none") +
+    theme(axis.text.x = element_text(colour = "grey20", size = 7))+
+    theme(panel.grid.major = element_line(colour = "grey90"))  +
+    theme(panel.grid.minor = element_line(colour = "grey90"))  +
+    theme(panel.background = element_rect(fill = NA, color = "black")) +
+    theme(plot.margin = margin(1, 1, 1, 1, "pt")) +
+    ggtitle(NULL) +
+    labs(x = NULL, y = NULL)
+})
+do.call(grid.arrange, c(p_list, ncol=5, nrow=5, left = "Density",
+  bottom="Direction"))
+SavePlot(filename = "Turn Angles with Fitted Wrp Cauchy (random) Polar.png",
+  path="Output/Plots/Turn_Angle")
+
+# Individual plots
+ind_list = lapply(sort(unique(baea_rs_movements$behavior_behavior)),function(i){
+  ggplot(baea_rs_movements[baea_rs_movements$behavior_behavior == i, ],
+    aes(x = turn_angle)) +
+    geom_histogram(aes(y = ..density..), fill = "grey20", color = "black",
+      boundary = 0, binwidth = bin_width) +
+    geom_line(data = wrp_cauchy_rs_dens[wrp_cauchy_rs_dens$grp == i, ],
+      aes(x = pred, y = dens), size = 1, colour = "red") +
+    labs(x = "Direction", y = "Density") + ggtitle(paste(i, "(random)"))+
+    coord_polar(start = (1.5*pi), direction = -1)  +
+    scale_y_continuous(labels = NULL) +
+    scale_x_continuous(limits = limits, labels = minor_labels,
+      breaks = minor_breaks[-25], minor_breaks = minor_breaks, expand = c(0,0))+
+    theme(title = element_text(size = 16)) +
+    theme(axis.ticks = element_blank()) +
+    theme(legend.position="none") +
+    theme(axis.text.x = element_text(colour = "grey20", size = 12))+
+    theme(panel.grid.major = element_line(colour = "grey90"))  +
+    theme(panel.grid.minor = element_line(colour = "grey90"))  +
+    theme(panel.background = element_rect(fill = NA, color = "black")) +
+    theme(plot.margin = margin(15, 15, 15, 15, "pt"))
+  SaveGGPlot(filename = paste(str_replace(i, ">", ""), "(random).png"),
+    path="Output/Plots/Turn_Angle/Random/Polar")
+})
+
+# Plotting Redist Kernel -------------------------------------------------------
+
+redist_rs_dens <- data.frame(grp=character(), x=numeric(), y=numeric(),
+  dens=numeric())
+for (i in 1:nrow(redist_rs_pars)){
+  redist_rs_pars_i <- redist_rs_pars[i, ]
+  kernel_i <- CreateRedistKernelWeibull(
+      max_r = NULL,
+      cellsize = 30,
+      mu = redist_rs_pars_i$wrp_cauchy_mu_rad[1],
+      rho = redist_rs_pars_i$wrp_cauchy_rho[1],
+      shape = redist_rs_pars_i$weibull_shape[1],
+      scale = redist_rs_pars_i$weibull_scale[1])
+  r <- (30*((nrow(kernel_i)-1)/2))+(30/2)
+  kernel_raster <- raster::raster(kernel_i, xmn=-r, xmx=r, ymn=-r, ymx=r)
+  df <- data.frame(raster::rasterToPoints(kernel_raster))
+  names(df)[3] <- "dens"
+  df$behavior_behavior <- redist_rs_pars_i$behavior_behavior
+  redist_rs_dens <- rbind(redist_rs_dens, df)
+}
+
+# All plots on one figure
+p_list = lapply(sort(unique(redist_rs_dens$behavior_behavior)), function(i){
+  ggplot(redist_rs_dens[redist_rs_dens$behavior_behavior == i, ], aes(x = x,
+      y = y)) +
+    geom_raster(aes(fill = dens)) +
+    coord_fixed(ratio = 1) +
+    scale_fill_gradientn(colours = RColorBrewer::brewer.pal(9, "Oranges")) +
+    theme(legend.position = "none") +
+    scale_x_continuous(expand = c(0.005, 0.005)) +
+    scale_y_continuous(expand = c(0.005, 0.005)) +
+    facet_grid(. ~ behavior_behavior) +
+    theme(strip.background = element_rect(fill="white", color=NULL),
+      strip.text.x = element_text(size=10, colour="black",
+      margin = margin(0,0,1,0, "pt"))) +
+    theme(legend.position="none") +
+    theme(axis.text = element_text(colour="grey20", size=7)) +
+    theme(axis.text.x = element_text(angle=30)) +
+    theme(panel.grid.major = element_blank())  +
+    theme(panel.grid.minor = element_blank())  +
+    theme(panel.background = element_rect(fill = NA, color = "black")) +
+    theme(plot.margin = margin(1, 1, 1, 1, "pt")) +
+    ggtitle(NULL) + labs(x=NULL, y=NULL)
+})
+do.call(grid.arrange, c(p_list, ncol=5, nrow=5, left="Y", bottom="X"))
+SavePlot(filename = "Redist Kernels with Fitted Distributions (random).png",
+  path="Output/Plots/Redist_Kernels")
+
+# Individual plots
+ind_list = lapply(sort(unique(redist_rs_dens$behavior_behavior)), function(i){
+  ggplot(redist_rs_dens[redist_rs_dens$behavior_behavior == i,], aes(x = x,
+      y = y)) +
+    geom_raster(aes(fill = dens)) +
+    labs(x = "X", y = "Y", title = paste(i, "(random)")) +
+    coord_fixed(ratio = 1) +
+    scale_fill_gradientn(colours = RColorBrewer::brewer.pal(9, "Oranges")) +
+    labs(fill = "Probability") +
+    scale_x_continuous(expand = c(0.005, 0.005)) +
+    scale_y_continuous(expand = c(0.005, 0.005)) +
+    theme(title = element_text(size = 16)) +
+    theme(axis.text = element_text(colour = "grey20", size = 12)) +
+    theme(axis.title.y = element_text(angle=0, vjust=0.5)) +
+    theme(panel.grid.major = element_blank())  +
+    theme(panel.grid.minor = element_blank())  +
+    theme(panel.background = element_rect(fill = NA, color = "black")) +
+    theme(plot.margin = margin(15, 15, 15, 15, "pt"))
+  SaveGGPlot(filename = paste(str_replace(i, ">", ""), "(random).png"),
+    path = "Output/Plots/Redist_Kernels/Random")
+})
+
+#------------------------------------------------------------------------------#
+################################## OLD CODE ####################################
+#------------------------------------------------------------------------------#
+
+library(fitdistrplus)
+library(dplyr)
+library(extraDistr)
+library(texmex)
+
+movements <- baea %>% group_by("id") %>%
+  filter(step_length > 42.5) %>%
+  filter(step_time <= 20) %>%
+  mutate(step_length = step_length/1000)
+  ungroup()
+
+nests <- baea %>% group_by(id) %>% slice(1) %>%
+    dplyr::select(nest_long_utm, nest_lat_utm)  %>%
+    transmute(long = nest_long_utm, lat = nest_lat_utm)
+
+  home_dist_gg <- ConvertRasterForGGPlot(home_dist)
+
+  ggplot(home_dist_gg, aes(x, y)) +
+    geom_raster(aes(fill = value), interpolate=TRUE) +
+    coord_fixed(ratio = 1) +
+    scale_fill_distiller(breaks = seq(0,40000, by=5000), name="Meters",
+      palette = "Blues", direction=-1) +
+    geom_point(data = nests_2016, aes(long, lat), shape=24, alpha=.9,
+      color="red", fill= "black", size=2, stroke=2) +
+    geom_point(data = nests, aes(long, lat), shape=24, alpha=.9,
+      color="blue", fill= "floralwhite", size=2, stroke=2) +
+    geom_point(data = movements, aes(long_utm, lat_utm), shape=4, alpha=.9,
+      color="chartreuse2", size=1, stroke=2) +
+    geom_point(data = nests, aes(long, lat), shape=24, alpha=.9,
+      color="blue", fill= "floralwhite", size=2, stroke=2) +
+    theme_legend +
+    ggtitle(paste("Movement Locations")) + xlab("Longitude") + ylab("Latitude")
+  SaveGGPlot("Movement Locations.png", image_output, bg = "white")
+
+
+    geom_raster(aes(fill = value), interpolate=TRUE) + theme_legend +
+    scale_x_continuous(expand=c(0, 0)) + scale_y_continuous(expand=c(0, 0)) +
+    scale_fill_distiller(breaks = seq(0,40000, by=5000), name="Meters",
+      palette = "Blues", direction=-1) +
+    ggtitle(paste(i, "- Home Distance")) +
+    xlab("Longitude") + ylab("Latitude") +
+    geom_point(data = nests_2016_i, aes(long, lat), shape=24, alpha=.9,
+      color="red", fill= "black", size=2, stroke=2) +
+    geom_point(data = nest_i, aes(long, lat), shape=24, alpha=.9,
+      color="blue", fill= "white", size=2, stroke=2)
+  SaveGGPlot(paste0(i, " - Home Distance.png"),
+    file.path(image_output), bg = NA)
+
+
+descdist(movements$step_length, boot=100)
+
+fits_movements <- list(
+  exponential = fitdist(movements$step_length, "exp"),
+  halfnorm = fitdist(movements$step_length, "hnorm", start=list(sigma=
+    sqrt(pi/2))),
+  gamma = fitdist(movements$step_length, "gamma"),
+  pareto = fitdist(movements$step_length, "gpd", start=list(sigma=2, xi=2)),
+  weibull = fitdist(movements$step_length, "weibull")
+)
+
+save(fits_movements, file = "Output/fits_movements.RData")
+
+sapply(fits_movements, function(i) summary(i))
+sapply(fits_movements, function(i) coef(i))
+
+plot(fits_movements$exponential)
+plot(fits_movements$halfnorm)
+plot(fits_movements$gamma)
+plot(fits_movements$pareto)
+plot(fits_movements$weibull)
+
+ggplot(movements, aes(step_length)) + stat_ecdf(geom = "step") +
+  xlab("Step Length Distance (km)") + ylab("ECD") + theme_no_legend
+
+movements_lines <- data.frame(x=movements$step_length,
+  HalfNorm=dhnorm(movements$step_length,
+    fits_movements$halfnorm$estimate["sigma"]),
+  Exponential=dexp(movements$step_length,
+    fits_movements$exponential$estimate["rate"]),
+  Pareto=texmex::dgpd(movements$step_length,
+    fits_movements$pareto$estimate["sigma"],
+    fits_movements$pareto$estimate["xi"]),
+  Gamma=dgamma(movements$step_length,
+    fits_movements$gamma$estimate["shape"],
+    fits_movements$gamma$estimate["rate"]),
+  Weibull=stats::dweibull(movements$step_length,
+    fits_movements$weibull$estimate["shape"],
+    fits_movements$weibull$estimate["scale"]))
+
+ggplot(movements) +
+  geom_histogram(aes(x=step_length, y=..density..), color="black", fill="grey",
+    breaks = seq(0, max(movements$step_length), by=.25)) +
+  ggtitle("Step Length (km)") +
+  xlab("Kilometers") + ylab("Density") + theme_legend +
+#  geom_line(data = movements_lines, aes(x, HalfNorm, color = "HalfNorm"), size = 1.1) +
+#  geom_line(data = movements_lines, aes(x, Exponential, color = "Exponential"), size = 1.1) +
+#  geom_line(data = movements_lines, aes(x, Gamma, color = "Gamma"), size = 1.1) +
+  geom_line(data = movements_lines, aes(x, Weibull, color = "Weibull"), size = 1.1) +
+#  geom_line(data = movements_lines, aes(x, Pareto,  color="Pareto"), size = 1.1) +
+  scale_color_manual(name = "Fitted \nDistributions",
+    values = c("Exponential" = "green", "HalfNorm" = "darkorchid1",
+      "Pareto" = "red1", "Gamma" = "blue1",
+      "Weibull" = "yellow"))
+
+SaveGGPlot(paste0("Movements Distribution Fits.png"),
+  file.path(image_output), bg = "black")
+
+# Using Weibull Fit
+
+max_r <- qweibull(.995, fits_movements$weibull$estimate["shape"],
+  fits_movements$weibull$estimate["scale"]) * 1000
+
+nestcon_gamma_shape <- 1.1
+nestcon_gamma_rate <- 0.495
+
+(step_weibull_scale = fits_movements$weibull$estimate["scale"])
+(step_weibull_shape = fits_movements$weibull$estimate["shape"])
+
+
+con_nest_Sandy <- overlay(home_dist_Sandy, con_dist_nest_Sandy,
+#  fun=function(x,y){round(x+y)})
+
+plot(con_nest_Sandy, col=terrain.colors(255), main= "Sandy - ConNest Distance")
+#  legend.args=list(text="Con D", cex=1, side=3, line=1))
+points(nest_Sandy[1], nest_Sandy[2], pch=17, cex=1.5, col="blue")
+
+
+loc_pts <- data.frame(
+  x = c(500015, 474995),
+  y = c(4919965, 4930015),
+  title = c("Near Edge", "Above Nest"))
+points(loc_pts$x, loc_pts$y, size=2, pch=4, lwd=2, col="black")
+
+
+CenterXYInCell(x = c(500000, 475000),y = c(4920000, 4930000), xmin(base),
+  ymin(base), 30)
+
+step_max_r = 15000
+
+cellsize = 30
+mu = 0
+rho = .5
+scale = 1.172086
+shape = 0.7081443
+
+redist <- CreateRedistKernelWeibull(max_r=step_max_r, cellsize=cellsize,
+  mu=mu, rho=rho, shape=shape, scale=scale)
+
+r <- (cellsize*((nrow(redist)-1)/2))+(cellsize/2)
+redist_raster <- raster::raster(redist, xmn=-r, xmx=r, ymn=-r, ymx=r)
+plot(redist_raster, main= "Movement Kernel")
+SavePlot("Movement Kernel.jpeg", image_output)
+
+i <- 2
+redist_shift <- raster::shift(redist_raster, x=loc_pts$x[i],
+  y=loc_pts$y[i])
+plot(redist_shift, main= "Sandy - Movement Kernel")
+points(nest_Sandy[1], nest_Sandy[2], pch=17, cex=1.5, col="blue")
+points(loc_pts$x[i], loc_pts$y[i], size=2, pch=4, lwd=2, col="black")
+SavePlot(paste0("Sandy - Movement Kernel - ", i, ".jpeg"), image_output)
+
+redist_shift <- raster::crop(redist_shift, base, snap="in")
+con_nest <- CreateConNestProb(con_nest_raster = con_nest_Sandy,
+  gamma_shape=nestcon_gamma_shape, gamma_rate=nestcon_gamma_rate,
+  x=loc_pts$x[i], y=loc_pts$y[i], max_r=step_max_r, cellsize=cellsize,
+  base=base)
+plot(con_nest, main= "Sandy - ConNest Probability")
+points(nest_Sandy[1], nest_Sandy[2], pch=17, cex=1.5, col="blue")
+points(loc_pts$x[i], loc_pts$y[i], size=2, pch=4, lwd=2, col="black")
+SavePlot(paste0("Sandy - ConNest Probability - ", i, ".jpeg"), image_output)
+
+con_nest_crop <- raster::crop(con_nest, redist_shift, snap="out")
+redist_shift_crop <- raster::crop(redist_shift, con_nest, snap="out")
+
+redist_shift_crop
+con_nest_crop
+
+prob_raster <- raster::overlay(redist_shift_crop, con_nest_crop,
+#  fun=function(a,b){return(a*b)}, recycle=FALSE)
+
+prob_raster <- prob_raster/raster::cellStats(prob_raster, stat="sum")
+plot(prob_raster, main= "Sandy - Redistribution Kernel")
+points(nest_Sandy[1], nest_Sandy[2], pch=17, cex=1.5, col="blue")
+points(loc_pts$x[i], loc_pts$y[i], size=2, pch=4, lwd=2, col="black")
+SavePlot(paste0("Sandy - Redistribution Kernel - ", i, ".jpeg"), image_output)
+
+print("prob_min:", raster::minValue(prob_raster))
+raster::crs(prob_raster) <- raster::crs(sim$spatial$base)
+
+#CreateRedistKernelWeibull <- function(max_r = 300,
+                                      cellsize = 30,
+                                      mu,
+                                      rho,
+                                      shape,
+                                      scale,
+                                      ignore_cauchy = FALSE,
+                                      ignore_weibull = FALSE) {
+
+max_r <- qweibull(.99, fits_movements$weibull$estimate["shape"],
+  fits_movements$weibull$estimate["scale"]) * 1000
+#max_r <- 100
+cellsize <- 30
+mu = 0
+rho = .5
+scale = step_weibull_scale
+shape = step_weibull_shape
+ignore_cauchy = FALSE
+ignore_weibull = FALSE
+
+ptm <- proc.time()
+
+  if (is.null(max_r)) max_r <- qweibull(.99, shape, scale) * 1000
+  # Create the empty kernel objects
+  max_r_cells <- ceiling(max_r/cellsize)
+  size <- max_r_cells * 2 + 1
+  center <- max_r_cells + 1
+  angle_matrix <- row_matrix <- col_matrix <- new("matrix", 0, size, size)
+  distance_matrix <- new("matrix", 0, size, size)
+  i <- j <-  1:size
+  row_matrix[] <- rep(i, times  = max(j))
+  col_matrix <- t(row_matrix)
+  dx <- row_matrix - center
+  dy <- col_matrix - center
+  abs_angle <- atan2(dx, dy)
+  angle_matrix <- ifelse(abs_angle < 0, (2*pi) + abs_angle, abs_angle)
+  wrpc_kernel <- suppressWarnings(dwrappedcauchy(angle_matrix, mu=mu, rho=rho))
+  distance_matrix <- (sqrt((row_matrix - center)^2 + (col_matrix - center)^2) *
+      cellsize) / 1000
+  weibull_kernel <- dweibull(distance_matrix, scale=scale, shape=shape)
+  weibull_kernel[center, center] <- 0  # Forces agent to move from current cell
+  # This last part deletes the cells at the edge if they are all zero
+  if (all(wrpc_kernel[1, ] == 0, wrpc_kernel[, 1] == 0,
+    wrpc_kernel[nrow(wrpc_kernel),] == 0, wrpc_kernel[, ncol(wrpc_kernel)] ==0))
+    wrpc_kernel <- wrpc_kernel[2:(nrow(wrpc_kernel) - 1), 2:(ncol(wrpc_kernel)
+      - 1)]
+  if (all(weibull_kernel[1, ] == 0, weibull_kernel[, 1] == 0,
+    weibull_kernel[nrow(weibull_kernel),] == 0, weibull_kernel[,
+      ncol(weibull_kernel)] == 0))
+    weibull_kernel <- weibull_kernel[2:(nrow(weibull_kernel) - 1),
+      2:(ncol(weibull_kernel) - 1)]
+  # Multiply the two kernels together and re-normalize
+  if (ignore_cauchy) wrpc_kernel <- 1
+  if (ignore_weibull) weibull_kernel <- 1
+  redist_kernel <- weibull_kernel*wrpc_kernel
+  redist_kernel <- redist_kernel/sum(redist_kernel)
+#  return(redist_kernel)
+
+proc.time() - ptm
+
+##
+redist <- redist_kernel
+r <- (cellsize*((nrow(redist)-1)/2))+(cellsize/2)
+
+redist_raster <- raster(redist, xmn=-r, xmx=r, ymn=-r, ymx=r)
+redist_shift <- shift(redist_raster, x=50000, y=50000)
+
+plot(redist_shift)
+Plot3DRaster(redist_shift, main="Redist Kernel", border=NA)
+
+
+
+  ptm <- proc.time()
+  for (i in 1:size) {
+    for (j in 1:size) {
+      r = (sqrt((i - center)^2 + (j - center)^2) * cellsize) / 1000
+      b = AngleToPoint(center, center, j, i)
+      if(r <= max_r){
+#        distance_kernel[i, j] <- r
+        wrpc_kernel[i, j] <- round(suppressWarnings(dwrappedcauchy(b,
+          mu=mu, rho=rho)), 5)
+        weibull_kernel[i, j] <- stats::dweibull(r, scale=scale, shape=shape,
+          log=FALSE)
+      }
+    }
+  }
+  proc.time() - ptm
+  wrpc_kernel <- apply(wrpc_kernel, 2, rev)
+  weibull_kernel[center, center] <- 0  # Forces agent to move from current cell
+  # This last part deletes the cells at the edge if they are all zero
+  if (all(wrpc_kernel[1, ] == 0, wrpc_kernel[, 1] == 0,
+    wrpc_kernel[nrow(wrpc_kernel),] == 0, wrpc_kernel[, ncol(wrpc_kernel)] ==0))
+    wrpc_kernel <- wrpc_kernel[2:(nrow(wrpc_kernel) - 1), 2:(ncol(wrpc_kernel)
+      - 1)]
+  if (all(weibull_kernel[1, ] == 0, weibull_kernel[, 1] == 0,
+    weibull_kernel[nrow(weibull_kernel),] == 0, weibull_kernel[,
+      ncol(weibull_kernel)] == 0))
+    weibull_kernel <- weibull_kernel[2:(nrow(weibull_kernel) - 1),
+      2:(ncol(weibull_kernel) - 1)]
+  # Multiply the two kernels together and re-normalize
+  if (ignore_cauchy)
+    wrpc_kernel <- 1
+  if (ignore_weibull)
+    weibull_kernel <- 1
+  redist_kernel <- weibull_kernel*wrpc_kernel
+  redist_kernel <- redist_kernel/sum(redist_kernel)
+  return(redist_kernel)
+}
+
+
+

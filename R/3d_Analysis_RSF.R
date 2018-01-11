@@ -1,4 +1,6 @@
-###################### RESEARCH LAB POWERPOINT - 2016.04.28  ###################
+# -------------------------------- RSF ANALYSIS -------------------------------#
+# This script is for conducting RSF analysis on the BAEA_behavior data.
+# -----------------------------------------------------------------------------#
 
 ########################### LOAD PACKAGES AND DATA  ############################
 
@@ -11,17 +13,131 @@ suppressPackageStartupMessages(library(optimx))
 suppressPackageStartupMessages(library(raster))
 suppressPackageStartupMessages(library(rgdal))
 suppressPackageStartupMessages(library(smoothie))
-source('C:/Work/R/Functions/all.R')
+library(baear)
+library(gisr)
+library(ibmr)
 
-id_colors <- CreateColorsByAny(by="id", output=TRUE)  
+id_colors <- CreateColorsByAny(by="id", output=TRUE)
 theme_legend <- theme(plot.title=element_text(size=24, face="bold", vjust=1.5))+
-  theme(axis.title=element_text(size=20, face="bold")) + 
+  theme(axis.title=element_text(size=20, face="bold")) +
   theme(axis.text=element_text(colour="black")) +
   theme(axis.text.x=element_text(size=16, angle=50, vjust=0.5)) +
-  theme(axis.text.y=element_text(size=16, vjust=0.5)) 
+  theme(axis.text.y=element_text(size=16, vjust=0.5))
 theme_no_legend <- theme_legend + theme(legend.position="none")
 
+baea_behavior <- readRDS("Data/Baea/baea_behavior.rds")
+base <- raster("C:/ArcGIS/Data/BlankRaster/maine_30mc.tif")
+
+table(baea_behavior$id)
+
 ########################  MANAGE POINT DATA ####################################
+
+
+baea_behavior_ <- baea_behavior %>%
+  dplyr::select(id, datetime,lat, long, lat_utm, long_utm, step_length,
+    speed, alt, agl, bh_nest:behavior) %>%
+  mutate(behavior_lead = lead(behavior, 1),
+    behavior_lag = lag(behavior, 1)) %>%
+  filter(behavior == "Flight" | behavior_lead == "Flight" |
+      behavior_lag == "Flight" )
+
+
+ExportKMLTelemetryBAEA(df=baea_behavior[1:100,], #behavior= "behavior",
+  point_color = "Behavior",
+ # path_color = "behavior",
+#  point_metadata = "Data/Models/Behavior_Colors.csv",
+  file="BAEA - Flights.kml")
+
+
+### RE-WORKING NEXT SECTION -
+
+ua_data <- SampleRandomPointsInHomerange(df_all=all_nests, df_home=study_nests,
+  used_pts=baea_sub, base, max_r = 30000, id = "nest_site", name = "nest_id",
+  output_dir = getwd(), write_homerange = TRUE)
+
+function(
+
+df_all
+df_home = df_all
+used_pts = baea,
+base
+max_r = 30000
+id = NULL
+name = id
+output_dir
+write_homerange = FALSE
+
+
+  cellsize <- res(base)[1]
+  max_r_cells <- ceiling(max_r/cellsize)
+  xmin <- xmin(base)
+  ymin <- ymin(base)
+df_all_sp <- SpatialPointsDataFrame(df_all[,c("long_utm","lat_utm")], df_all,
+  proj4string=crs(base))
+  homerange_ids <- df_home[,id]
+  total <- length(homerange_ids)
+  output <- data.frame()
+  for (j in 1:nrow(df_home)) {
+    home <- df_home[j,]
+    used_pts_j <- used_pts %>% dplyr::filter(nest_site == home$nest_site)
+    used_pts_j_sp <- SpatialPoints(used_pts_j[c("long_utm", "lat_utm")],
+      crs(base))
+    ifelse(is.null(name), home_name <- j, home_name <- home[,name])
+    writeLines(noquote(paste0("Calculating random points for: ", home_name,
+      " (", j, " of ", total, ").")))
+    home_sp <- SpatialPointsDataFrame(home[,c("long_utm","lat_utm")], home,
+      proj4string=crs(base))
+    xy <- CenterXYInCell(home_sp@coords[,"long_utm"],
+      home_sp@coords[,"lat_utm"], xmin, ymin, cellsize)
+    cell_extent <- extent(xy[1]-(cellsize/2), xy[1]+(cellsize/2), xy[2]-
+      (cellsize/2), xy[2]+(cellsize/2))
+    cell <- setValues(raster(cell_extent, crs=projection(base), res=cellsize),j)
+    home_ext <- raster::extend(cell, c(max_r_cells, max_r_cells), value=NA)
+    home_dist <- raster::distanceFromPoints(home_ext, home[,c("long_utm",
+      "lat_utm")])
+    base_crop <- raster::crop(base, extent(home_ext))
+    global_dist_crop <- raster::distanceFromPoints(base_crop, df_all_sp)
+    cent_dist <- raster::overlay(home_dist, global_dist_crop, fun=function (x,y)
+      {ifelse(x != y, NA, x)})
+    homerange <- raster::calc(cent_dist, fun = function(x){ifelse(x>0, 1, NA)})
+    if (write_homerange == TRUE) {
+      filename <- file.path(output_dir, paste0("HomeRange_", home_name,
+        ".tif"))
+      writeRaster(homerange, filename=filename, format="GTiff",
+        overwrite=TRUE)
+      writeLines(noquote(paste("Writing:", filename)))
+    }
+    used_pts_j$inside <- raster::extract(homerange, SpatialPoints(used_pts_j[
+      c("long_utm", "lat_utm")], crs(base)))
+    used_pts_inside <- used_pts_j %>%
+      filter(inside == 1) %>%
+      mutate(x = long_utm) %>%
+      mutate(y = lat_utm) %>%
+      mutate(point = 1) %>%
+      dplyr::select(id, x, y, point)
+    random_pts <- as.data.frame(randomPoints(homerange,
+      n=nrow(used_pts_inside)))
+    colnames(random_pts) <- c("x", "y")
+    random_pts$point <- 0
+    random_pts$id <- unique(used_pts_j$id)
+    random_pts <- random_pts %>% dplyr::select(id, x, y, point)
+    output <- rbind(output, used_pts_inside, random_pts)
+  }
+  return(output)
+}
+
+
+# Simple plot
+ggplot() +
+  geom_point(data=baea_behavior %>% filter(speed < 1000),
+    aes(x=long_utm, y=lat_utm, color=id), shape=19, alpha=.9,
+    size=.75, stroke=1, na.rm=TRUE) +
+    scale_color_manual(values=baea_colors) +
+  geom_point(data=baea_behavior %>% filter(speed < 1000),
+    aes(x=long_utm, y=lat_utm, color=id), shape=19, alpha=.9,
+    size=.75, stroke=1, na.rm=TRUE) +
+    scale_color_manual(values=baea_colors
+
 
 keep <- c("Sheepscot", "Sandy", "Branch", "Phillips")
 #remove <- c("Cherryfield", "Madagascal", "Webb", "Upper")
@@ -31,9 +147,9 @@ all_nests <- read.csv(file=file.path("C:/Work/R/Data/BAEA/Nests",
 all_nests <- ConvertNestIdToNum(all_nests)
 
 study_nests <- read.csv(file=file.path("C:/Work/R/Data/BAEA/Nests/",
-    "Nests_Study.csv"), header=TRUE, stringsAsFactors=FALSE) %>% 
-  dplyr::filter(name %in% keep)   
-#  dplyr::filter(!name %in% remove) 
+    "Nests_Study.csv"), header=TRUE, stringsAsFactors=FALSE) %>%
+  dplyr::filter(name %in% keep)
+#  dplyr::filter(!name %in% remove)
 
 study_nests <- ConvertNestIdToNum(study_nests)
 study_nests[, "nest_id"] <- study_nests[, "nest_site"]
@@ -41,11 +157,11 @@ study_nests[, "nest_id"] <- study_nests[, "nest_site"]
 intact_last <- read.csv("C:/Work/R/Data/BAEA/Nests/Nests_Study_Intact_Last.csv")
 study_nests <- read.csv(file="C:/Work/R/Data/BAEA/Nests/Nests_Study.csv")
 
-#intact_last_spdf <- SpatialPointsDataFrame(intact_last[c("long", "lat")], 
+#intact_last_spdf <- SpatialPointsDataFrame(intact_last[c("long", "lat")],
 #  bbox=NULL, data=intact_last, proj4string = CRS("+proj=longlat +datum=WGS84"))
 #intact_last_voronoi <- ConvertToVoronoi(intact_last_spdf)
 
-all_nests_spdf <- SpatialPointsDataFrame(all_nests[c("long_utm", "lat_utm")], 
+all_nests_spdf <- SpatialPointsDataFrame(all_nests[c("long_utm", "lat_utm")],
   bbox=NULL, data=all_nests, proj4string = crs(base))
 all_nests_voronoi <- ConvertToVoronoi(all_nests_spdf)
 
@@ -53,21 +169,18 @@ all_nests_voronoi <- ConvertToVoronoi(all_nests_spdf)
 baea_all <- read.csv("C:/Work/R/Data/BAEA/BAEA.csv", header=TRUE)
 baea_sub <-  baea_all %>%
   dplyr::filter(agl <= 67) %>%
-  dplyr::filter(speed <= 2) %>%  
+  dplyr::filter(speed <= 2) %>%
   dplyr::filter(year == 2015) %>%
-  dplyr::filter(id %in% keep)  
+  dplyr::filter(id %in% keep)
 #  dplyr::filter(!id %in% remove)
 
-used <- baea_sub %>%  
+used <- baea_sub %>%
   mutate(x = long_utm) %>%
   mutate(y = lat_utm) %>%
   mutate(point = 1) %>%
   dplyr::select(x,y,point)
 
-base <- raster("C:/ArcGIS/Data/BlankRaster/maine_30mc.tif")
-ua_data <- SampleRandomPointsInHomerange(df_all=all_nests, df_home=study_nests,
-  used_pts=baea_sub, base, max_r = 30000, id = "nest_site", name = "nest_id",
-  output_dir = getwd(), write_homerange = TRUE)
+
 ua_data$id <- as.character(ua_data$id)
 ua_data %>% count(id, point)
 nrow(ua_data)/2
@@ -84,42 +197,42 @@ lc_30mc <- raster("C:/ArcGIS/Data/Landcover/Landcover/lc_30mc.tif")
 
 ################## CONVERT POINT DATA AND CROP LANDSCAPE RASTER ################
 
-ua_data_sp <- SpatialPointsDataFrame(ua_data[,c("x","y")], ua_data, 
+ua_data_sp <- SpatialPointsDataFrame(ua_data[,c("x","y")], ua_data,
   proj4string = CRS("+proj=utm +zone=19 ellps=WGS84"), bbox = NULL)
 lc_crop <- crop(lc_30mc, extend(extent(ua_data_sp), 500))
 
 ####################### CONVERT UA_DATA TO SPDF ################################
 
-ua_data_sp <- SpatialPointsDataFrame(ua_data[,c("x","y")], ua_data, 
+ua_data_sp <- SpatialPointsDataFrame(ua_data[,c("x","y")], ua_data,
   proj4string = CRS("+proj=utm +zone=19 ellps=WGS84"), bbox = NULL)
 ua_data_sp <- spTransform(ua_data_sp, CRS("+proj=longlat +datum=WGS84"))
 
 ############################## MAP UA_DATA #####################################
 
 ggplot(data = ua_data %>% filter(point == 1)) + ggtitle("Used Points") +
-  geom_point(aes(x = x, y = y), 
+  geom_point(aes(x = x, y = y),
     alpha = 1, size = 1, na.rm = FALSE, color = "red") + theme_legend +
     theme(axis.text.x=element_text(size=16, angle=0, vjust=0.5)) +
   geom_point(data = intact_last,aes(x = long_utm, y = lat_utm), shape = 17,
-      alpha = 1, color = "blue", size = 2, stroke = 1.5, 
+      alpha = 1, color = "blue", size = 2, stroke = 1.5,
       na.rm = TRUE) +
-  geom_polygon(data=all_nests_voronoi,aes(x=long, y=lat, map_id=id), 
+  geom_polygon(data=all_nests_voronoi,aes(x=long, y=lat, map_id=id),
     color="mediumvioletred", fill="#FFFFFF00", size=.75)  +
   coord_cartesian(xlim = c(460000, 540000), ylim = c(4905000, 4960000)) +
-  ggtitle("Used Points") 
+  ggtitle("Used Points")
 SaveGGPlot("Used Points.jpeg")
 
 
 ggplot(data = ua_data %>% filter(point == 1)) +
   geom_point(aes(x = x, y = y), data = ua_data %>% filter(point == 0),
     alpha = 1, size = 1, na.rm = FALSE, color = "yellow")  +
-  geom_point(aes(x = x, y = y), 
+  geom_point(aes(x = x, y = y),
     alpha = 1, size = 1, na.rm = FALSE, color = "red") + theme_legend +
     theme(axis.text.x=element_text(size=16, angle=0, vjust=0.5)) +
   geom_point(data = intact_last,aes(x = long_utm, y = lat_utm), shape = 17,
-      alpha = 1, color = "blue", size = 2, stroke = 1.5, 
+      alpha = 1, color = "blue", size = 2, stroke = 1.5,
       na.rm = TRUE) +
-  geom_polygon(data=all_nests_voronoi,aes(x=long, y=lat, map_id=id), 
+  geom_polygon(data=all_nests_voronoi,aes(x=long, y=lat, map_id=id),
     color="mediumvioletred", fill="#FFFFFF00", size=.75)  +
   coord_cartesian(xlim = c(460000, 540000), ylim = c(4905000, 4960000)) +
   ggtitle("Used and Available Points") +
@@ -131,18 +244,18 @@ ua_data$lat <- coordinates(ua_data_sp)[,2]
 
 area_map <- get_map(location = ext,
   color = "color", source = "google", maptype = "hybrid", zoom = 9)
-area_ggmap <- ggmap(area_map, extent = "device", ylab="Latitude", 
+area_ggmap <- ggmap(area_map, extent = "device", ylab="Latitude",
   xlab="Longitude", legend = "right") +
   geom_point(aes(x = long, y = lat), data = ua_data %>% filter(point == 0),
     alpha = 1, size = 1, na.rm = FALSE, color = "yellow")  +
   geom_point(aes(x = long, y = lat), data = ua_data %>% filter(point == 1),
-    alpha = 1, size = 1, na.rm = FALSE, color = "red")  
+    alpha = 1, size = 1, na.rm = FALSE, color = "red")
 print(area_ggmap)
 SaveGGPlot("Used and Available Points - Map.jpeg", bg = "black")
 
 ###################### CONVERT LANDSCAPE RASTER ################################
 
-# Convert all non-zero values to 1's 
+# Convert all non-zero values to 1's
 
 developed <- subs(lc_crop, data.frame(id=c(21:24), v=rep(1, 4))) ## Developed
 developed[is.na(developed)] <- 0
@@ -177,15 +290,15 @@ SavePlot(file="Map_All_Color.jpg")
 par(mfrow = c(2, 3))
 plot(developed, main="Developed",
   col=colorRampPalette(c("white","#ED0000"))(100))
-plot(forest, main="Forest", 
+plot(forest, main="Forest",
   col=colorRampPalette(c("white","#B5C98E"))(100))
-plot(open_water, main="Open Water", 
+plot(open_water, main="Open Water",
   col=colorRampPalette(c("white","#476BA0"))(100))
-plot(pasture, main = "Pasture", 
+plot(pasture, main = "Pasture",
     col=colorRampPalette(c("white","#DBD83C"))(100))
-plot(shrub_herb, main = "Shrub and Herbaceous", 
+plot(shrub_herb, main = "Shrub and Herbaceous",
   col=colorRampPalette(c("white","#CCBA7C"))(100))
-plot(wetland, main="Wetland", 
+plot(wetland, main="Wetland",
     col=colorRampPalette(c("white","#BAD8EA"))(100))
 SavePlot(file="Map_All_Color.jpg")
 par(mfrow = c(1,1))
@@ -207,11 +320,11 @@ ggplot(aes(x = x, y = y), data = df) +
   guides(fill = guide_legend(title = "Classifications")) +
   scale_y_continuous(expand = c(0,0)) + scale_x_continuous(expand = c(0,0)) +
 #  theme_legend +
-  theme(axis.text=element_text(size=10)) + 
+  theme(axis.text=element_text(size=10)) +
   xlab("Longitude") + ylab("Latitude") + ggtitle("Landcover")
 SaveGGPlot(file="Map_lc_crop.jpeg")
 
-ext <- as.vector(extent(projectExtent(wetland, 
+ext <- as.vector(extent(projectExtent(wetland,
   CRS("+proj=longlat +datum=WGS84")))[c(1,3,2,4)])
 ext <- ext
 
@@ -228,16 +341,16 @@ str(ua_data)
 ################### CALCULATE KERNEL-WEIGHTED VALUES ###########################
 
 # Here is an example of looping through many different bandwidths,
-# extracting the values at each point, and storing said values in a 
+# extracting the values at each point, and storing said values in a
 # data frame. Note that the smoothed surfaces are NOT stored here.
 #h <- c(1:50, seq(55, 200, by=5))
 bandwidths <- c(1:50, seq(55, 200, by=5))*15
 bandwidths <- c(seq(15,750, by=15), seq(825, 3000, by=75))
 cell_radius <- 15
 lc_types <- c("developed", "forest", "open_water", "pasture", "shrub_herb",
-  "wetland") 
+  "wetland")
 
-new_lc_cols <- paste0(rep(lc_types, each=length(bandwidths)), rep(bandwidths, 
+new_lc_cols <- paste0(rep(lc_types, each=length(bandwidths)), rep(bandwidths,
   times=length(lc_types)))
 new_df <- as.data.frame(matrix(ncol=length(new_lc_cols), nrow=nrow(ua_data),NA))
 
@@ -252,11 +365,11 @@ system.time(
     for(j in 1:length(bandwidths)){
       bw <- bandwidths[j]/cell_radius # gotta be in units of pixels I think
       zmat <- as.matrix(eval(parse(text = lc_type_i)))
-      f <- kernel2dsmooth(zmat, kernel.type="gauss", nx=nrow(lc_crop), 
+      f <- kernel2dsmooth(zmat, kernel.type="gauss", nx=nrow(lc_crop),
         ny=ncol(lc_crop), sigma = bw)
       lc_smooth <- lc_crop
       values(lc_smooth) <- f
-      print(noquote(paste0("Working on: '", lc_type_i, "' at bandwidth ", 
+      print(noquote(paste0("Working on: '", lc_type_i, "' at bandwidth ",
         (bw*15))))
       data_col <- which(colnames(ua_data) == paste(lc_type_i, (bw*15), sep=""))
       ua_data[, data_col] <- extract(lc_smooth, ua_data_sp)
@@ -272,7 +385,7 @@ save(ua_data, file=file.path(getwd(), "ua_data_lc_data.RData"))
 load(file=file.path(getwd(), "ua_data_lc_data.RData"))
 bandwidths <- c(0:50, seq(55, 200, by=5))*15
 lc_types <- c("developed", "forest", "open_water", "pasture", "shrub_herb",
-  "wetland") 
+  "wetland")
 
 # Fit univariate models to find the "approximate" AIC-best bandwidth
 # (i.e., stage-one of a two-stage analysis)
@@ -289,8 +402,8 @@ for (i in 1:length(lc_types)){
     lc_mod = glm(fmla, data=ua_data, family="binomial")
     lc_mods[[length(lc_mods)+1]] <- lc_mod
     names(lc_mods)[[length(lc_mods)]] <-  as.character(bandwidths[j])
-    mod <- data.frame(lc_type = lc_type_i, bw = bandwidths[j], aic = lc_mod$aic, 
-      intercept = as.numeric(coef(lc_mod)[1]), 
+    mod <- data.frame(lc_type = lc_type_i, bw = bandwidths[j], aic = lc_mod$aic,
+      intercept = as.numeric(coef(lc_mod)[1]),
       slope = as.numeric(coef(lc_mod)[2]), opt_bw = NA)
     all_mods <- rbind(all_mods, mod)
   }
@@ -299,11 +412,11 @@ for (i in 1:length(lc_types)){
   aic_table$opt_bw <- as.numeric(as.character(aic_table[1,1]))
   opt_bw <- as.numeric(as.character(aic_table[1,1]))
   all_mods[all_mods$lc_type == lc_type_i, "opt_bw"] <- opt_bw
-  opt_mods[opt_mods$lc_type == lc_type_i, "bw"] <- opt_bw 
-  g <- ggplot(aic_table, aes(x=as.numeric(as.character(Modnames)), y = AIC)) + 
+  opt_mods[opt_mods$lc_type == lc_type_i, "bw"] <- opt_bw
+  g <- ggplot(aic_table, aes(x=as.numeric(as.character(Modnames)), y = AIC)) +
     geom_line(color="red") + geom_point() + xlab("Bandwidth") + theme_no_legend+
     ggtitle(lc_type_i) + geom_vline(xintercept = opt_bw, color="blue") +
-    annotate("text", x = opt_bw+100, xmin = opt_bw, y = min(aic_table$AIC), 
+    annotate("text", x = opt_bw+100, xmin = opt_bw, y = min(aic_table$AIC),
     label = as.character(opt_bw), color = "blue")
   print(g)
   SaveGGPlot(file = paste0("AIC_BW_", lc_type_i, ".jpg"))
@@ -317,28 +430,28 @@ all_mods_top5 <- all_mods_sort %>% group_by(lc_type) %>% slice(1:5)
 write.csv(all_mods_top5, file = "all_mods_top5.csv")
 
 # Plot all AIC by bandwidths in facet_wrap
-g <- ggplot(all_mods, aes(x=bw, y = aic)) + 
+g <- ggplot(all_mods, aes(x=bw, y = aic)) +
   geom_line(color="red") + geom_point() + xlab("Bandwidth") + theme_no_legend +
-  geom_vline(data = ddply(all_mods, "lc_type", summarize, 
+  geom_vline(data = ddply(all_mods, "lc_type", summarize,
     opt_bw_i = min(opt_bw)), aes(xintercept=opt_bw_i), color= "blue") +
-  geom_text(data = ddply(all_mods, "lc_type", summarize, 
-    opt_bw_i = min(opt_bw), min_aic = min(aic)), 
-    mapping=aes(x = opt_bw_i + 300, y = min_aic, label = opt_bw_i), 
+  geom_text(data = ddply(all_mods, "lc_type", summarize,
+    opt_bw_i = min(opt_bw), min_aic = min(aic)),
+    mapping=aes(x = opt_bw_i + 300, y = min_aic, label = opt_bw_i),
     size = 4, color = "blue") +
   facet_wrap(~lc_type, scales = "free_y") +
-  theme(axis.title=element_text(size=12, face="bold")) + 
+  theme(axis.title=element_text(size=12, face="bold")) +
   theme(axis.text.x=element_text(size=8, angle=50, vjust=0.5)) +
-  theme(axis.text.y=element_text(size=8, vjust=0.5)) 
-print(g)  
+  theme(axis.text.y=element_text(size=8, vjust=0.5))
+print(g)
 SaveGGPlot(file = paste0("AIC_BW_all.jpg"))
 
 
 
 ######### PREDICT LOGISTIC FUNCTION AT OPTIMAL KERNEL-WEIGHTED VALUES ##########
 
-predict_range <- with(ua_data, data.frame(developed150 = seq(from = 0, to = 1, 
-  length.out = 100))) 
-predicted <- cbind(predict_range, predict(all_lc_mods[["developed150"]], 
+predict_range <- with(ua_data, data.frame(developed150 = seq(from = 0, to = 1,
+  length.out = 100)))
+predicted <- cbind(predict_range, predict(all_lc_mods[["developed150"]],
   newdata=predict_range, type="link", se=TRUE))
 predicted <- within(predicted, {
   Predicted_Prob <- plogis(fit)
@@ -389,7 +502,7 @@ opt_mods_coef <- dplyr::left_join(opt_mods, all_mods, by = c("lc_type", "bw"))
 #   test <- eval(parse(text = lc_types[i]))
 #   print(test)
 #  }
-  
+
 # Parameters
 developed_table = opt_mods_coef %>% filter(lc_type == "developed")
 parms_developed <- c(developed_table$intercept, developed_table$slope, log(developed_table$opt_bw/15))
@@ -424,38 +537,38 @@ surface_open_water <- data.frame(coordinates(open_water), values(open_water))
 surface_pasture <- data.frame(coordinates(pasture), values(pasture))
 surface_shrub_herb <- data.frame(coordinates(shrub_herb), values(shrub_herb))
 surface_wetland <- data.frame(coordinates(wetland), values(wetland))
-# testing potential for loop code 
+# testing potential for loop code
 # surface <- data.frame(coordinates(eval(parse(text = lc_types[i]))), values(eval(parse(text = lc_types[i]))))
 
 # OPTIMIZE!!!!!!!!!!!!
 
 system.time(out_developed <- optimx(par=parms_developed, fn=nll_kern_bw,
-  z=ua_data$point, cell=cell_developed, surface=surface_developed, 
+  z=ua_data$point, cell=cell_developed, surface=surface_developed,
   control=list(trace=3)))
 save(out_developed, file = "out_developed.RData")
 
 system.time(out_forest <- optimx(par=parms_forest, fn=nll_kern_bw,
-  z=ua_data$point, cell=cell_forest, surface=surface_forest, 
+  z=ua_data$point, cell=cell_forest, surface=surface_forest,
   control=list(trace=3)))
 save(out_forest, file = "out_forest.RData")
 
 system.time(out_open_water <- optimx(par=parms_open_water, fn=nll_kern_bw,
-  z=ua_data$point, cell=cell_open_water, surface=surface_open_water, 
+  z=ua_data$point, cell=cell_open_water, surface=surface_open_water,
   control=list(trace=3)))
 save(out_open_water, file = "out_open_water.RData")
 
 system.time(out_pasture <- optimx(par=parms_pasture, fn=nll_kern_bw,
-  z=ua_data$point, cell=cell_pasture, surface=surface_pasture, 
+  z=ua_data$point, cell=cell_pasture, surface=surface_pasture,
   control=list(trace=3)))
 save(out_pasture, file = "out_pasture.RData")
 
 system.time(out_shrub_herb <- optimx(par=parms_shrub_herb, fn=nll_kern_bw,
-  z=ua_data$point, cell=cell_shrub_herb, surface=surface_shrub_herb, 
+  z=ua_data$point, cell=cell_shrub_herb, surface=surface_shrub_herb,
   control=list(trace=3)))
 save(out_shrub_herb, file = "out_shrub_herb.RData")
 
 system.time(out_wetland <- optimx(par=parms_wetland, fn=nll_kern_bw,
-  z=ua_data$point, cell=cell_wetland, surface=surface_wetland, 
+  z=ua_data$point, cell=cell_wetland, surface=surface_wetland,
   control=list(trace=3)))
 save(out_wetland, file = "out_wetland.RData")
 
@@ -464,10 +577,10 @@ save(out_wetland, file = "out_wetland.RData")
 # FAILED
 system.time(out <- nlm(nll_kern_bw,parms,print.level=2,hessian=TRUE))
 
-# FAILED 
+# FAILED
 system.time(out <- optim(par=parms, fn=nll_kern_bw, method = "L-BFGS-B",
-      lower = c(-100, -1000, log(0)), upper = rep(100, 1000, log(500)), 
-      z=ua_data$point, cell=cell1, surface=surface, control = list(trace=3, 
+      lower = c(-100, -1000, log(0)), upper = rep(100, 1000, log(500)),
+      z=ua_data$point, cell=cell1, surface=surface, control = list(trace=3,
         REPORT=1)))
 
 
@@ -504,35 +617,35 @@ for (i in 1:length(lc_types)){
     "255"  = glm(ua_data_sub[,1]~ua_data_sub[,19], ua_data_sub, family="binomial"),
     "270"  = glm(ua_data_sub[,1]~ua_data_sub[,20], ua_data_sub, family="binomial"),
     "285"  = glm(ua_data_sub[,1]~ua_data_sub[,21], ua_data_sub, family="binomial"),
-    "300"  = glm(ua_data_sub[,1]~ua_data_sub[,22], ua_data_sub, family="binomial"),  
-    "315"  = glm(ua_data_sub[,1]~ua_data_sub[,23], ua_data_sub, family="binomial"),   
-    "330"  = glm(ua_data_sub[,1]~ua_data_sub[,24], ua_data_sub, family="binomial"), 
-    "345"  = glm(ua_data_sub[,1]~ua_data_sub[,25], ua_data_sub, family="binomial"),   
-    "360"  = glm(ua_data_sub[,1]~ua_data_sub[,26], ua_data_sub, family="binomial"),   
-    "375"  = glm(ua_data_sub[,1]~ua_data_sub[,27], ua_data_sub, family="binomial"),   
-    "390"  = glm(ua_data_sub[,1]~ua_data_sub[,28], ua_data_sub, family="binomial"),   
-    "405"  = glm(ua_data_sub[,1]~ua_data_sub[,29], ua_data_sub, family="binomial"),   
-    "420"  = glm(ua_data_sub[,1]~ua_data_sub[,30], ua_data_sub, family="binomial"),   
-    "435"  = glm(ua_data_sub[,1]~ua_data_sub[,31], ua_data_sub, family="binomial"),  
-    "450"  = glm(ua_data_sub[,1]~ua_data_sub[,32], ua_data_sub, family="binomial"),   
-    "465"  = glm(ua_data_sub[,1]~ua_data_sub[,33], ua_data_sub, family="binomial"),     
-    "480"  = glm(ua_data_sub[,1]~ua_data_sub[,34], ua_data_sub, family="binomial"),     
-    "495"  = glm(ua_data_sub[,1]~ua_data_sub[,35], ua_data_sub, family="binomial"),     
-    "510"  = glm(ua_data_sub[,1]~ua_data_sub[,36], ua_data_sub, family="binomial"),     
-    "525"  = glm(ua_data_sub[,1]~ua_data_sub[,37], ua_data_sub, family="binomial"),     
-    "540"  = glm(ua_data_sub[,1]~ua_data_sub[,38], ua_data_sub, family="binomial"),     
-    "555"  = glm(ua_data_sub[,1]~ua_data_sub[,39], ua_data_sub, family="binomial"),     
-    "570"  = glm(ua_data_sub[,1]~ua_data_sub[,40], ua_data_sub, family="binomial"),     
+    "300"  = glm(ua_data_sub[,1]~ua_data_sub[,22], ua_data_sub, family="binomial"),
+    "315"  = glm(ua_data_sub[,1]~ua_data_sub[,23], ua_data_sub, family="binomial"),
+    "330"  = glm(ua_data_sub[,1]~ua_data_sub[,24], ua_data_sub, family="binomial"),
+    "345"  = glm(ua_data_sub[,1]~ua_data_sub[,25], ua_data_sub, family="binomial"),
+    "360"  = glm(ua_data_sub[,1]~ua_data_sub[,26], ua_data_sub, family="binomial"),
+    "375"  = glm(ua_data_sub[,1]~ua_data_sub[,27], ua_data_sub, family="binomial"),
+    "390"  = glm(ua_data_sub[,1]~ua_data_sub[,28], ua_data_sub, family="binomial"),
+    "405"  = glm(ua_data_sub[,1]~ua_data_sub[,29], ua_data_sub, family="binomial"),
+    "420"  = glm(ua_data_sub[,1]~ua_data_sub[,30], ua_data_sub, family="binomial"),
+    "435"  = glm(ua_data_sub[,1]~ua_data_sub[,31], ua_data_sub, family="binomial"),
+    "450"  = glm(ua_data_sub[,1]~ua_data_sub[,32], ua_data_sub, family="binomial"),
+    "465"  = glm(ua_data_sub[,1]~ua_data_sub[,33], ua_data_sub, family="binomial"),
+    "480"  = glm(ua_data_sub[,1]~ua_data_sub[,34], ua_data_sub, family="binomial"),
+    "495"  = glm(ua_data_sub[,1]~ua_data_sub[,35], ua_data_sub, family="binomial"),
+    "510"  = glm(ua_data_sub[,1]~ua_data_sub[,36], ua_data_sub, family="binomial"),
+    "525"  = glm(ua_data_sub[,1]~ua_data_sub[,37], ua_data_sub, family="binomial"),
+    "540"  = glm(ua_data_sub[,1]~ua_data_sub[,38], ua_data_sub, family="binomial"),
+    "555"  = glm(ua_data_sub[,1]~ua_data_sub[,39], ua_data_sub, family="binomial"),
+    "570"  = glm(ua_data_sub[,1]~ua_data_sub[,40], ua_data_sub, family="binomial"),
     "585"  = glm(ua_data_sub[,1]~ua_data_sub[,41], ua_data_sub, family="binomial"),
-    "600"  = glm(ua_data_sub[,1]~ua_data_sub[,42], ua_data_sub, family="binomial"),   
-    "615"  = glm(ua_data_sub[,1]~ua_data_sub[,43], ua_data_sub, family="binomial"),     
-    "630"  = glm(ua_data_sub[,1]~ua_data_sub[,44], ua_data_sub, family="binomial"),     
-    "645"  = glm(ua_data_sub[,1]~ua_data_sub[,45], ua_data_sub, family="binomial"),     
-    "660"  = glm(ua_data_sub[,1]~ua_data_sub[,46], ua_data_sub, family="binomial"),     
-    "675"  = glm(ua_data_sub[,1]~ua_data_sub[,47], ua_data_sub, family="binomial"),     
-    "690"  = glm(ua_data_sub[,1]~ua_data_sub[,48], ua_data_sub, family="binomial"),     
-    "705"  = glm(ua_data_sub[,1]~ua_data_sub[,49], ua_data_sub, family="binomial"),     
-    "720"  = glm(ua_data_sub[,1]~ua_data_sub[,50], ua_data_sub, family="binomial"),     
+    "600"  = glm(ua_data_sub[,1]~ua_data_sub[,42], ua_data_sub, family="binomial"),
+    "615"  = glm(ua_data_sub[,1]~ua_data_sub[,43], ua_data_sub, family="binomial"),
+    "630"  = glm(ua_data_sub[,1]~ua_data_sub[,44], ua_data_sub, family="binomial"),
+    "645"  = glm(ua_data_sub[,1]~ua_data_sub[,45], ua_data_sub, family="binomial"),
+    "660"  = glm(ua_data_sub[,1]~ua_data_sub[,46], ua_data_sub, family="binomial"),
+    "675"  = glm(ua_data_sub[,1]~ua_data_sub[,47], ua_data_sub, family="binomial"),
+    "690"  = glm(ua_data_sub[,1]~ua_data_sub[,48], ua_data_sub, family="binomial"),
+    "705"  = glm(ua_data_sub[,1]~ua_data_sub[,49], ua_data_sub, family="binomial"),
+    "720"  = glm(ua_data_sub[,1]~ua_data_sub[,50], ua_data_sub, family="binomial"),
     "735"  = glm(ua_data_sub[,1]~ua_data_sub[,51], ua_data_sub, family="binomial"),
     "750"  = glm(ua_data_sub[,1]~ua_data_sub[,52], ua_data_sub, family="binomial"),
     "825"  = glm(ua_data_sub[,1]~ua_data_sub[,53], ua_data_sub, family="binomial"),
@@ -541,15 +654,15 @@ for (i in 1:length(lc_types)){
     "1050"  = glm(ua_data_sub[,1]~ua_data_sub[,56], ua_data_sub, family="binomial"),
     "1125"  = glm(ua_data_sub[,1]~ua_data_sub[,57], ua_data_sub, family="binomial"),
     "1200"  = glm(ua_data_sub[,1]~ua_data_sub[,58], ua_data_sub, family="binomial"),
-    "1275"  = glm(ua_data_sub[,1]~ua_data_sub[,59], ua_data_sub, family="binomial"),  
+    "1275"  = glm(ua_data_sub[,1]~ua_data_sub[,59], ua_data_sub, family="binomial"),
     "1350"  = glm(ua_data_sub[,1]~ua_data_sub[,60], ua_data_sub, family="binomial"),
     "1425"  = glm(ua_data_sub[,1]~ua_data_sub[,61], ua_data_sub, family="binomial"),
-    "1500"  = glm(ua_data_sub[,1]~ua_data_sub[,62], ua_data_sub, family="binomial")     
+    "1500"  = glm(ua_data_sub[,1]~ua_data_sub[,62], ua_data_sub, family="binomial")
   )
   mod_table <- aictab(lc_mods, second.ord = FALSE)
   View(mod_table)
   optimum_bw <- as.numeric(as.character(mod_table[1,1]))
-  g <- ggplot(mod_table, aes(x=as.numeric(as.character(Modnames)), y = AIC)) + 
+  g <- ggplot(mod_table, aes(x=as.numeric(as.character(Modnames)), y = AIC)) +
     geom_line(color="red") + geom_point() + xlab("Bandwidth") + theme_no_legend +
     ggtitle(lc_type_i) + geom_vline(xintercept = optimum_bw, color="blue")
   print(g)
@@ -591,7 +704,7 @@ lc_mods <- list(
 
 
 
-predict_range <- with(ua_data, data.frame(open_water15 = seq(from = 0, to = 1, 
+predict_range <- with(ua_data, data.frame(open_water15 = seq(from = 0, to = 1,
   length.out = 100)))
 
 
@@ -600,7 +713,7 @@ lc_mods <- list(
   "15"   = glm(point~open_water15,    ua_data, family="binomial")
   )
 
-predicted <- cbind(predict_range, predict(lc_mods[["15"]], 
+predicted <- cbind(predict_range, predict(lc_mods[["15"]],
   newdata=predict_range, type="link", se=TRUE))
 predicted <- within(predicted, {
   Predicted_Prob <- plogis(fit)
@@ -752,9 +865,9 @@ all_nests <- read.csv(file=file.path("C:/Work/R/Data/BAEA/Nests",
 all_nests <- ConvertNestIdToNum(all_nests)
 
 study_nests <- read.csv(file=file.path("C:/Work/R/Data/BAEA/Nests/",
-    "Nests_Study.csv"), header=TRUE, stringsAsFactors=FALSE) %>% 
-#  dplyr::filter(!name %in% c("Cherryfield", "Madagascal", "Webb", "Upper")) 
-  dplyr::filter(name %in% c("Sheepscot", "Sandy"))   
+    "Nests_Study.csv"), header=TRUE, stringsAsFactors=FALSE) %>%
+#  dplyr::filter(!name %in% c("Cherryfield", "Madagascal", "Webb", "Upper"))
+  dplyr::filter(name %in% c("Sheepscot", "Sandy"))
 study_nests <- ConvertNestIdToNum(study_nests)
 study_nests[, "nest_id"] <- study_nests[, "nest_site"]
 
@@ -763,12 +876,12 @@ base <- raster("C:/ArcGIS/Data/BlankRaster/maine_30mc.tif")
 baea_all <- read.csv("C:/Work/R/Data/BAEA/BAEA.csv", header=TRUE)
 baea_sub <-  baea_all %>%
   dplyr::filter(agl <= 67) %>%
-  dplyr::filter(speed <= 2) %>%  
+  dplyr::filter(speed <= 2) %>%
   dplyr::filter(year == 2015) %>%
 #  dplyr::filter(!id %in% c("Cherryfield", "Madagascal", "Webb", "Upper"))
-  dplyr::filter(id %in% c("Sheepscot", "Sandy"))  
-  
-used <- baea_sub %>%  
+  dplyr::filter(id %in% c("Sheepscot", "Sandy"))
+
+used <- baea_sub %>%
   mutate(x = long_utm) %>%
   mutate(y = lat_utm) %>%
   mutate(point = 1) %>%

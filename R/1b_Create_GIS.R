@@ -147,7 +147,7 @@ eluform_legend <- elu_classify %>%
   dplyr::select(value, red, green, blue, name) %>%
   arrange(value)
 
-## CAREFUL! Don't overwrite the following file unless absolutely necessary.
+## CAREFUL! Do not overwrite the following file unless absolutely necessary.
 ## The colors would have to be manually entered again.
 #write.csv(eluform_legend, eluform_legend_csv, row.names = FALSE)
 
@@ -178,7 +178,7 @@ habitat_legend <- habitat_classify %>%
   dplyr::select(value, red, green, blue, name) %>%
   arrange(value)
 
-## CAREFUL! Don't overwrite the following file unless absolutely necessary.
+## CAREFUL! Do not overwrite the following file unless absolutely necessary.
 ## The colors would have to manually entered again.
 #write.csv(habitat_legend, habitat_legend_csv, row.names = FALSE)
 
@@ -209,7 +209,7 @@ landcover_legend <- land_classify %>%
   dplyr::select(value, red, green, blue, name) %>%
   arrange(value)
 
-## CAREFUL! Don't overwrite the following file unless absolutely necessary.
+## CAREFUL! Do not overwrite the following file unless absolutely necessary.
 ## The colors would have to manually entered again.
 # write.csv(landcover_legend, landcover_legend_csv, row.names = FALSE)
 
