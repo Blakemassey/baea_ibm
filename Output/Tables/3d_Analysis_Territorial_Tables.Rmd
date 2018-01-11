@@ -1,0 +1,46 @@
+---
+title: "Markdown_Working"
+author: "Blake Massey"
+date: "February 27, 2016"
+output: pdf_document
+
+---
+
+Fit Distributions for Home Distance:
+```{r results='asis', echo=FALSE}
+suppressPackageStartupMessages(library(fitdistrplus))
+suppressPackageStartupMessages(library(xtable))
+getwd()
+load("C:/Work/R/Projects/baea/Output/fits_movements.RData")
+options(xtable.comment = FALSE)
+
+fits_df <- baear::SummarizeFitdist(fits_movements)
+print(xtable(fits_df),latex.environments = "", include.rownames=FALSE)
+```
+```{r}
+
+```
+
+<!-- Fit Distributions for Edge Distance Shift: -->
+<!-- ```{r results='asis', echo=FALSE} -->
+<!-- suppressPackageStartupMessages(library(fitdistrplus)) -->
+<!-- suppressPackageStartupMessages(library(xtable)) -->
+<!-- load("C:/Work/R/Workspace/fits_edge_dist_shift.RData") -->
+<!-- source("C:/Work/R/Functions/pars.R") -->
+<!-- options(xtable.comment = FALSE) -->
+
+<!-- fits_df <- SummarizeFitdist(fits_edge_dist_shift) -->
+<!-- print(xtable(fits_df), latex.environments = "", include.rownames=FALSE) -->
+<!-- ``` -->
+
+<!-- Fit Distributions for Edge Distance Outside: -->
+<!-- ```{r results='asis', echo=FALSE} -->
+<!-- suppressPackageStartupMessages(library(fitdistrplus)) -->
+<!-- suppressPackageStartupMessages(library(xtable)) -->
+<!-- load("C:/Work/R/Workspace/fits_edge_dist_outside.RData") -->
+<!-- source("C:/Work/R/Functions/pars.R") -->
+<!-- options(xtable.comment = FALSE) -->
+
+<!-- fits_df <- SummarizeFitdist(fits_edge_dist_outside) -->
+<!-- print(xtable(fits_df), latex.environments = "", include.rownames=FALSE) -->
+<!-- ``` -->

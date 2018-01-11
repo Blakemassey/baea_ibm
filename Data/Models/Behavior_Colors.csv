@@ -1,8 +1,9 @@
 sex,behavior,icon_color,color
-,cruise,#0000FF,blue
-,flight,#FF0000,red
-,nest,#FFFF00,yellow
-,perch,#663300,brown
+,Cruise,#0000FF,blue
+,Flight,#FF0000,red
+,Nest,#FFFF00,yellow
+,Perch,#663300,brown
+,Roost,#CC0099,purple
 female,,#0000FF,blue
 male,,#FF0000,red
 female2,,#FF00FF,pink
