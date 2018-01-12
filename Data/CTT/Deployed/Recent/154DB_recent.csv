@@ -77,63 +77,103 @@
     <h3 class="subheader">Download</h3>
     <hr />
     <form name="dataExportForm" method="post" action=".">
-        <input type='hidden' name='csrfmiddlewaretoken' value='4pBSN8t9I1ezamusLWoWfMwdzn9Zq5AZOrn61exRjp5mvTajsbUBYt7NmFtdcji9' />
+        <input type='hidden' name='csrfmiddlewaretoken' value='YMej35UzKloXrstpRketTQMfGNvkqrBF3DzZmAfYcmHlPUYpUUGFYIXqWC37PUM3' />
         <div class="alert-box error">No data available for this query</div>
         <div class="row">
             <div class="column large-6">
             
-                <div class="label">Start Datetime</div><input id="id_startDt" name="startDt" type="text" value="2017-04-15 00:00:00" required />
+                <div class="label">Start Datetime</div><input type="text" name="startDt" value="2017-12-28 00:00:00" required id="id_startDt" />
             
             </div>
 
             <div class="column large-6">
             
-                <div class="label">End Datetime</div><input id="id_endDt" name="endDt" type="text" value="2017-07-14 23:59:59" required />
+                <div class="label">End Datetime</div><input type="text" name="endDt" value="2018-01-11 23:59:59" required id="id_endDt" />
             
             </div>
         </div>
         <div class="row">
             <div class="column large-6">
             
-                <div class="label">Data Format</div><select id="id_dataFormat" name="dataFormat" required>
-<option value="CSV" selected="selected">CSV</option>
-<option value="JSON">JSON</option>
-<option value="XML">XML</option>
-<option value="KML">KML</option>
+                <div class="label">Data Format</div><select name="dataFormat" id="id_dataFormat">
+  <option value="CSV" selected>CSV</option>
+
+  <option value="JSON">JSON</option>
+
+  <option value="XML">XML</option>
+
+  <option value="KML">KML</option>
+
 </select>
             
             </div>
             <div class="column large-6">
             
-                <div class="label">KML Icon</div><select id="id_kml_icon" name="kml_icon" required>
-<option value="1">Golden Eagle</option>
-<option value="2" selected="selected">Bald Eagle</option>
-<option value="3">California Condor</option>
-<option value="4">Canada Goose</option>
-<option value="5">Greater White-fronted Goose</option>
-<option value="6">Sandhill Crane</option>
-<option value="7">Snowy Owl</option>
-<option value="8">White-naped Crane</option>
-<option value="9">Wood Turtle</option>
-<option value="10">Northern Gannet</option>
-<option value="11">Box Turtle</option>
-<option value="12">White Pelican</option>
-<option value="13">Scoter</option>
-<option value="14">Deer</option>
-<option value="15">Black Vulture</option>
-<option value="16">Common Raven</option>
-<option value="17">Ferruginous Hawk</option>
-<option value="18">Griffon Vulture</option>
-<option value="19">Hooded Vulture</option>
-<option value="20">Imperial Eagle</option>
-<option value="21">Lappet-faced Vulture</option>
-<option value="22">Mute Swan</option>
-<option value="23">Northern Goshawk</option>
-<option value="24">Red-tailed Hawk</option>
-<option value="25">Ruppells Vulture</option>
-<option value="26">Turkey Vulture</option>
-<option value="27">White-backed Vulture</option>
-<option value="28">Caracara</option>
+                <div class="label">KML Icon</div><select name="kml_icon" id="id_kml_icon">
+  <option value="1">Golden Eagle</option>
+
+  <option value="2" selected>Bald Eagle</option>
+
+  <option value="3">California Condor</option>
+
+  <option value="4">Canada Goose</option>
+
+  <option value="5">Greater White-fronted Goose</option>
+
+  <option value="6">Sandhill Crane</option>
+
+  <option value="7">Snowy Owl</option>
+
+  <option value="8">White-naped Crane</option>
+
+  <option value="9">Wood Turtle</option>
+
+  <option value="10">Northern Gannet</option>
+
+  <option value="11">Box Turtle</option>
+
+  <option value="12">White Pelican</option>
+
+  <option value="13">Scoter</option>
+
+  <option value="14">Deer</option>
+
+  <option value="15">Black Vulture</option>
+
+  <option value="16">Common Raven</option>
+
+  <option value="17">Ferruginous Hawk</option>
+
+  <option value="18">Griffon Vulture</option>
+
+  <option value="19">Hooded Vulture</option>
+
+  <option value="20">Imperial Eagle</option>
+
+  <option value="21">Lappet-faced Vulture</option>
+
+  <option value="22">Mute Swan</option>
+
+  <option value="23">Northern Goshawk</option>
+
+  <option value="24">Red-tailed Hawk</option>
+
+  <option value="25">Ruppells Vulture</option>
+
+  <option value="26">Turkey Vulture</option>
+
+  <option value="27">White-backed Vulture</option>
+
+  <option value="28">Caracara</option>
+
+  <option value="29">Brown Pelican</option>
+
+  <option value="30">Brown Pelican 2</option>
+
+  <option value="31">Rock Pigeon</option>
+
+  <option value="32">Whooping Crane</option>
+
 </select>
             
             </div>
@@ -322,7 +362,7 @@
             </div>
             <hr/>
 <div id="footer" class="text-center copyright">
-    <p>Copyright &copy; <a href="//www.celltracktech.com" class="button round tiny">Cellular Tracking Technologies</a> <span class="append-2">2017</span></p>
+    <p>Copyright &copy; <a href="//www.celltracktech.com" class="button round tiny">Cellular Tracking Technologies</a> <span class="append-2">2018</span></p>
 </div>
 
         </div>
