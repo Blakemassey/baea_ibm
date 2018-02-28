@@ -10,7 +10,7 @@ library(RColorBrewer)
 cols <- brewer.pal(8, "Set1")
 
 #save(sim, file="C:/Work/R/Data/Simulation/sim.RData")
-load("C:/Work/R/Data/Simulation/sim.RData")
+load("Data/Simulation/sim.RData")
 RemoveExcept(c("sim"))
 
 # Examine 'sim' global parameters
@@ -21,8 +21,8 @@ sim$pars$global$sim_period <- period(20, "days")
 runs = 1
 write = FALSE
 output_dir = getwd()
-custom_agent_report = FALSE
-custom_pop_report = FALSE
+#custom_agent_report = FALSE
+#custom_pop_report = FALSE
 
 devtools::reload("C:/Work/R/Packages/baear")
 devtools::reload("C:/Work/R/Packages/gisr")
@@ -63,16 +63,20 @@ ExportKMLRasterOverlay(con_nest_raster3, color_pal=terrain.colors(10),
 ExportKMLRasterOverlay(con_nest_raster4, color_pal=terrain.colors(10),
   outfile = "ConNest4", output_dir=output_dir)
 
+
+
+
 RunSimulation <- function(sim = sim,
                           runs = 1,
                           write = FALSE,
                           output_dir = getwd()) {
+  runs = 1
   runs <- CreateRunsList(runs)
-  for (i in 1:length(runs)) {
-  i <- 1
+  for (i in 1:length(runs)){
+    i <- 1
     rep_intervals <- CreateReportIntervals(sim)
     sim <- UpdateAgentStates(init=TRUE, sim=sim)
-    sim <- UpdateAgentStepData(init=TRUE, sim=sim)
+    sim <- UpdateAgentStepDataBAEA(init=TRUE, sim=sim)
     sim <- UpdateAgentParsData(init=TRUE, sim=sim)
     sim <- UpdateSpatial(init=TRUE, sim=sim)
     for (j in 1:length(rep_intervals)) {
@@ -80,22 +84,22 @@ RunSimulation <- function(sim = sim,
       step_intervals <- CreateStepIntervals(rep_intervals[[j]])
       for (k in 1:length(step_intervals)) {
         k <- 1
-        time_steps <- CreateTimeSteps(step_intervals[[k]])
-        for (m in 1:length(time_steps)) {
-          m <- 1
+        time_steps <- CreateTimeStepsBAEA(step_intervals[[k]])
+        for (m in 1:length(time_steps)){
           step <- time_steps[[m]]
           alive_seq <- ReturnAliveSeq(sim)
           sim$agents$all <- UpdateAgentParsData(sim$agents$all)
-          for (n in alive_seq) {
+          for (n in alive_seq){
             n <- 1
             agent_states <- sim$agents$all[[n]][["states"]]
             step_data <- sim$agents$all[[n]][["step_data"]]
             pars_data <- sim$agents$all[[n]][["pars_data"]]
             # START Submodels #
             agent_states <- AgingSubModel(agent_states, step_data, step)
-            step_data <- MovementSubModel(sim, agent_states, step_data, step)
-            agent_states <- SurvivalSubModel(agent_states, step_data)
-            agent_states <- ReproductionSubModel(agent_states, step_data)
+            step_data <- BehaviorSubModelBAEA(agent_states, step_data, step)
+            step_data <- MovementSubModelBAEA(sim, agent_states, step_data, step)
+            #agent_states <- SurvivalSubModel(agent_states, step_data)
+            #agent_states <- ReproductionSubModel(agent_states, step_data)
             # END Submodels #
             sim$agents$all[[n]][["states"]] <- UpdateAgentStates(agent_states)
             sim$agents$all[[n]][["step_data"]] <- UpdateAgentStepData(step_data)

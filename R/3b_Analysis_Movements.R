@@ -78,7 +78,8 @@ for (i in unique(baea_movements_weibull$behavior_behavior)){
     filter(behavior_behavior == i)
   weibull_pars_i <- fitdist(baea_movements_weibull_i$step_length,
     distr = "weibull", method = "mle",
-    weights = round(baea_movements_weibull_i$weights*10000), lower = c(0, 0))
+    weights = round(baea_movements_weibull_i$weights*10000), lower = c(0, 0),
+    upper = c(1000, 1000))
   weibull_pars_row <- which(weibull_pars$behavior_behavior == i)
   weibull_pars[weibull_pars_row, "weibull_shape"] <- weibull_pars_i$estimate[1]
   weibull_pars[weibull_pars_row, "weibull_scale"] <- weibull_pars_i$estimate[2]

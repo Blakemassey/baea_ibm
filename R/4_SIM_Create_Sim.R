@@ -24,7 +24,6 @@ base <- raster(xmn=x_min, xmx=x_max, ymn=y_min, ymx=y_max, resolution=cell_size,
 n <- 20
 
 ## Set random centroids --------------------------------------------------------
-source('C:/Work/R/Functions/gis.R')
 radius_range <- c(5000, 10000)  # range of radius values
 circles <- cbind(sample(min(radius_range):max(radius_range), n/2), times=1)
 nests_xy <- PackCircles(circles, extent=c(x_min, x_max, y_min, y_max),
@@ -45,7 +44,6 @@ input <- cbind.data.frame(id, sex, age, nest_id, start_x, start_y,
   stringsAsFactors = FALSE)
 
 ## Compile "agents" list -------------------------------------------------------
-source('C:/Work/R/Functions/sim/sim.R')
 agents <- NamedList(input)
 
 ######################## REAL BAEA AGENTS ######################################
@@ -110,16 +108,15 @@ agents <- NamedList(input)
 
 ## Create "global" parameters --------------------------------------------------
 suppressPackageStartupMessages(require(lubridate))
-source('C:/Work/R/Functions/sim/sim.R')
-sim_start <- as.POSIXct("2015-01-01", tz = "UTC")
-sim_period <- period(4, "days")
-sim_end <- NULL
-rep_period <- period(1, "days")
+sim_start <- as.POSIXct("2015-03-20", tz = "UTC")
+sim_period <- NULL #period(4, "days")
+sim_end <- as.POSIXct("2015-09-20", tz = "UTC")
+rep_period <- period(1, "month")
 rep_interval <- c("01Jan", "01Jul")
 rep_interval_custom <- NULL
 
 step_period <- period(1, "day")
-time_step_period <- period(6, "hour")
+time_step_period <- period(15, "minutes")
 
 sim_seasons <- data.frame(start = c("01Mar", "01Sep"), season = c("breeding",
   "winter"), stringsAsFactors = FALSE)
@@ -136,9 +133,21 @@ global <- NamedList(sim_start, sim_period, sim_end, rep_period, rep_interval,
 
 ## Male ------------------------------------------------------------------------
 ## constant
+
+library(broom)
+library(stringr)
+library(momentuHMM)
+baea_hmm_full <- readRDS(file = "Data/Models/baea_hmm_full")
+baea_hmm_full$mle$beta
+beta_est <- baea_hmm_full$mle$beta %>% as.data.frame(.)
+rownames(beta_est) <- rownames(beta_est) %>%
+  str_replace_all(c("\\(Intercept\\)" = "Intercept", "cosinor" = "")) %>%
+  str_replace_all(c(", period = 365" = "", ", period = 1" = ""))
+behavior_betas <- beta_est
+
 step_cauchy_mu <- 0
 step_cauchy_rho <- .5
-fixed <- NamedList(step_cauchy_mu, step_cauchy_rho)
+fixed <- NamedList(step_cauchy_mu, step_cauchy_rho, behavior_betas)
 constant <- NamedList(fixed)
 ## season
 breeding <- list(step_pareto_scale=300, step_pareto_shape=.2, step_max_r=100)
@@ -165,7 +174,7 @@ male <- NamedList(constant, season, julian)
 ## constant
 step_cauchy_mu <- 0
 step_cauchy_rho <- .5
-fixed <- NamedList(step_cauchy_mu, step_cauchy_rho)
+fixed <- NamedList(step_cauchy_mu, step_cauchy_rho, behavior_betas)
 constant <- NamedList(fixed)
 ## season
 breeding <- list(step_pareto_scale=300, step_pareto_shape=.2, step_max_r=100)
@@ -209,9 +218,6 @@ write_homerange = TRUE
 
 
 ## Create raster layers --------------------------------------------------------
-source('C:/Work/R/Functions/baea.R')
-source('C:/Work/R/Functions/gis.R')
-source('C:/Work/R/Functions/sim/home.R')
 
 homerange_kernels <- CreateHomeRangeKernelsParetoGamma(all_nests, study_nests,
   base, max_r, pareto_shape, pareto_scale, gamma_shape, gamma_scale,
@@ -225,10 +231,9 @@ spatial <- NamedList(base, nests, homerange_kernels)
 
 sim <- NamedList(agents, pars, spatial)
 RemoveExcept("sim")
-save(sim, file="C:/Work/R/Data/Simulation/sim.RData")
+save(sim, file="Data/Simulation/sim.RData")
 
-plot(sim$spatial$homerange_kernels[[1]])
-source('C:/Work/R/Functions/gen.R')
+#plot(sim$spatial$homerange_kernels[[1]])
 SavePlot("homerange_kernel_1.png", height = 5, width=5)
 
 # Recompile sim
@@ -236,4 +241,4 @@ agents <- sim$agents
 pars <- sim$pars
 spatial <- sim$spatial
 sim <- NamedList(agents, pars, spatial)
-save(sim, file="C:/Work/R/Data/Simulation/sim.RData")
+save(sim, file="Data/Simulation/sim.RData")
