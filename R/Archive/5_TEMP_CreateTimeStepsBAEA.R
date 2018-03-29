@@ -5,20 +5,29 @@
 #step_interval <- interval(as.Date("2018-03-05"), as.Date("2018-03-06"))
 
 CreateTimeStepsBAEA <- function(step_interval = step_interval,
+                                agent = agent,
                                 sim = sim) {
   time_step_period = sim$pars$global$time_step_period
   options(lubridate.verbose=FALSE)
-  xy_coords <- matrix(c(-67.7778, 44.8012), nrow = 1)
+
+  start_x <- as.numeric(agent$states$start_x)  #CONVERT TO DECIMAL DEGREES!!!
+  start_y <- as.numeric(agent$states$start_y)
+  start_xy_utm<- data.frame(x = agent$states$start_x, y = agent$states$start_y)
+  crs_utm <- "+proj=utm +zone=19 +ellps=WGS84 +datum=WGS84 +units=m +no_defs"
+
+  start_pt <- sp::SpatialPoints(start_xy_utm,
+    bbox=NULL, proj4string=sp::CRS("+proj=utm +zone=19 +datum=WGS84"))
+  xy_coords <- sp::spTransform(start_pt, sp::CRS("+proj=longlat +datum=WGS84"))
+  #sp::coordinates(xy_coords)
+  #xy_coords <- matrix(c(-67.7778, 44.8012), nrow = 1)
   interval_start_East <- force_tz(lubridate::int_start(step_interval),
     tzone = "US/Eastern")
   interval_end_East <- force_tz(lubridate::int_end(step_interval)-minutes(1),
     tzone = "US/Eastern") #subtracting one minute to make it the same day
   sunrise <- maptools::sunriset(xy_coords, interval_start_East,
-    proj4string = sp::CRS("+proj=longlat +datum=WGS84"), direction ="sunrise",
-    POSIXct.out= TRUE)[1,2]
+    direction = "sunrise", POSIXct.out = TRUE)[1,2]
   sunset <- maptools::sunriset(xy_coords, interval_end_East,
-    proj4string = sp::CRS("+proj=longlat +datum=WGS84"), direction ="sunset",
-    POSIXct.out= TRUE)[1,2]
+    direction = "sunset", POSIXct.out = TRUE)[1,2]
   step_interval_start <- round_date(sunrise, "minute") - hours(1)
   step_interval_end <- round_date(sunset, "minute") + hours(1)
   end_int <- lubridate::int_end(lubridate::as.interval(time_step_period,

@@ -52,7 +52,7 @@ suppressPackageStartupMessages(library(raster))
 suppressPackageStartupMessages(library(rgdal))
 
 base <- raster("C:/ArcGIS/Data/BlankRaster/maine_30mc.tif")
-all_nests <- read.csv(file=file.path("C:/Work/R/Data/BAEA/Nests",
+all_nests <- read.csv(file=file.path("Data/Nests/Nests_csv",
   "Nests_Study_Intact_Last.csv"), header=TRUE, stringsAsFactors=FALSE)
 all_nests <- ConvertNestIdToNum(all_nests)
 #colnames(all_nests) <- c("nest_ifw", "nest_id", "status", "x", "y","territory")
@@ -63,7 +63,7 @@ for (i in 1:nrow(all_nests)){
     all_nests$lat_utm[i], xmin(base), ymin(base), res(base)[1])[2]
   all_nests[i, "nest_id"] <- paste0("nest_", all_nests[i, "nest_id"])
 }
-study_nests <- read.csv(file=file.path("C:/Work/R/Data/BAEA/Nests/",
+study_nests <- read.csv(file=file.path("Data/Nests/Nests_csv",
   "Nests_Study.csv"), header=TRUE, stringsAsFactors=FALSE)
 study_nests <- ConvertNestIdToNum(study_nests)
 for (i in 1:nrow(study_nests)){
@@ -81,7 +81,6 @@ for (i in 1:nrow(study_nests)){
 ##  Subset base and points -----------------------------------------------------
 
 suppressPackageStartupMessages(library(ggplot2))
-source('C:/Work/R/Functions/gen.R')
 # g <- ggplot(data=study_nests) + geom_point(aes(x=x, y=y),
 #   colour="dark green", size=10) + theme(legend.position="none") +
 #   theme(plot.title=element_text(size=22)) + theme(text=element_text(size=20,

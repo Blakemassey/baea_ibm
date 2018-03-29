@@ -53,28 +53,22 @@ df_sim <- as.data.frame(steps_all) %>%
       proj4string = sp::CRS("+proj=longlat +datum=WGS84"), direction ="sunrise",
       POSIXct.out= TRUE)[,2])
 
-
 hr_before_sunrise <- maptools::sunriset(xy_coords, steps_all,
       proj4string = sp::CRS("+proj=longlat +datum=WGS84"), direction ="sunrise",
       POSIXct.out= TRUE)[1,2]
 
-
 df_sim <- data.frame(id = NA, date_time = steps_all, time_proportion = NA,
   julian = yday(steps_all), behavior = NA)
 
+#df_sim <- AddTimeStepProportion(df = df_sim, by = "id", time_step = "15 min",
+#  tz = "Etc/GMT+5")
 
-
-AddTimeStepProportion(df = df, by = "id", time_step = "15 min",
-  tz = "Etc/GMT+5")
-
-
-n_days <- interval(start_date, end_date) %/% days(1) + 1
-time_seq = round(rep(seq(0, 1, by = .02)), 3)
-day <- rep(dates, each = length(time_seq))
-time_proportion <- rep(time_seq, times= n_days)
-df_sim <- data.frame(id = NA, day = day, time_proportion = time_proportion,
-  julian = yday(day), behavior = NA)
-
+# n_days <- interval(start_date, end_date) %/% days(1) + 1
+# time_seq = round(rep(seq(0, 1, by = .02)), 3)
+# day <- rep(dates, each = length(time_seq))
+# time_proportion <- rep(time_seq, times= n_days)
+# df_sim <- data.frame(id = NA, day = day, time_proportion = time_proportion,
+#   julian = yday(day), behavior = NA)
 
 df_sim[1, "behavior"] <- 4
 prob_cols <- vector()

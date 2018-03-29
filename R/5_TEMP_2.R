@@ -1,58 +1,74 @@
-(step_interval <- step_intervals[[1]])
-(time_step_period <- sim$pars$global$time_step_period)
+
+
+
+xy_coords <- matrix(c(-71, -67.75, -71, -67.75,-67.7778, 47.5, 47.5, 43, 43, 44.8012), nrow = 5)
+
+xy_sppt <- sp::SpatialPoints(xy_coords, proj4string=sp::CRS("+proj=longlat +datum=WGS84"))
+
+sunrise <- maptools::sunriset(xy_sppt, as.POSIXct("2018-07-20", tz = "America/New_York"),
+  direction ="sunrise", POSIXct.out= TRUE)
+sunrise
+
+[1,2]
+
+sunset <- maptools::sunriset(xy_coords, interval_end_East,
+  proj4string = sp::CRS("+proj=longlat +datum=WGS84"), direction ="sunset",
+  POSIXct.out= TRUE)[1,2]
+
+
+hels <- matrix(c(24.97, 60.17), nrow=1)
+Hels <- SpatialPoints(hels, proj4string=CRS("+proj=longlat +datum=WGS84"))
 xy_coords <- matrix(c(44.8012, 68.7778), nrow = 1)
 
-CreateTimeSteps <- function(step_interval = step_interval,
-                            time_step_period =
-                              sim$pars$global$time_step_period) {
-  options(lubridate.verbose=FALSE)
-  step_interval_end <- lubridate::int_end(step_interval)
-
-#  step_interval_end  <- maptools::sunriset(xy_coords, step_interval_end,
-#      proj4string = sp::CRS("+proj=longlat +datum=WGS84"), direction ="sunset",
-#      POSIXct.out= TRUE)[1,2]
-
-  step_interval_start <- lubridate::int_start(step_interval) # create output list w/start time
+xy_coords <- matrix(c(-67.7778, 44.8012), nrow = 1)
 
 
-#  steps  <- maptools::sunriset(xy_coords, steps,
-#      proj4string = sp::CRS("+proj=longlat +datum=WGS84"), direction ="sunrise",
-#      POSIXct.out= TRUE)[1,2]
+date_x <- as.POSIXct("2018-02-16", tz="America/New_York")
 
-  end_int <- lubridate::int_end(lubridate::as.interval(time_step_period,
-    step_interval_start))
-  (end_int)
+sunriset(xy_coords, date_x,
+      proj4string = sp::CRS("+proj=longlat +datum=WGS84"), direction ="sunrise",
+      POSIXct.out= TRUE)
 
-  steps <- lubridate::with_tz(append(step_interval_start, end_int),
-    lubridate::tz(lubridate::int_end(step_interval)))
-  while (end_int < step_interval_end) {
-    end_int <- end_int + time_step_period
-    steps <- lubridate::with_tz(append(steps, end_int),
-      lubridate::tz(lubridate::int_end(step_interval)))
-  }
-  if (tail(steps, 1) > step_interval_end) {
-    steps[length(steps)] <- step_interval_end
-  }
-  time_step_list <- list()
-  for (i in 1:(length(steps)-1)) {
-    interval <- lubridate::as.interval(steps[i], steps[i+1])
-    time_step_list[[length(time_step_list)+1]] <- interval
-  }
-  return(time_step_list)
-}
+sunriset(xy_coords, date_x,
+      proj4string = sp::CRS("+proj=longlat +datum=WGS84"), direction ="sunset",
+      POSIXct.out= TRUE)
 
-time_step_list
+
+## Astronomical dawn
+crepuscule(hels, d041224, solarDep=18, direction="dawn", POSIXct.out=TRUE)
+
+
+Hels_seq <- seq(from=d041224, length.out=365, by="days")
+up <- sunriset(xy_coords, Hels_seq, direction="sunrise", POSIXct.out=TRUE)
+
+  step_interval_end  <- maptools::sunriset(xy_coords, as.POSIXct("2004-12-24", tz="EET"),
+      proj4string = sp::CRS("+proj=longlat +datum=WGS84"), direction ="sunset",
+      POSIXct.out= TRUE)[1,2]
 
 
 
+install.packages("msm")
+library(msm)
+cav[1:21,]
+statetable.msm(state, PTNUM, data=cav)
 
+Q <- rbind (c(0,    0.5,    0,   0.5),
+            c(0.25,0.25,  0.25,  0.25),
+            c(0,    0.5,    0,   0.5),
+            c(0,      0,    0,    0))
 
+Q.crude <- crudeinits.msm(state ~ years, PTNUM, data=cav, qmatrix=Q)
+Q.crude
 
+cav.msm <- msm( state ~ years, subject=PTNUM, data = cav,
+  qmatrix = Q, deathexact = 4)
 
+cav.msm
 
+cavsex.msm <- msm( state ~ years, subject=PTNUM, data = cav,
+  qmatrix = Q, deathexact = 4, covariates = ~ sex)
 
-
-
+cavsex.msm
 
 
 
@@ -60,54 +76,37 @@ time_step_list
 
 
 
+# BAEA Data
+library(dplyr)
+library(gdata)
 
+baea_behavior <- baea_behavior %>%
+  group_by(id) %>%
+  mutate(min_datetime = min(datetime))
 
+baea_behavior$behavior_f <- as.numeric(as.factor(baea_behavior$behavior))
+head(baea_behavior$behavior_f)
 
+statetable.msm(behavior, id, data=baea_behavior)
 
+Q <- rbind (c(0.25, 0.25, 0.25, 0.25, 0.00),
+            c(0.20, 0.20, 0.20, 0.20, 0.20),
+            c(0.20, 0.20, 0.20, 0.20, 0.20),
+            c(0.20, 0.20, 0.20, 0.20, 0.20),
+            c(0.00, 0.25, 0.25, 0.25, 0.25))
 
+Q.crude <- crudeinits.msm(behavior_f ~ datetime, subject=id,
+  data=baea_behavior, qmatrix=Q)
 
+baea_data_sub <- baea_behavior %>%
+  filter(id == "Ellis" || id == "Norway") %>%
+  group_by(id) %>% slice(1:1000) %>% ungroup()
 
+baea_behavior_msm <- msm(behavior_f ~ datetime, subject=id,
+  data=baea_data_sub, qmatrix=Q, covariates = ~ time_proportion,
+  control=list(fnscale=10000000, maxit=1000, trace=1, REPORT=1))
 
-
-
-
-
-data=deployed_all
-update_only=TRUE
-update_gdrive=FALSE
-
-
-  data <- data
-  # Update local individual files
-  data <- data
-  ids <- unique(data$id)
-  current_year <- year(now())
-  for (i in  1:length(ids)){
-    id <- ids[i]
-    df <- data[data$id == id,]
-    if(update_only == TRUE){
-      df_year <- df[df$year == current_year,]
-      if (nrow(df_year) > 1){
-        ExportKMLTelemetryBAEA(df_year, file = paste0(id, "_", current_year,
-          ".kml"), output_dir = "Data/GPS/KMLs")
-      }
-    } else {
-      years <- year(first(df$datetime)):year(last(df$datetime))
-      for (j in 1:length(years)){
-        year <- years[j]
-        df_year <- df[df$year == year,]
-        ExportKMLTelemetryBAEA(df_year, file = paste0(id, "_", year, ".kml"),
-          output_dir = "Data/GPS/KMLs")
-      }
-    }
-  }
-  if (update_gdrive == TRUE){
-    # Copy individual files to Google Drive
-    kml_files <- list.files("Data/GPS/KMLs", full.names=TRUE)
-    if (update_only) kml_files <- stringr::str_subset(kml_files,
-      as.character(current_year))
-    output_dir = file.path("C:/Users/Blake/Google Drive/PhD Program",
-      "BAEA Project/Telemetry Data/Individuals")
-    file.copy(kml_files, output_dir, overwrite=TRUE)
-  }
-}
+print(baea_behavior_msm)
+baea_behavior_msm
+qmatrix.msm(baea_behavior_msm)
+Q.crude

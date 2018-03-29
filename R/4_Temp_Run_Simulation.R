@@ -1,3 +1,9 @@
+library(baear)
+library(gisr)
+library(ibmr)
+library(lubridate)
+library(dplyr)
+
 #save(sim, file="C:/Work/R/Data/Simulation/sim.RData")
 load("Data/Simulation/sim.RData")
 RemoveExcept(c("sim"))
@@ -11,7 +17,6 @@ RunSimulation <- function(sim = sim,
                           runs = 1,
                           write = FALSE,
                           output_dir = getwd()) {
-  runs = 1
   runs <- CreateRunsList(runs)
   for (i in 1:length(runs)){
     # Calculate vector of all 'time_steps'
@@ -24,14 +29,14 @@ RunSimulation <- function(sim = sim,
       step_intervals <- CreateStepIntervals(rep_intervals[[j]])
       for (k in 1:length(step_intervals)){
         #k <- 1
-        time_steps <- CreateTimeStepsBAEA(step_intervals[[k]], sim = sim)
+        time_steps <- CreateTimeStepsBAEA(step_intervals[[k]], sim=sim)
         for (m in 1:length(time_steps)){
           all_time_steps <- append(all_time_steps, int_start(time_steps[[m]]))
           if (m == length(time_steps)) all_time_steps <- append(all_time_steps,
             int_end(time_steps[[m]]))
         }
       }
-    }
+    }   # this is all about getting 'all_time_steps'
     toc()
     if(is.na(all_time_steps[1])) all_time_steps <- all_time_steps[-1]
     time_steps_df <- data.frame(datetime = all_time_steps) %>%
@@ -98,19 +103,16 @@ RunSimulation <- function(sim = sim,
   return(runs)
 }
 
-saveRDS(sim, "Data/Models/sim_completed_20180227")
+saveRDS(sim, "Data/Models/sim_completed_20180325")
+
+compiled_step_data <- CompileAllAgentsStepData(sim=sim)
 
 compiled_step_data <- compiled_step_data %>%
   mutate(behavior = as.factor(behavior))
 
 levels(compiled_step_data$behavior) <- c("Cruise", "Flight", "Nest", "Perch", "Roost")
 
-
-  CompileAllAgentsStepData(sim=sim)
-compiled_step_data$behavior <- as.factor(compiled_step_data$behavior)
-
 # HOW TO FACTOR AND UNLEVEL(?) BEHAVIOR???
-
 
 PlotLocationSunriseSunset(df=compiled_step_data %>% filter(id == "2"),
   by = "id", color_factor = "behavior",
