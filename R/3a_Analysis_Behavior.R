@@ -42,8 +42,8 @@ baea_dates
 PlotLocationSunriseSunset(
   df=baea_beahvior %>% as.data.frame() %>% filter(id == "Onawa"),
   by = "id", color_factor = "behavior",
-  individual = "", start = "2015-09-14", end = "2016-03-03", breaks = "10 days", tz = "Etc/GMT+5",
-  addsolartimes = FALSE, wrap = TRUE)
+  individual = "", start = "2015-09-14", end = "2016-03-03", breaks = "10 days",
+  tz = "Etc/GMT+5", addsolartimes = FALSE, wrap = TRUE)
 
 
 # Filter location by criteria and add behaviors

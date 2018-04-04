@@ -69,33 +69,33 @@ weibull_weights <- baea_movements %>%
   ungroup()
 #View(weibull_pars)
 
-baea_movements_weibull <- baea_movements %>%
+baea_movements_wb <- baea_movements %>%
   left_join(., weibull_weights, by=c("id", "behavior_behavior")) %>%
   filter(!is.na(weights))
 
-for (i in unique(baea_movements_weibull$behavior_behavior)){
-  baea_movements_weibull_i <- baea_movements_weibull %>%
+for (i in unique(baea_movements_wb$behavior_behavior)){
+  baea_movements_wb_i <- baea_movements_wb %>%
     filter(behavior_behavior == i)
-  weibull_pars_i <- fitdist(baea_movements_weibull_i$step_length,
+  weibull_pars_i <- fitdist(baea_movements_wb_i$step_length,
     distr = "weibull", method = "mle",
-    weights = round(baea_movements_weibull_i$weights*10000), lower = c(0, 0),
-    upper = c(1000, 1000))
+    weights = round(baea_movements_wb_i$weights*10000), lower = c(.01, 1),
+    upper = c(100, 10000))
   weibull_pars_row <- which(weibull_pars$behavior_behavior == i)
   weibull_pars[weibull_pars_row, "weibull_shape"] <- weibull_pars_i$estimate[1]
   weibull_pars[weibull_pars_row, "weibull_scale"] <- weibull_pars_i$estimate[2]
-  baea_movements_weibull_i_sum <-
-    baea_movements_weibull_i %>%
+  baea_movements_wb_i_sum <-
+    baea_movements_wb_i %>%
       summarize(
         count = n(),
         min_step = max(step_length),
         max_step = min(step_length))
   weibull_pars[weibull_pars_row, "count"] <-
-    baea_movements_weibull_i_sum$count[1]
+    baea_movements_wb_i_sum$count[1]
   weibull_pars[weibull_pars_row, "min_step"] <-
-    baea_movements_weibull_i_sum$min_step[1]
+    baea_movements_wb_i_sum$min_step[1]
   weibull_pars[weibull_pars_row, "max_step"] <-
-    baea_movements_weibull_i_sum$max_step[1]
-  rm(baea_movements_weibull_i, weibull_pars_i, weibull_pars_row)
+    baea_movements_wb_i_sum$max_step[1]
+  rm(baea_movements_wb_i, weibull_pars_i, weibull_pars_row)
 }
 
 # Fitting von Mises  ####
@@ -125,15 +125,15 @@ von_mises_weights <- baea_movements %>%
   ungroup()
 #View(von_mises_weights)
 
-baea_movements_von_mises <- baea_movements %>%
+baea_movements_vm <- baea_movements %>%
   left_join(., von_mises_weights, by=c("id", "behavior_behavior")) %>%
   filter(!is.na(weights))
 
 for (i in unique(baea_movements$behavior_behavior)){
-  baea_movements_von_mises_i <- baea_movements_von_mises %>%
+  baea_movements_vm_i <- baea_movements_vm %>%
     filter(behavior_behavior == i)
-  mvm_pars <- mledist(baea_movements_von_mises_i$turn_angle, "mixedvonmises",
-    weights = round(baea_movements_von_mises_i$weights*10000), silent=TRUE,
+  mvm_pars <- mledist(baea_movements_vm_i$turn_angle, "mixedvonmises",
+    weights = round(baea_movements_vm_i$weights*1000), silent=TRUE,
     start = list(mu1=pi/2, mu2=1.5*pi, kappa1=10, kappa2=10, prop=.5),
     lower=c(mu1= 0, mu2=0, kappa1=0, kappa2=0, prop=0),
     upper=c(mu1= 2*pi, mu2=2*pi, kappa1=100, kappa2=100, prop=1))
@@ -143,13 +143,21 @@ for (i in unique(baea_movements$behavior_behavior)){
   von_mises_pars[rows_i, "mvm_kappa1"] <- mvm_pars$estimate[3]
   von_mises_pars[rows_i, "mvm_kappa2"] <- mvm_pars$estimate[4]
   von_mises_pars[rows_i, "mvm_prop"] <- mvm_pars$estimate[5]
-  rm(baea_movements_von_mises_i, mvm_pars, rows_i)
+  rm(baea_movements_vm_i, mvm_pars, rows_i)
 }
 
-redist_pars <- full_join(weibull_pars, von_mises_pars, by=c("behavior",
-  "behavior_next", "behavior_behavior"))
+move_pars <- full_join(weibull_pars, von_mises_pars, by=c("behavior",
+  "behavior_next", "behavior_behavior")) %>%
+  mutate(behavior_fac = as.factor(behavior),
+    behavior_next_fac = as.factor(behavior_next))
 
-write.csv(redist_pars, file="Output/Tables/redist_par.csv")
+move_pars <- move_pars %>%
+  mutate(behavior_fac = as.factor(behavior),
+    behavior_next_fac = as.factor(behavior_next))
+
+
+write.csv(move_pars, file="Output/Tables/move_pars.csv") # for Powerpoint
+saveRDS(move_pars, file="Output/Models/move_pars.RDS")
 
 ################################ PLOTTING  #####################################
 
@@ -158,8 +166,8 @@ write.csv(redist_pars, file="Output/Tables/redist_par.csv")
 
 vec_length <- 100
 weibull_dens <- data.frame(grp=factor(), pred=numeric(), dens=numeric())
-for (i in 1:nrow(redist_pars)){
-  pars_i <- redist_pars[i,]
+for (i in 1:nrow(move_pars)){
+  pars_i <- move_pars[i,]
   grp = rep(pars_i$behavior_behavior, vec_length)
   pred = seq(pars_i$min_step, pars_i$max_step, length = vec_length)
   dens = dweibull(pred, shape=pars_i$weibull_shape, scale=pars_i$weibull_scale)
@@ -167,9 +175,10 @@ for (i in 1:nrow(redist_pars)){
 }
 
 # All plots on one figure
-ggplot(data=baea_movements %>% mutate(grp = behavior_behavior),
+ggplot(data=baea_movements_wb %>% mutate(grp = behavior_behavior),
     aes(x = step_length)) +
-  geom_histogram(aes(y = ..density..), binwidth = 30, boundary = 0) +
+  geom_histogram(aes(y = ..density.., weight=weights), binwidth = 30,
+    boundary = 0) +
   xlab("Step Length (m)") + ylab("Density") +
   theme(axis.text=element_text(colour="black")) +
   theme(axis.title.x = element_text(angle = 0, vjust = 0, hjust=0.5)) +
@@ -189,17 +198,19 @@ SaveGGPlot(filename = "Step Lengths with Fitted Weibull.png",
   path="Output/Plots/Step_Length")
 
 # Individual plots
-ind_list <- lapply(sort(unique(baea_movements$behavior_behavior)), function(i){
-  ggplot(baea_movements[baea_movements$behavior_behavior == i, ],
+ind_list <- lapply(sort(unique(baea_movements_wb$behavior_behavior)),
+    function(i){
+  ggplot(baea_movements_wb[baea_movements_wb$behavior_behavior == i,],
     aes(x = step_length)) +
-  geom_histogram(aes(y = ..density..), binwidth = 30, boundary = 0) +
+  geom_histogram(aes(y = ..density.., weight=weights), binwidth = 30,
+    boundary = 0) +
   geom_line(data = weibull_dens[weibull_dens$grp == i, ], aes(x = pred,
     y = dens), size = 2, colour = "blue") +
-  annotate("text", Inf, Inf, hjust = 1, vjust = 1, size = 5,
+  annotate("text", Inf, Inf, hjust = 1.1, vjust = 1.1, size = 5,
     label = paste0("Weibull Distribution\n", "shape = ",
-      signif(redist_pars[redist_pars$behavior_behavior == i, "weibull_shape"],
+      signif(move_pars[move_pars$behavior_behavior == i, "weibull_shape"],
         3), "\n", "scale = ",
-      signif(redist_pars[redist_pars$behavior_behavior == i, "weibull_scale"],
+      signif(move_pars[move_pars$behavior_behavior == i, "weibull_scale"],
         3)))  +
   xlab("Step Length (m)") + ylab("Density") +  ggtitle(paste(i, "(all)")) +
   theme(title = element_text(size = 16)) +
@@ -231,8 +242,8 @@ limits <- c(0, 2*pi)
 vec_length <- 100
 von_mises_dens <- data.frame(grp=factor(), pred=numeric(), dens=numeric())
 
-for (i in 1:nrow(redist_pars)){
-  pars_i <- redist_pars[i,]
+for (i in 1:nrow(move_pars)){
+  pars_i <- move_pars[i,]
   grp = rep(pars_i$behavior_behavior, vec_length)
   pred = seq(limits[1], limits[2], length = vec_length)
   dens = dmixedvm(pred, mu1 = pars_i$mvm_mu1, mu2 = pars_i$mvm_mu2,
@@ -244,11 +255,12 @@ for (i in 1:nrow(redist_pars)){
 # Cartesian Coordinates --------------------------------------------------------
 # All plots on one figure
 
-p_list = lapply(sort(unique(baea_movements$behavior_behavior)), function(i){
-  ggplot(baea_movements[baea_movements$behavior_behavior == i, ],
+p_list = lapply(sort(unique(baea_movements_vm$behavior_behavior)), function(i){
+    ggplot(data =
+      baea_movements_vm[baea_movements_vm$behavior_behavior ==i,],
       aes(x=turn_angle)) +
-    geom_histogram(aes(y = ..density..), fill = "grey20", color = "black",
-      boundary = 0, binwidth = bin_width) +
+    geom_histogram(aes(y = ..density.., weight=weights), fill = "grey20",
+      color = "black", boundary = 0, binwidth = bin_width) +
     geom_line(data = von_mises_dens[von_mises_dens$grp == i, ],
       aes(x = pred, y = dens), size = 1, colour = "red") +
     scale_x_continuous(limits = limits, labels = labels,
@@ -268,29 +280,30 @@ p_list = lapply(sort(unique(baea_movements$behavior_behavior)), function(i){
     ggtitle(NULL) +
     labs(x=NULL, y=NULL)
 })
-do.call(grid.arrange, c(p_list, ncol=5, nrow=5, left = "Density",
+do.call(grid.arrange, c(p_list, ncol=5, nrow=4, left = "Density",
   bottom="Direction"))
 SavePlot(filename = "Turn Angles with Fitted von Mises - Cartesian.png",
   path="Output/Plots/Turn_Angle")
 
 # Individual plots
-ind_list <- lapply(sort(unique(baea_movements$behavior_behavior)), function(i){
-  ggplot(baea_movements[baea_movements$behavior_behavior == i, ],
+ind_list <- lapply(sort(unique(baea_movements_vm$behavior_behavior)),
+  function(i){
+    ggplot(baea_movements_vm[baea_movements_vm$behavior_behavior == i, ],
     aes(x=turn_angle)) +
-    geom_histogram(aes(y = ..density..), fill = "grey20", color = "black",
-      boundary = 0, binwidth = bin_width) +
+    geom_histogram(aes(y = ..density.., weight=weights), fill = "grey20",
+      color = "black", boundary = 0, binwidth = bin_width) +
     geom_line(data = von_mises_dens[von_mises_dens$grp == i, ],
       aes(x = pred, y = dens), size = 1, colour = "red") +
     xlab("Turn Angle (radians)") + ylab("Density") + ggtitle(paste(i))+
     annotate("text", Inf, Inf, hjust = 1, vjust = 1, size = 5,
       label = paste0("von Mises Distribution\n",
-      "mu1 (radians) = ", signif(redist_pars[redist_pars$behavior_behavior == i,
+      "mu1 (radians) = ", signif(move_pars[move_pars$behavior_behavior == i,
         "mvm_mu1"], 3), "\n",
-      "mu2 (radians) = ", signif(redist_pars[redist_pars$behavior_behavior == i,
+      "mu2 (radians) = ", signif(move_pars[move_pars$behavior_behavior == i,
         "mvm_mu2"], 3), "\n",
-      "kappa1 = ", signif(redist_pars[redist_pars$behavior_behavior == i,
+      "kappa1 = ", signif(move_pars[move_pars$behavior_behavior == i,
         "mvm_kappa1"], 3), "\n",
-      "kappa2 = ", signif(redist_pars[redist_pars$behavior_behavior == i,
+      "kappa2 = ", signif(move_pars[move_pars$behavior_behavior == i,
         "mvm_kappa2"], 3))) +
     scale_x_continuous(limits = limits, labels = labels,
       breaks = breaks, minor_breaks = minor_breaks, expand = c(0,0)) +
@@ -309,11 +322,11 @@ ind_list <- lapply(sort(unique(baea_movements$behavior_behavior)), function(i){
 
 # Polar Coordinates ------------------------------------------------------------
 # All plots on one figure
-p_list = lapply(sort(unique(baea_movements$behavior_behavior)), function(i){
-  ggplot(baea_movements[baea_movements$behavior_behavior == i, ],
+p_list = lapply(sort(unique(baea_movements_vm$behavior_behavior)), function(i){
+  ggplot(baea_movements_vm[baea_movements_vm$behavior_behavior == i, ],
       aes(x = turn_angle)) +
-    geom_histogram(aes(y = ..density..), fill = "grey20", color = "black",
-      boundary = 0, binwidth = bin_width) +
+    geom_histogram(aes(y = ..density.., weight=weights), fill = "grey20",
+      color = "black", boundary = 0, binwidth = bin_width) +
     geom_line(data = von_mises_dens[von_mises_dens$grp == i, ],
       aes(x = pred, y = dens), size = 1, colour = "red") +
     coord_polar(start = (1.5*pi), direction = -1) +
@@ -340,11 +353,12 @@ SavePlot(filename = "Turn Angles with Fitted von Mises - Polar.png",
   path="Output/Plots/Turn_Angle")
 
 # Individual plots
-ind_list = lapply(sort(unique(baea_movements$behavior_behavior)), function(i){
-  ggplot(baea_movements[baea_movements$behavior_behavior == i, ],
+ind_list = lapply(sort(unique(baea_movements_vm$behavior_behavior)),
+  function(i){
+  ggplot(baea_movements_vm[baea_movements_vm$behavior_behavior == i, ],
     aes(x = turn_angle)) +
-    geom_histogram(aes(y = ..density..), fill = "grey20", color = "black",
-      boundary = 0, binwidth = bin_width) +
+    geom_histogram(aes(y = ..density.., weight=weights), fill = "grey20",
+      color = "black", boundary = 0, binwidth = bin_width) +
     geom_line(data = von_mises_dens[von_mises_dens$grp == i, ],
       aes(x = pred, y = dens), size = 1, colour = "red") +
     labs(x = "Direction", y = "Density") + ggtitle(paste(i, "(all)"))+
@@ -364,33 +378,36 @@ ind_list = lapply(sort(unique(baea_movements$behavior_behavior)), function(i){
     path="Output/Plots/Turn_Angle/Individual/Polar")
 })
 
-# Plotting Redist Kernel -------------------------------------------------------
+# Plotting Move Kernel -------------------------------------------------------
 
-redist_dens <- data.frame(grp=character(), x=numeric(), y=numeric(),
+move_dens <- data.frame(grp=character(), x=numeric(), y=numeric(),
   dens=numeric())
-for (i in 1:nrow(redist_pars)){
-  redist_pars_i <- redist_pars[i, ]
-  kernel_i <- CreateRedistKernelWeibullVonMises(
+for (i in 1:nrow(move_pars)){
+  move_pars_i <- move_pars[i, ]
+  ignore_von_mises <- ifelse(move_pars_i$behavior[1] %in% c("Cruise",
+    "Flight"), FALSE, TRUE)
+  kernel_i <- CreateMoveKernelWeibullVonMises(
       max_r = NULL,
       cellsize = 30,
-      mu1 = redist_pars_i$mvm_mu1[],
-      mu2 = redist_pars_i$mvm_mu2[1],
-      kappa1 = redist_pars_i$mvm_kappa1[1],
-      kappa2 = redist_pars_i$mvm_kappa2[1],
-      mix = redist_pars_i$mvm_prop[1],
-      shape = redist_pars_i$weibull_shape[1],
-      scale = redist_pars_i$weibull_scale[1])
+      mu1 = move_pars_i$mvm_mu1[1],
+      mu2 = move_pars_i$mvm_mu2[1],
+      kappa1 = move_pars_i$mvm_kappa1[1],
+      kappa2 = move_pars_i$mvm_kappa2[1],
+      mix = move_pars_i$mvm_prop[1],
+      shape = move_pars_i$weibull_shape[1],
+      scale = move_pars_i$weibull_scale[1],
+      ignore_von_mises = ignore_von_mises)
   r <- (30*((nrow(kernel_i)-1)/2))+(30/2)
   kernel_raster <- raster::raster(kernel_i, xmn=-r, xmx=r, ymn=-r, ymx=r)
   df <- data.frame(raster::rasterToPoints(kernel_raster))
   names(df)[3] <- "dens"
-  df$behavior_behavior <- redist_pars_i$behavior_behavior
-  redist_dens <- rbind(redist_dens, df)
+  df$behavior_behavior <- move_pars_i$behavior_behavior
+  move_dens <- rbind(move_dens, df)
 }
 
 # All plots on one figure
-p_list = lapply(sort(unique(redist_dens$behavior_behavior)), function(i){
-  ggplot(redist_dens[redist_dens$behavior_behavior == i, ], aes(x = x, y = y)) +
+p_list = lapply(sort(unique(move_dens$behavior_behavior)), function(i){
+  ggplot(move_dens[move_dens$behavior_behavior == i, ], aes(x = x, y = y)) +
     geom_raster(aes(fill = dens)) +
     coord_fixed(ratio = 1) +
     scale_fill_gradientn(colours = RColorBrewer::brewer.pal(9, "Oranges")) +
@@ -410,15 +427,15 @@ p_list = lapply(sort(unique(redist_dens$behavior_behavior)), function(i){
     theme(plot.margin = margin(1, 1, 1, 1, "pt")) +
     ggtitle(NULL) + labs(x=NULL, y=NULL)
 })
-do.call(grid.arrange, c(p_list, ncol=5, nrow=5, left="Y", bottom="X"))
-SavePlot(filename = "Redist Kernels with Fitted Distributions.png",
-  path="Output/Plots/Redist_Kernels")
+do.call(grid.arrange, c(p_list, ncol=5, nrow=4, left="Y", bottom="X"))
+SavePlot(filename = "Move Kernels with Fitted Distributions.png",
+  path="Output/Plots/Move_Kernels")
 
 # Individual plots
-ind_list = lapply(sort(unique(redist_dens$behavior_behavior)), function(i){
-  ggplot(redist_dens[redist_dens$behavior_behavior == i,], aes(x = x, y = y)) +
+ind_list = lapply(sort(unique(move_dens$behavior_behavior)), function(i){
+  ggplot(move_dens[move_dens$behavior_behavior == i,], aes(x = x, y = y)) +
     geom_raster(aes(fill = dens)) +
-    labs(x = "X", y = "Y", title = paste(i, "(all)")) +
+    labs(x = "X", y = "Y", title = paste(i)) +
     coord_fixed(ratio = 1) +
     scale_fill_gradientn(colours = RColorBrewer::brewer.pal(9, "Oranges")) +
     labs(fill = "Probability") +
@@ -432,311 +449,313 @@ ind_list = lapply(sort(unique(redist_dens$behavior_behavior)), function(i){
     theme(panel.background = element_rect(fill = NA, color = "black")) +
     theme(plot.margin = margin(15, 15, 15, 15, "pt"))
   SaveGGPlot(filename = paste(str_replace(i, ">", ""), ".png"),
-    path = "Output/Plots/Redist_Kernels/Individual")
+    path = "Output/Plots/Move_Kernels/Individual")
 })
+
+table(baea_movements$behavior_behavior)
 
 
 #------------------------------------------------------------------------------#
 ################################## OLD CODE ####################################
 #------------------------------------------------------------------------------#
 
-library(fitdistrplus)
-library(dplyr)
-library(extraDistr)
-library(texmex)
-
-movements <- baea %>% group_by("id") %>%
-  filter(step_length > 42.5) %>%
-  filter(step_time <= 20) %>%
-  mutate(step_length = step_length/1000)
-  ungroup()
-
-nests <- baea %>% group_by(id) %>% slice(1) %>%
-    dplyr::select(nest_long_utm, nest_lat_utm)  %>%
-    transmute(long = nest_long_utm, lat = nest_lat_utm)
-
-  home_dist_gg <- ConvertRasterForGGPlot(home_dist)
-
-  ggplot(home_dist_gg, aes(x, y)) +
-    geom_raster(aes(fill = value), interpolate=TRUE) +
-    coord_fixed(ratio = 1) +
-    scale_fill_distiller(breaks = seq(0,40000, by=5000), name="Meters",
-      palette = "Blues", direction=-1) +
-    geom_point(data = nests_2016, aes(long, lat), shape=24, alpha=.9,
-      color="red", fill= "black", size=2, stroke=2) +
-    geom_point(data = nests, aes(long, lat), shape=24, alpha=.9,
-      color="blue", fill= "floralwhite", size=2, stroke=2) +
-    geom_point(data = movements, aes(long_utm, lat_utm), shape=4, alpha=.9,
-      color="chartreuse2", size=1, stroke=2) +
-    geom_point(data = nests, aes(long, lat), shape=24, alpha=.9,
-      color="blue", fill= "floralwhite", size=2, stroke=2) +
-    theme_legend +
-    ggtitle(paste("Movement Locations")) + xlab("Longitude") + ylab("Latitude")
-  SaveGGPlot("Movement Locations.png", image_output, bg = "white")
-
-
-    geom_raster(aes(fill = value), interpolate=TRUE) + theme_legend +
-    scale_x_continuous(expand=c(0, 0)) + scale_y_continuous(expand=c(0, 0)) +
-    scale_fill_distiller(breaks = seq(0,40000, by=5000), name="Meters",
-      palette = "Blues", direction=-1) +
-    ggtitle(paste(i, "- Home Distance")) +
-    xlab("Longitude") + ylab("Latitude") +
-    geom_point(data = nests_2016_i, aes(long, lat), shape=24, alpha=.9,
-      color="red", fill= "black", size=2, stroke=2) +
-    geom_point(data = nest_i, aes(long, lat), shape=24, alpha=.9,
-      color="blue", fill= "white", size=2, stroke=2)
-  SaveGGPlot(paste0(i, " - Home Distance.png"),
-    file.path(image_output), bg = NA)
-
-
-descdist(movements$step_length, boot=100)
-
-fits_movements <- list(
-  exponential = fitdist(movements$step_length, "exp"),
-  halfnorm = fitdist(movements$step_length, "hnorm", start=list(sigma=
-    sqrt(pi/2))),
-  gamma = fitdist(movements$step_length, "gamma"),
-  pareto = fitdist(movements$step_length, "gpd", start=list(sigma=2, xi=2)),
-  weibull = fitdist(movements$step_length, "weibull")
-)
-
-save(fits_movements, file = "Output/fits_movements.RData")
-
-sapply(fits_movements, function(i) summary(i))
-sapply(fits_movements, function(i) coef(i))
-
-plot(fits_movements$exponential)
-plot(fits_movements$halfnorm)
-plot(fits_movements$gamma)
-plot(fits_movements$pareto)
-plot(fits_movements$weibull)
-
-ggplot(movements, aes(step_length)) + stat_ecdf(geom = "step") +
-  xlab("Step Length Distance (km)") + ylab("ECD") + theme_no_legend
-
-movements_lines <- data.frame(x=movements$step_length,
-  HalfNorm=dhnorm(movements$step_length,
-    fits_movements$halfnorm$estimate["sigma"]),
-  Exponential=dexp(movements$step_length,
-    fits_movements$exponential$estimate["rate"]),
-  Pareto=texmex::dgpd(movements$step_length,
-    fits_movements$pareto$estimate["sigma"],
-    fits_movements$pareto$estimate["xi"]),
-  Gamma=dgamma(movements$step_length,
-    fits_movements$gamma$estimate["shape"],
-    fits_movements$gamma$estimate["rate"]),
-  Weibull=stats::dweibull(movements$step_length,
-    fits_movements$weibull$estimate["shape"],
-    fits_movements$weibull$estimate["scale"]))
-
-ggplot(movements) +
-  geom_histogram(aes(x=step_length, y=..density..), color="black", fill="grey",
-    breaks = seq(0, max(movements$step_length), by=.25)) +
-  ggtitle("Step Length (km)") +
-  xlab("Kilometers") + ylab("Density") + theme_legend +
-#  geom_line(data = movements_lines, aes(x, HalfNorm, color = "HalfNorm"), size = 1.1) +
-#  geom_line(data = movements_lines, aes(x, Exponential, color = "Exponential"), size = 1.1) +
-#  geom_line(data = movements_lines, aes(x, Gamma, color = "Gamma"), size = 1.1) +
-  geom_line(data = movements_lines, aes(x, Weibull, color = "Weibull"), size = 1.1) +
-#  geom_line(data = movements_lines, aes(x, Pareto,  color="Pareto"), size = 1.1) +
-  scale_color_manual(name = "Fitted \nDistributions",
-    values = c("Exponential" = "green", "HalfNorm" = "darkorchid1",
-      "Pareto" = "red1", "Gamma" = "blue1",
-      "Weibull" = "yellow"))
-
-SaveGGPlot(paste0("Movements Distribution Fits.png"),
-  file.path(image_output), bg = "black")
-
-# Using Weibull Fit
-
-max_r <- qweibull(.995, fits_movements$weibull$estimate["shape"],
-  fits_movements$weibull$estimate["scale"]) * 1000
-
-nestcon_gamma_shape <- 1.1
-nestcon_gamma_rate <- 0.495
-
-(step_weibull_scale = fits_movements$weibull$estimate["scale"])
-(step_weibull_shape = fits_movements$weibull$estimate["shape"])
-
-
-con_nest_Sandy <- overlay(home_dist_Sandy, con_dist_nest_Sandy,
-#  fun=function(x,y){round(x+y)})
-
-plot(con_nest_Sandy, col=terrain.colors(255), main= "Sandy - ConNest Distance")
-#  legend.args=list(text="Con D", cex=1, side=3, line=1))
-points(nest_Sandy[1], nest_Sandy[2], pch=17, cex=1.5, col="blue")
-
-
-loc_pts <- data.frame(
-  x = c(500015, 474995),
-  y = c(4919965, 4930015),
-  title = c("Near Edge", "Above Nest"))
-points(loc_pts$x, loc_pts$y, size=2, pch=4, lwd=2, col="black")
-
-
-CenterXYInCell(x = c(500000, 475000),y = c(4920000, 4930000), xmin(base),
-  ymin(base), 30)
-
-step_max_r = 15000
-
-cellsize = 30
-mu = 0
-rho = .5
-scale = 1.172086
-shape = 0.7081443
-
-redist <- CreateRedistKernelWeibull(max_r=step_max_r, cellsize=cellsize,
-  mu=mu, rho=rho, shape=shape, scale=scale)
-
-r <- (cellsize*((nrow(redist)-1)/2))+(cellsize/2)
-redist_raster <- raster::raster(redist, xmn=-r, xmx=r, ymn=-r, ymx=r)
-plot(redist_raster, main= "Movement Kernel")
-SavePlot("Movement Kernel.jpeg", image_output)
-
-i <- 2
-redist_shift <- raster::shift(redist_raster, x=loc_pts$x[i],
-  y=loc_pts$y[i])
-plot(redist_shift, main= "Sandy - Movement Kernel")
-points(nest_Sandy[1], nest_Sandy[2], pch=17, cex=1.5, col="blue")
-points(loc_pts$x[i], loc_pts$y[i], size=2, pch=4, lwd=2, col="black")
-SavePlot(paste0("Sandy - Movement Kernel - ", i, ".jpeg"), image_output)
-
-redist_shift <- raster::crop(redist_shift, base, snap="in")
-con_nest <- CreateConNestProb(con_nest_raster = con_nest_Sandy,
-  gamma_shape=nestcon_gamma_shape, gamma_rate=nestcon_gamma_rate,
-  x=loc_pts$x[i], y=loc_pts$y[i], max_r=step_max_r, cellsize=cellsize,
-  base=base)
-plot(con_nest, main= "Sandy - ConNest Probability")
-points(nest_Sandy[1], nest_Sandy[2], pch=17, cex=1.5, col="blue")
-points(loc_pts$x[i], loc_pts$y[i], size=2, pch=4, lwd=2, col="black")
-SavePlot(paste0("Sandy - ConNest Probability - ", i, ".jpeg"), image_output)
-
-con_nest_crop <- raster::crop(con_nest, redist_shift, snap="out")
-redist_shift_crop <- raster::crop(redist_shift, con_nest, snap="out")
-
-redist_shift_crop
-con_nest_crop
-
-prob_raster <- raster::overlay(redist_shift_crop, con_nest_crop,
-#  fun=function(a,b){return(a*b)}, recycle=FALSE)
-
-prob_raster <- prob_raster/raster::cellStats(prob_raster, stat="sum")
-plot(prob_raster, main= "Sandy - Redistribution Kernel")
-points(nest_Sandy[1], nest_Sandy[2], pch=17, cex=1.5, col="blue")
-points(loc_pts$x[i], loc_pts$y[i], size=2, pch=4, lwd=2, col="black")
-SavePlot(paste0("Sandy - Redistribution Kernel - ", i, ".jpeg"), image_output)
-
-print("prob_min:", raster::minValue(prob_raster))
-raster::crs(prob_raster) <- raster::crs(sim$spatial$base)
-
-#CreateRedistKernelWeibull <- function(max_r = 300,
-                                      cellsize = 30,
-                                      mu,
-                                      rho,
-                                      shape,
-                                      scale,
-                                      ignore_cauchy = FALSE,
-                                      ignore_weibull = FALSE) {
-
-max_r <- qweibull(.99, fits_movements$weibull$estimate["shape"],
-  fits_movements$weibull$estimate["scale"]) * 1000
-#max_r <- 100
-cellsize <- 30
-mu = 0
-rho = .5
-scale = step_weibull_scale
-shape = step_weibull_shape
-ignore_cauchy = FALSE
-ignore_weibull = FALSE
-
-ptm <- proc.time()
-
-  if (is.null(max_r)) max_r <- qweibull(.99, shape, scale) * 1000
-  # Create the empty kernel objects
-  max_r_cells <- ceiling(max_r/cellsize)
-  size <- max_r_cells * 2 + 1
-  center <- max_r_cells + 1
-  angle_matrix <- row_matrix <- col_matrix <- new("matrix", 0, size, size)
-  distance_matrix <- new("matrix", 0, size, size)
-  i <- j <-  1:size
-  row_matrix[] <- rep(i, times  = max(j))
-  col_matrix <- t(row_matrix)
-  dx <- row_matrix - center
-  dy <- col_matrix - center
-  abs_angle <- atan2(dx, dy)
-  angle_matrix <- ifelse(abs_angle < 0, (2*pi) + abs_angle, abs_angle)
-  wrpc_kernel <- suppressWarnings(dwrappedcauchy(angle_matrix, mu=mu, rho=rho))
-  distance_matrix <- (sqrt((row_matrix - center)^2 + (col_matrix - center)^2) *
-      cellsize) / 1000
-  weibull_kernel <- dweibull(distance_matrix, scale=scale, shape=shape)
-  weibull_kernel[center, center] <- 0  # Forces agent to move from current cell
-  # This last part deletes the cells at the edge if they are all zero
-  if (all(wrpc_kernel[1, ] == 0, wrpc_kernel[, 1] == 0,
-    wrpc_kernel[nrow(wrpc_kernel),] == 0, wrpc_kernel[, ncol(wrpc_kernel)] ==0))
-    wrpc_kernel <- wrpc_kernel[2:(nrow(wrpc_kernel) - 1), 2:(ncol(wrpc_kernel)
-      - 1)]
-  if (all(weibull_kernel[1, ] == 0, weibull_kernel[, 1] == 0,
-    weibull_kernel[nrow(weibull_kernel),] == 0, weibull_kernel[,
-      ncol(weibull_kernel)] == 0))
-    weibull_kernel <- weibull_kernel[2:(nrow(weibull_kernel) - 1),
-      2:(ncol(weibull_kernel) - 1)]
-  # Multiply the two kernels together and re-normalize
-  if (ignore_cauchy) wrpc_kernel <- 1
-  if (ignore_weibull) weibull_kernel <- 1
-  redist_kernel <- weibull_kernel*wrpc_kernel
-  redist_kernel <- redist_kernel/sum(redist_kernel)
-#  return(redist_kernel)
-
-proc.time() - ptm
-
-##
-redist <- redist_kernel
-r <- (cellsize*((nrow(redist)-1)/2))+(cellsize/2)
-
-redist_raster <- raster(redist, xmn=-r, xmx=r, ymn=-r, ymx=r)
-redist_shift <- shift(redist_raster, x=50000, y=50000)
-
-plot(redist_shift)
-Plot3DRaster(redist_shift, main="Redist Kernel", border=NA)
-
-
-
-  ptm <- proc.time()
-  for (i in 1:size) {
-    for (j in 1:size) {
-      r = (sqrt((i - center)^2 + (j - center)^2) * cellsize) / 1000
-      b = AngleToPoint(center, center, j, i)
-      if(r <= max_r){
-#        distance_kernel[i, j] <- r
-        wrpc_kernel[i, j] <- round(suppressWarnings(dwrappedcauchy(b,
-          mu=mu, rho=rho)), 5)
-        weibull_kernel[i, j] <- stats::dweibull(r, scale=scale, shape=shape,
-          log=FALSE)
-      }
-    }
-  }
-  proc.time() - ptm
-  wrpc_kernel <- apply(wrpc_kernel, 2, rev)
-  weibull_kernel[center, center] <- 0  # Forces agent to move from current cell
-  # This last part deletes the cells at the edge if they are all zero
-  if (all(wrpc_kernel[1, ] == 0, wrpc_kernel[, 1] == 0,
-    wrpc_kernel[nrow(wrpc_kernel),] == 0, wrpc_kernel[, ncol(wrpc_kernel)] ==0))
-    wrpc_kernel <- wrpc_kernel[2:(nrow(wrpc_kernel) - 1), 2:(ncol(wrpc_kernel)
-      - 1)]
-  if (all(weibull_kernel[1, ] == 0, weibull_kernel[, 1] == 0,
-    weibull_kernel[nrow(weibull_kernel),] == 0, weibull_kernel[,
-      ncol(weibull_kernel)] == 0))
-    weibull_kernel <- weibull_kernel[2:(nrow(weibull_kernel) - 1),
-      2:(ncol(weibull_kernel) - 1)]
-  # Multiply the two kernels together and re-normalize
-  if (ignore_cauchy)
-    wrpc_kernel <- 1
-  if (ignore_weibull)
-    weibull_kernel <- 1
-  redist_kernel <- weibull_kernel*wrpc_kernel
-  redist_kernel <- redist_kernel/sum(redist_kernel)
-  return(redist_kernel)
-}
-
-
-
+# library(fitdistrplus)
+# library(dplyr)
+# library(extraDistr)
+# library(texmex)
+#
+# movements <- baea %>% group_by("id") %>%
+#   filter(step_length > 42.5) %>%
+#   filter(step_time <= 20) %>%
+#   mutate(step_length = step_length/1000)
+#   ungroup()
+#
+# nests <- baea %>% group_by(id) %>% slice(1) %>%
+#     dplyr::select(nest_long_utm, nest_lat_utm)  %>%
+#     transmute(long = nest_long_utm, lat = nest_lat_utm)
+#
+#   home_dist_gg <- ConvertRasterForGGPlot(home_dist)
+#
+#   ggplot(home_dist_gg, aes(x, y)) +
+#     geom_raster(aes(fill = value), interpolate=TRUE) +
+#     coord_fixed(ratio = 1) +
+#     scale_fill_distiller(breaks = seq(0,40000, by=5000), name="Meters",
+#       palette = "Blues", direction=-1) +
+#     geom_point(data = nests_2016, aes(long, lat), shape=24, alpha=.9,
+#       color="red", fill= "black", size=2, stroke=2) +
+#     geom_point(data = nests, aes(long, lat), shape=24, alpha=.9,
+#       color="blue", fill= "floralwhite", size=2, stroke=2) +
+#     geom_point(data = movements, aes(long_utm, lat_utm), shape=4, alpha=.9,
+#       color="chartreuse2", size=1, stroke=2) +
+#     geom_point(data = nests, aes(long, lat), shape=24, alpha=.9,
+#       color="blue", fill= "floralwhite", size=2, stroke=2) +
+#     theme_legend +
+#     ggtitle(paste("Movement Locations")) + xlab("Longitude") + ylab("Latitude")
+#   SaveGGPlot("Movement Locations.png", image_output, bg = "white")
+#
+#
+#     geom_raster(aes(fill = value), interpolate=TRUE) + theme_legend +
+#     scale_x_continuous(expand=c(0, 0)) + scale_y_continuous(expand=c(0, 0)) +
+#     scale_fill_distiller(breaks = seq(0,40000, by=5000), name="Meters",
+#       palette = "Blues", direction=-1) +
+#     ggtitle(paste(i, "- Home Distance")) +
+#     xlab("Longitude") + ylab("Latitude") +
+#     geom_point(data = nests_2016_i, aes(long, lat), shape=24, alpha=.9,
+#       color="red", fill= "black", size=2, stroke=2) +
+#     geom_point(data = nest_i, aes(long, lat), shape=24, alpha=.9,
+#       color="blue", fill= "white", size=2, stroke=2)
+#   SaveGGPlot(paste0(i, " - Home Distance.png"),
+#     file.path(image_output), bg = NA)
+#
+#
+# descdist(movements$step_length, boot=100)
+#
+# fits_movements <- list(
+#   exponential = fitdist(movements$step_length, "exp"),
+#   halfnorm = fitdist(movements$step_length, "hnorm", start=list(sigma=
+#     sqrt(pi/2))),
+#   gamma = fitdist(movements$step_length, "gamma"),
+#   pareto = fitdist(movements$step_length, "gpd", start=list(sigma=2, xi=2)),
+#   weibull = fitdist(movements$step_length, "weibull")
+# )
+#
+# save(fits_movements, file = "Output/fits_movements.RData")
+#
+# sapply(fits_movements, function(i) summary(i))
+# sapply(fits_movements, function(i) coef(i))
+#
+# plot(fits_movements$exponential)
+# plot(fits_movements$halfnorm)
+# plot(fits_movements$gamma)
+# plot(fits_movements$pareto)
+# plot(fits_movements$weibull)
+#
+# ggplot(movements, aes(step_length)) + stat_ecdf(geom = "step") +
+#   xlab("Step Length Distance (km)") + ylab("ECD") + theme_no_legend
+#
+# movements_lines <- data.frame(x=movements$step_length,
+#   HalfNorm=dhnorm(movements$step_length,
+#     fits_movements$halfnorm$estimate["sigma"]),
+#   Exponential=dexp(movements$step_length,
+#     fits_movements$exponential$estimate["rate"]),
+#   Pareto=texmex::dgpd(movements$step_length,
+#     fits_movements$pareto$estimate["sigma"],
+#     fits_movements$pareto$estimate["xi"]),
+#   Gamma=dgamma(movements$step_length,
+#     fits_movements$gamma$estimate["shape"],
+#     fits_movements$gamma$estimate["rate"]),
+#   Weibull=stats::dweibull(movements$step_length,
+#     fits_movements$weibull$estimate["shape"],
+#     fits_movements$weibull$estimate["scale"]))
+#
+# ggplot(movements) +
+#   geom_histogram(aes(x=step_length, y=..density..), color="black", fill="grey",
+#     breaks = seq(0, max(movements$step_length), by=.25)) +
+#   ggtitle("Step Length (km)") +
+#   xlab("Kilometers") + ylab("Density") + theme_legend +
+# #  geom_line(data = movements_lines, aes(x, HalfNorm, color = "HalfNorm"), size = 1.1) +
+# #  geom_line(data = movements_lines, aes(x, Exponential, color = "Exponential"), size = 1.1) +
+# #  geom_line(data = movements_lines, aes(x, Gamma, color = "Gamma"), size = 1.1) +
+#   geom_line(data = movements_lines, aes(x, Weibull, color = "Weibull"), size = 1.1) +
+# #  geom_line(data = movements_lines, aes(x, Pareto,  color="Pareto"), size = 1.1) +
+#   scale_color_manual(name = "Fitted \nDistributions",
+#     values = c("Exponential" = "green", "HalfNorm" = "darkorchid1",
+#       "Pareto" = "red1", "Gamma" = "blue1",
+#       "Weibull" = "yellow"))
+#
+# SaveGGPlot(paste0("Movements Distribution Fits.png"),
+#   file.path(image_output), bg = "black")
+#
+# # Using Weibull Fit
+#
+# max_r <- qweibull(.995, fits_movements$weibull$estimate["shape"],
+#   fits_movements$weibull$estimate["scale"]) * 1000
+#
+# nestcon_gamma_shape <- 1.1
+# nestcon_gamma_rate <- 0.495
+#
+# (step_weibull_scale = fits_movements$weibull$estimate["scale"])
+# (step_weibull_shape = fits_movements$weibull$estimate["shape"])
+#
+#
+# con_nest_Sandy <- overlay(home_dist_Sandy, con_dist_nest_Sandy,
+# #  fun=function(x,y){round(x+y)})
+#
+# plot(con_nest_Sandy, col=terrain.colors(255), main= "Sandy - ConNest Distance")
+# #  legend.args=list(text="Con D", cex=1, side=3, line=1))
+# points(nest_Sandy[1], nest_Sandy[2], pch=17, cex=1.5, col="blue")
+#
+#
+# loc_pts <- data.frame(
+#   x = c(500015, 474995),
+#   y = c(4919965, 4930015),
+#   title = c("Near Edge", "Above Nest"))
+# points(loc_pts$x, loc_pts$y, size=2, pch=4, lwd=2, col="black")
+#
+#
+# CenterXYInCell(x = c(500000, 475000),y = c(4920000, 4930000), xmin(base),
+#   ymin(base), 30)
+#
+# step_max_r = 15000
+#
+# cellsize = 30
+# mu = 0
+# rho = .5
+# scale = 1.172086
+# shape = 0.7081443
+#
+# move_kernel <- CreateMoveKernelWeibull(max_r=step_max_r, cellsize=cellsize,
+#   mu=mu, rho=rho, shape=shape, scale=scale)
+#
+# r <- (cellsize*((nrow(move_kernel)-1)/2))+(cellsize/2)
+# redist_raster <- raster::raster(move_kernel, xmn=-r, xmx=r, ymn=-r, ymx=r)
+# plot(redist_raster, main= "Movement Kernel")
+# SavePlot("Movement Kernel.jpeg", image_output)
+#
+# i <- 2
+# redist_shift <- raster::shift(redist_raster, x=loc_pts$x[i],
+#   y=loc_pts$y[i])
+# plot(redist_shift, main= "Sandy - Movement Kernel")
+# points(nest_Sandy[1], nest_Sandy[2], pch=17, cex=1.5, col="blue")
+# points(loc_pts$x[i], loc_pts$y[i], size=2, pch=4, lwd=2, col="black")
+# SavePlot(paste0("Sandy - Movement Kernel - ", i, ".jpeg"), image_output)
+#
+# redist_shift <- raster::crop(redist_shift, base, snap="in")
+# con_nest <- CreateConNestProb(con_nest_raster = con_nest_Sandy,
+#   gamma_shape=nestcon_gamma_shape, gamma_rate=nestcon_gamma_rate,
+#   x=loc_pts$x[i], y=loc_pts$y[i], max_r=step_max_r, cellsize=cellsize,
+#   base=base)
+# plot(con_nest, main= "Sandy - ConNest Probability")
+# points(nest_Sandy[1], nest_Sandy[2], pch=17, cex=1.5, col="blue")
+# points(loc_pts$x[i], loc_pts$y[i], size=2, pch=4, lwd=2, col="black")
+# SavePlot(paste0("Sandy - ConNest Probability - ", i, ".jpeg"), image_output)
+#
+# con_nest_crop <- raster::crop(con_nest, redist_shift, snap="out")
+# redist_shift_crop <- raster::crop(redist_shift, con_nest, snap="out")
+#
+# redist_shift_crop
+# con_nest_crop
+#
+# prob_raster <- raster::overlay(redist_shift_crop, con_nest_crop,
+# #  fun=function(a,b){return(a*b)}, recycle=FALSE)
+#
+# prob_raster <- prob_raster/raster::cellStats(prob_raster, stat="sum")
+# plot(prob_raster, main= "Sandy - Movement Kernel")
+# points(nest_Sandy[1], nest_Sandy[2], pch=17, cex=1.5, col="blue")
+# points(loc_pts$x[i], loc_pts$y[i], size=2, pch=4, lwd=2, col="black")
+# SavePlot(paste0("Sandy - Movement Kernel - ", i, ".jpeg"), image_output)
+#
+# print("prob_min:", raster::minValue(prob_raster))
+# raster::crs(prob_raster) <- raster::crs(sim$spatial$base)
+#
+# #CreateMoveKernelWeibull <- function(max_r = 300,
+#                                       cellsize = 30,
+#                                       mu,
+#                                       rho,
+#                                       shape,
+#                                       scale,
+#                                       ignore_cauchy = FALSE,
+#                                       ignore_weibull = FALSE) {
+#
+# max_r <- qweibull(.99, fits_movements$weibull$estimate["shape"],
+#   fits_movements$weibull$estimate["scale"]) * 1000
+# #max_r <- 100
+# cellsize <- 30
+# mu = 0
+# rho = .5
+# scale = step_weibull_scale
+# shape = step_weibull_shape
+# ignore_cauchy = FALSE
+# ignore_weibull = FALSE
+#
+# ptm <- proc.time()
+#
+#   if (is.null(max_r)) max_r <- qweibull(.99, shape, scale) * 1000
+#   # Create the empty kernel objects
+#   max_r_cells <- ceiling(max_r/cellsize)
+#   size <- max_r_cells * 2 + 1
+#   center <- max_r_cells + 1
+#   angle_matrix <- row_matrix <- col_matrix <- new("matrix", 0, size, size)
+#   distance_matrix <- new("matrix", 0, size, size)
+#   i <- j <-  1:size
+#   row_matrix[] <- rep(i, times  = max(j))
+#   col_matrix <- t(row_matrix)
+#   dx <- row_matrix - center
+#   dy <- col_matrix - center
+#   abs_angle <- atan2(dx, dy)
+#   angle_matrix <- ifelse(abs_angle < 0, (2*pi) + abs_angle, abs_angle)
+#   wrpc_kernel <- suppressWarnings(dwrappedcauchy(angle_matrix, mu=mu, rho=rho))
+#   distance_matrix <- (sqrt((row_matrix - center)^2 + (col_matrix - center)^2) *
+#       cellsize) / 1000
+#   weibull_kernel <- dweibull(distance_matrix, scale=scale, shape=shape)
+#   weibull_kernel[center, center] <- 0  # Forces agent to move from current cell
+#   # This last part deletes the cells at the edge if they are all zero
+#   if (all(wrpc_kernel[1, ] == 0, wrpc_kernel[, 1] == 0,
+#     wrpc_kernel[nrow(wrpc_kernel),] == 0, wrpc_kernel[, ncol(wrpc_kernel)] ==0))
+#     wrpc_kernel <- wrpc_kernel[2:(nrow(wrpc_kernel) - 1), 2:(ncol(wrpc_kernel)
+#       - 1)]
+#   if (all(weibull_kernel[1, ] == 0, weibull_kernel[, 1] == 0,
+#     weibull_kernel[nrow(weibull_kernel),] == 0, weibull_kernel[,
+#       ncol(weibull_kernel)] == 0))
+#     weibull_kernel <- weibull_kernel[2:(nrow(weibull_kernel) - 1),
+#       2:(ncol(weibull_kernel) - 1)]
+#   # Multiply the two kernels together and re-normalize
+#   if (ignore_cauchy) wrpc_kernel <- 1
+#   if (ignore_weibull) weibull_kernel <- 1
+#   redist_kernel <- weibull_kernel*wrpc_kernel
+#   redist_kernel <- redist_kernel/sum(redist_kernel)
+# #  return(redist_kernel)
+#
+# proc.time() - ptm
+#
+# ##
+# move_kernel <- redist_kernel
+# r <- (cellsize*((nrow(move_kernel)-1)/2))+(cellsize/2)
+#
+# redist_raster <- raster(move_kernel, xmn=-r, xmx=r, ymn=-r, ymx=r)
+# redist_shift <- shift(redist_raster, x=50000, y=50000)
+#
+# plot(redist_shift)
+# Plot3DRaster(redist_shift, main="Move Kernel", border=NA)
+#
+#
+#
+#   ptm <- proc.time()
+#   for (i in 1:size) {
+#     for (j in 1:size) {
+#       r = (sqrt((i - center)^2 + (j - center)^2) * cellsize) / 1000
+#       b = AngleToPoint(center, center, j, i)
+#       if(r <= max_r){
+# #        distance_kernel[i, j] <- r
+#         wrpc_kernel[i, j] <- round(suppressWarnings(dwrappedcauchy(b,
+#           mu=mu, rho=rho)), 5)
+#         weibull_kernel[i, j] <- stats::dweibull(r, scale=scale, shape=shape,
+#           log=FALSE)
+#       }
+#     }
+#   }
+#   proc.time() - ptm
+#   wrpc_kernel <- apply(wrpc_kernel, 2, rev)
+#   weibull_kernel[center, center] <- 0  # Forces agent to move from current cell
+#   # This last part deletes the cells at the edge if they are all zero
+#   if (all(wrpc_kernel[1, ] == 0, wrpc_kernel[, 1] == 0,
+#     wrpc_kernel[nrow(wrpc_kernel),] == 0, wrpc_kernel[, ncol(wrpc_kernel)] ==0))
+#     wrpc_kernel <- wrpc_kernel[2:(nrow(wrpc_kernel) - 1), 2:(ncol(wrpc_kernel)
+#       - 1)]
+#   if (all(weibull_kernel[1, ] == 0, weibull_kernel[, 1] == 0,
+#     weibull_kernel[nrow(weibull_kernel),] == 0, weibull_kernel[,
+#       ncol(weibull_kernel)] == 0))
+#     weibull_kernel <- weibull_kernel[2:(nrow(weibull_kernel) - 1),
+#       2:(ncol(weibull_kernel) - 1)]
+#   # Multiply the two kernels together and re-normalize
+#   if (ignore_cauchy)
+#     wrpc_kernel <- 1
+#   if (ignore_weibull)
+#     weibull_kernel <- 1
+#   redist_kernel <- weibull_kernel*wrpc_kernel
+#   redist_kernel <- redist_kernel/sum(redist_kernel)
+#   return(redist_kernel)
+# }
+#
+#
+#

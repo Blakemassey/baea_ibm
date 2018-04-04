@@ -144,14 +144,16 @@ rownames(beta_est) <- rownames(beta_est) %>%
   str_replace_all(c(", period = 365" = "", ", period = 1" = ""))
 behavior_betas <- beta_est
 
-step_cauchy_mu <- 0
-step_cauchy_rho <- .5
-fixed <- NamedList(step_cauchy_mu, step_cauchy_rho, behavior_betas)
+move_pars <- readRDS(move_pars, file="Output/Models/move_pars.RDS")
+
+fixed <- NamedList(move_pars, behavior_betas)
 constant <- NamedList(fixed)
+
 ## season
 breeding <- list(step_pareto_scale=300, step_pareto_shape=.2, step_max_r=100)
 winter <- list(step_pareto_scale=100, step_pareto_shape=.1, step_max_r=100)
 season <- NamedList(breeding, winter)
+
 ## julian
 x <- 1:365
 y <- sin(3*pi*x/365)*-.003 + runif(length(x),.005,.010)
@@ -171,9 +173,7 @@ male <- NamedList(constant, season, julian)
 
 ## Female ----------------------------------------------------------------------
 ## constant
-step_cauchy_mu <- 0
-step_cauchy_rho <- .5
-fixed <- NamedList(step_cauchy_mu, step_cauchy_rho, behavior_betas)
+fixed <- NamedList(move_pars, behavior_betas)
 constant <- NamedList(fixed)
 ## season
 breeding <- list(step_pareto_scale=300, step_pareto_shape=.2, step_max_r=100)
