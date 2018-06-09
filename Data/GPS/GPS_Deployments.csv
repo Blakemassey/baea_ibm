@@ -1,7 +1,7 @@
 serial,on_hand,deployed,end_data,failed,removed,recovered,deploy_location,bird_ID,sex,deploy_seq,notes,icon_color,icon_color_classic
-1B570,20150723,,,,,,,,,,,#E41A1C,#7E6E85
-1D6F4,20150723,,,,,,,,,,,#9E425A,#974661
-1D658,20150723,,,,,,,,,,,#596A98,#4A72A6
+1B570,20150723,20170604,,,,,Little_River,1704,,,BRI Deployment,#E41A1C,#7E6E85
+1D6F4,20150723,20170604,,,,,East_Machias,1701,,,BRI Deployment,#9E425A,#974661
+1D658,20150723,20170604,,,,,Sprague_River,1703,,,BRI Deployment,#596A98,#4A72A6
 1B55A,20150709,20150913,20160304,,20160418,20160418,Onawa,1515,female,18,,#3B87A2,#3E8E93
 1DCE4,20150709,20150721,,,,,Branch,1514,male,17,,#449B75,#D16948
 45895,20140101,20140202,,20140326,,,Cherryfield,1401,unknown,3,,#4DAF4A,#E41A1C
@@ -13,6 +13,7 @@ serial,on_hand,deployed,end_data,failed,removed,recovered,deploy_location,bird_I
 1CBA5,20150414,20150620,,,,,Wilson,1509,male,12,,#FFB214,#A35390
 1D4C9,20150414,20150603,,,,,Eskutassis,1504,female,7,,#FFE528,#FF7F00
 1DFAB,20150414,20150519,20151005,,20151006,20151009,Phillips,1502,female,5,Eagle hit by a car on Route 1A shortly after 3pm on 201501005.  Eagle taken to Avian Haven where the GPS transmitter was removed the following day.,#EDDD30,#FFB716
+1DFAB,,20170604,,,,,Cape_Walsh,1702,,,BRI Deployment,,
 1E07F,20150414,20150608,,,,,Ellis,1506,female,9,,#C9992C,#FFF02D
 27ABC,20150414,20150708,,,,,Webb,1511,female,14,,#A65628,#E1C62F
 27AD4,20150414,20150618,,,,,Sandy,1508,female,11,,#C66764,#B97B2A
