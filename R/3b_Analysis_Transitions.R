@@ -2,11 +2,12 @@
 
 suppressPackageStartupMessages(library(CircStats))
 suppressPackageStartupMessages(library(circular))
-suppressPackageStartupMessages(library(tidyverse))
 suppressPackageStartupMessages(library(fitdistrplus))
+suppressPackageStartupMessages(library(ggplot2))
 suppressPackageStartupMessages(library(ggthemes))
 suppressPackageStartupMessages(library(momentuHMM))
 suppressPackageStartupMessages(library(padr))
+theme_update(plot.title = element_text(hjust = 0.5))
 
 library(baear)
 library(gisr)
@@ -31,11 +32,11 @@ baea_behavior <- baea_behavior_org %>%
 
 # Cruise = 1, Flight = 2, Nest = 3, Perch = 4, Roost = 5
 
-PlotLocationSunriseSunset(df=baea_behavior %>% as.data.frame(),
-    #%>% filter(id == "Norway"),
-  by = "id",
+PlotLocationSunriseSunset(df=baea_behavior %>% as.data.frame %>%
+  filter(id == "Norway"),
+  by = "id", color_factor = "behavior",
   individual = "", start = "", end = "", breaks = "3 days", tz = "Etc/GMT+5",
-  addsolartimes = FALSE, wrap = TRUE)
+  addsolartimes = TRUE, wrap = TRUE)
 
 # Fitting Weibull  ####
 
@@ -186,7 +187,7 @@ baea_hmm_full <- fitHMM(
 toc()
 
 saveRDS(baea_hmm_full, file = "Data/Models/baea_hmm_full")
-baea_hmm_full <- readRDS(file = "Data/Models/baea_hmm5")
+baea_hmm_full <- readRDS(file = "Data/Models/baea_hmm_full.rds")
 
 plot(baea_hmm_full, plotCI = TRUE)
 names(baea_hmm_full)
@@ -217,7 +218,6 @@ rownames(beta_est2) <- rownames(beta_est2) %>%
 
 beta_est
 
-cosinor(200, period = 365)
 
 (nbStates <- length(baea_hmm_full$stateNames))
 (dist <- baea_hmm_full$conditions$dist)
@@ -239,8 +239,6 @@ cosinor(200, period = 365)
 (names(parindex) <- distnames)
 
 
-
-
 library(shiny)
 library(cosinor)
 cosinor_analyzer(vitamind)
@@ -248,6 +246,9 @@ cosinor_analyzer(vitamind)
 saveRDS(baea_hmm_full, file = "Data/Models/baea_hmm_full")
 baea_hmm_full <- readRDS(file = "Data/Models/baea_hmm_full")
 
+
+baea_hmm_full <- readRDS(file = "Data/Models/baea_hmm_full.rds")
+plot(baea_hmm_full)
 
 
 

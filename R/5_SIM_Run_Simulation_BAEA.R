@@ -1,23 +1,27 @@
-library(baear)
-library(gisr)
-library(ibmr)
-library(lubridate)
-library(dplyr)
-library(rgdal)
+suppressPackageStartupMessages(library(baear))
+suppressPackageStartupMessages(library(gisr))
+suppressPackageStartupMessages(library(ibmr))
+suppressPackageStartupMessages(library(lubridate))
+suppressPackageStartupMessages(library(dplyr))
+suppressPackageStartupMessages(library(rgdal))
+suppressPackageStartupMessages(library(tictoc))
+suppressPackageStartupMessages(library(stringr))
 
+devtools::reload("C:/Work/R/Packages/ibmr")
 
 #save(sim, file="Data/Simulation/sim.RData")
-load("Data/Simulation/sim.RData")
+sim <- readRDS("Results/Sim/sim.rds")
 RemoveExcept(c("sim"))
 
-sim$pars$global$sim_end <- as.POSIXct("2015-04-20", tz = "UTC")
+sim$pars$global$sim_end <- as.POSIXct("2015-05-20", tz = "UTC")
+sim$agents$input <- sim$agents$input[1:10,]
 
 # Set up simulation run
 runs = 1
 write = FALSE
 output_dir = getwd()
 
-RunSimulation <- function(sim = sim,
+RunSimulationBAEA <- function(sim = sim,
                           runs = 1,
                           write = FALSE,
                           output_dir = getwd()) {
@@ -27,8 +31,8 @@ RunSimulation <- function(sim = sim,
     sim <- UpdateAgentStates(init = TRUE, sim = sim)
     sim <- UpdateAgentStepDataBAEA(init = TRUE, sim = sim,
       rep_intervals = rep_intervals)
-    #save(sim, file="Data/Simulation/sim_stepsTEST.RData")
-    load("Data/Simulation/sim_stepsTEST.RData")
+    #saveRDS(sim, file="Results/Sim/01_BehaviorMove/sim_steps_spatial.rds")
+    #sim <- readRDS("Results/Sim/01_BehaviorMove/sim_steps_spatial.rds")
     sim <- UpdateAgentParsData(init = TRUE, sim = sim)
     sim <- UpdateSpatialBAEA(init = TRUE, sim = sim)
     for (j in 1:length(rep_intervals)) {
@@ -41,7 +45,7 @@ RunSimulation <- function(sim = sim,
         for (m in 1:length(time_steps)){
           #m <- 5
           time_step <- time_steps[[m]]
-          print(paste("start of time_step:", time_steps[[m]]))
+          #print(paste("start of time_step:", time_steps[[m]]))
           alive_seq <- ReturnAliveSeq(sim)
           sim$agents$all <- UpdateAgentParsData(sim$agents$all)
           for (n in alive_seq){
@@ -54,16 +58,15 @@ RunSimulation <- function(sim = sim,
               for (o in steps){
                 #o <- 1
                 step <- step_data$datetime[o]
-                print(paste("j,k,m,n: ",j,k,m,n))
-                print(paste("step:", step))
+                #print(paste("j,k,m,n: ",j,k,m,n))
+                #print(paste("step:", step))
                 # START Submodels #
                 #agent_states <- AgingSubModel(agent_states, step_data, step)
                 step_data <- BehaviorSubModelBAEA(sim, agent_states, step_data,
                   step)
-                step_data <- MovementSubModelBAEA2(sim, agent_states, step_data,
+                step_data <- MovementSubModelBAEA(sim, agent_states, step_data,
                   step)
                 #agent_states <- SurvivalSubModel(agent_states, step_data)
-                #agent_states <- ReproductionSubModel(agent_states, step_data)
               }
               # END Submodels #
             sim$agents$all[[n]][["states"]] <- UpdateAgentStates(agent_states)
@@ -71,7 +74,6 @@ RunSimulation <- function(sim = sim,
             }
           } # end of alive_seq[[n]]
           #print(paste("end of time_step:", time_steps[[m]]))
-          # Hatchling/Dispersal Submodel
           sim$spatial <- UpdateSpatial(sim$spatial)
         } # end of time_steps[[m]]
         print(paste("end of step_interval:", step_intervals[[k]]))
@@ -88,33 +90,60 @@ RunSimulation <- function(sim = sim,
   return(runs)
 }
 
-saveRDS(sim, "Data/Models/sim_completed_20180404")
+tic()
+sim_out <- RunSimulationBAEA(sim = sim, runs = 1, write = FALSE,
+  output_dir = getwd())
+toc() #6.25 hours
 
-sim_step_data <- CompileAllAgentsStepData(sim=sim) %>%
+saveRDS(sim_out, "Results/Sim/01_BehaviorMove/sim_completed_20180415.rds")
+#sim_out <- readRDS("Results/01_BehaviorMove/sim_completed_20180415.rds")
+
+sim_out1 <- sim_out[[1]]
+sim_step_data <- CompileAllAgentsStepData(sim=sim_out1) %>%
   mutate(behavior = as.factor(behavior)) %>%
-  filter(!is.na(id))
+  filter(!is.na(datetime))
+sim_step_data <- ConvertStepDataCoordinates(sim_step_data)
 
+nest_locs <- sim_step_data %>% dplyr::filter(behavior == 3)
 levels(sim_step_data$behavior) <- c("Cruise", "Flight", "Nest", "Perch","Roost")
+sim_step_data$behavior <- as.character(sim_step_data$behavior)
 
-wgs84n19 <- CRS("+init=epsg:32619") # WGS84 UTM 19N
-sim_xy <- SpatialPoints(sim_step_data[c("x", "y")], proj4string=wgs84n19)
-sim_longlat <- spTransform(sim_xy, CRS("+proj=longlat +datum=WGS84"))
-sim_step_data$long <- coordinates(sim_longlat)[,1]
-sim_step_data$lat <- coordinates(sim_longlat)[,2]
+kml_dir = "Results/Sim/01_BehaviorMove/KML"
+for (i in unique(sim_step_data$id)){
+  sim_step_data_i <- sim_step_data %>% filter(id == i)
+  ExportKMLTelemetry(sim_step_data_i, lat = "lat", long = "long", alt = NULL,
+    speed = NULL, file = paste0("Sim_", str_pad(i, 2, side = "left", "0"),
+    ".kml"), icon_by_sex = TRUE, behavior = "behavior", point_color ="behavior",
+    output_dir = kml_dir)
+}
 
+locs_dir = "Results/Sim/01_BehaviorMove/Plots/Daily_Locations"
 for (i in unique(sim_step_data$id)){
   PlotLocationSunriseSunset(df = sim_step_data %>% filter(id == i),
     by = "id", color_factor = "behavior", individual = "", start = "", end = "",
     breaks = "14 days", tz = "Etc/GMT+5", addsolartimes = FALSE, wrap = TRUE)
-  SaveGGPlot(paste0("Output/Plots/Behavior/Sim/DailyLocs_",i,".png"))
+  SaveGGPlot(file.path(locs_dir ,paste0("DailyLocs_", str_pad(i, 2,
+    side = "left", "0"), ".png")))
 }
 
-ExportKMLTelemetry(df = sim_step_data, id = "id", datetime = "datetime",
-  lat = "lat", long = "long", behavior = "behavior", point_color = "behavior",
-  file = "sim_2018-04-04.kml",
-  output_dir = "C:/Users/blake/Desktop")
-
 title_sim = "Daily Behavior Distributions (simulated data)"
-PlotBehaviorProportionBar(compiled_step_data, title = title_sim)
-SaveGGPlot("Output/Plots/Behavior/Proportion_Bar_SIM.png")
+PlotBehaviorProportionBar(sim_step_data, title = title_sim)
+SaveGGPlot("Results/Sim/01_BehaviorMove/Behavior/Proportion_Bar_SIM.png")
 
+# Plots of original behavior
+baea_behavior <- readRDS(file="Data/Baea/baea_behavior.rds")
+behave_dir <- "Results/Analysis/Plots/Behavior"
+
+PlotLocationSunriseSunset(df=baea_behavior %>% as.data.frame() %>%
+    filter(id == "Three"),
+  by = "id", color_factor = "behavior", individual = "", start = "2015-03-20",
+  end = "2015-09-20", breaks = "14 days", tz = "Etc/GMT+5",
+  addsolartimes = FALSE, wrap = TRUE)
+SaveGGPlot(file.path(behave_dir ,paste0("DailyLocs_Three.png")))
+
+PlotLocationSunriseSunset(df = baea_behavior %>% as.data.frame() %>%
+    filter(id == "Ellis"),
+  by = "id", color_factor = "behavior", individual = "",
+  start = "2016-03-20", end = "2016-09-20", breaks = "10 days",
+  tz = "Etc/GMT+5", addsolartimes = FALSE, wrap = TRUE)
+SaveGGPlot(file.path(behave_dir ,paste0("DailyLocs_Ellis.png")))

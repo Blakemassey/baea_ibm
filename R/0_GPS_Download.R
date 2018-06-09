@@ -8,6 +8,7 @@ suppressPackageStartupMessages(library(lubridate))
 library(baear)
 library(gisr)
 library(ibmr)
+library(dplyr)
 #devtools::reload("C:/Work/R/Packages/baear")
 #devtools::reload("C:/Work/R/Packages/gisr")
 #devtools::reload("C:/Work/R/Packages/ibmr")
@@ -15,17 +16,20 @@ library(ibmr)
 ## Download RECENT Deployed Data -----------------------------------------------
 DownloadCTT(units="deployed", download="recent")
 deployed_recent <- CompileDownloads(units="deployed", compile="recent")
-deployed_all <- ImportUnits(units="deployed", existing=deployed_recent,import=T)
+deployed_all <- ImportUnits(units="deployed", existing=deployed_recent,
+  import=TRUE)
 saveRDS(deployed_all, file="Data/CTT/Deployed/Deployed.rds")
 #deployed_all <-  readRDS(file="Data/CTT/Deployed/Deployed.rds")
 
 ## Filter Deployed -------------------------------------------------------------
-week_ago <- as.character(floor_date(now() - period(1, "week"), "day"))
-deployed <- FilterLocations(df=deployed_all, individual="", start=week_ago,
+filter_date <- as.character(floor_date(now() - period(1, "month"), "day"))
+deployed <- FilterLocations(df=deployed_all, individual="", start=filter_date,
   end="")
+deployed_2018 <- deployed_all %>% filter(year == 2018)
 
 ## Export KML of Locations -----------------------------------------------------
-ExportKMLTelemetryBAEA(df=deployed, file="BAEA Data.kml")
+ExportKMLTelemetryBAEA(df=deployed, file="BAEA Data.kmz")
+ExportKMLTelemetryBAEA(df=deployed_2018, file="BAEA Data - 2018.kmz")
 
 ## Plot Daily Locations by Time ------------------------------------------------
 PlotLocationSunriseSunset(df=deployed, by="id", individual="",
@@ -33,7 +37,7 @@ PlotLocationSunriseSunset(df=deployed, by="id", individual="",
   wrap=TRUE)
 
 ## Update Individual By Year KLM files -----------------------------------------
-UpdateIndByYearKMLs(data=deployed_all, update_only=TRUE, update_gdrive=FALSE)
+UpdateIndByYearKMLs(df=deployed_all, update_year=2018, update_gdrive=TRUE)
 
 ## Download ALL Deployed Data and Write a new "deployed.csv" File --------------
 #DownloadCTT(units="deployed", download="all")
@@ -43,7 +47,22 @@ saveRDS(deployed_all, file="Data/CTT/Deployed/Deployed.rds")
 # Send Email to Charlie and Erynn ----------------------------------------------
 SendWeeklyData(data=deployed_all, date="2017-03-12", send_email=FALSE)
 
+## BRI Download and Compile ----------------------------------------------------
+system('C:/Anaconda/envs/ctt/python.exe C:/Work/Python/Scripts/cttpy/Import_BRI.py')
+bri <- CompileDownloads(units="deployed", compile="BRI")
+UpdateIndByYearKMLs(df=bri, update_year=2018, update_gdrive=FALSE)
+bri_2018 <- bri %>% filter(year == 2018)
+ExportKMLTelemetryBAEA(df = bri_2018, file = "BRI Data - 2018.kmz")
 
 #------------------------------------------------------------------------------#
 ################################ OLD CODE ######################################
 #------------------------------------------------------------------------------#
+
+bad <- which(df[,"id"]=="Cape_Walsh" & df[,"datetime"]=="2017-08-22 19:19:58")
+
+bad <- which(df[,"id"]=="Cape_Walsh" & df[,"datetime"]=="2017-11-15 07:45:39")
+which(df[,"id"]=="Cape_Walsh" & df[,"datetime"] > "2017-08-22 17:00:00" &
+  df[,"datetime"] < "2017-08-22 19:00:00")
+if (length(bad) > 0) df <- df[-bad, ]
+
+df[5140,]

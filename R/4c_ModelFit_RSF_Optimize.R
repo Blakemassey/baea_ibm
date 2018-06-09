@@ -75,7 +75,7 @@ nll_kern_bw <- function(parms=parms, z=z, cell=cell, zmat1=zmat1, zmat2=zmat2){
   b0 <- parms[1]         # intercept
   bx1 <- parms[2]         # slope of the relationship
   bwx1 <-  exp(parms[3])+1
-  bx2 <- parms[4]# bw/spatial scale parameter
+  bx2 <- parms[4]  # bw/spatial scale parameter
   bwx2 <-  exp(parms[5])+1
   # Create matrix
   zmat1 <- as.matrix(r1)

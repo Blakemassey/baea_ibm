@@ -13,6 +13,8 @@ suppressPackageStartupMessages(library(raster))
 suppressPackageStartupMessages(library(rasterVis))
 suppressPackageStartupMessages(library(rgdal))
 options(stringsAsFactors=FALSE) # CRITICAL!!! Otherwise, map colors are wrong.
+library(gisr)
+library(baear)
 
 ## Import Raster Layers --------------------------------------------------------
 
@@ -66,6 +68,9 @@ gplot(eluform2, maxpixel = 200000) +
     labels=eluform_colors_sub2$name, name="Formation") + coord_equal() +
   scale_x_continuous(expand = c(0, 0)) + scale_y_continuous(expand = c(0, 0)) +
   theme_tufte(base_size = 15) + xlab("Longitude") + ylab("Latitude")
+SaveGGPlot("ELU form.jpeg",
+  "Results/Analysis/GIS", bg = "white")
+
 
 # Mapping of habitat_30mc. Demostrates the use of a 'color' file in conjuntion
 # w/gplot for plotting rasters in the ggplot2 format
@@ -91,6 +96,9 @@ gplot(habitat2, maxpixel = 200000) +
     labels=habitat_colors_sub2$name, name="Habitat") + coord_equal() +
   scale_x_continuous(expand = c(0, 0)) + scale_y_continuous(expand = c(0, 0)) +
   theme_tufte(base_size = 15) + xlab("Longitude") + ylab("Latitude")
+SaveGGPlot("Habitat.jpeg",
+  "Results/Analysis/GIS", bg = "white")
+
 
 # Mapping of landcover_30mc. Demostrates the use of a 'color' file in conjuntion
 # w/gplot for plotting rasters in the ggplot2 format
@@ -104,6 +112,8 @@ gplot(landcover, maxpixel = 500000) +
   scale_x_continuous(expand = c(0, 0)) + scale_y_continuous(expand = c(0, 0)) +
   theme_tufte(base_size = 15) + xlab("Longitude") + ylab("Latitude")
 
+
+
 # For testing purposes - clip to smaller area
 value_vec2 <- freq(landcover2)[,1]
 landcover_colors_sub2 <- landcover_colors %>% dplyr::filter(value%in%value_vec2)
@@ -113,6 +123,10 @@ gplot(landcover2, maxpixel = 200000) +
     labels=landcover_colors_sub2$name, name="Landcover") +
   scale_x_continuous(expand = c(0, 0)) + scale_y_continuous(expand = c(0, 0)) +
   theme_tufte(base_size = 15) + xlab("Longitude") + ylab("Latitude")
+SaveGGPlot("LC.jpeg",
+  "Results/Analysis/GIS", bg = "white")
+
+
 
 # Mapping of iei_30mc.
 gplot(iei, maxpixel = 500000) +

@@ -136,7 +136,7 @@ global <- NamedList(sim_start, sim_period, sim_end, rep_period, rep_interval,
 library(broom)
 library(stringr)
 library(momentuHMM)
-baea_hmm_full <- readRDS(file = "Data/Models/baea_hmm_full")
+baea_hmm_full <- readRDS(file = "Data/Models/baea_hmm_full.rds")
 baea_hmm_full$mle$beta
 beta_est <- baea_hmm_full$mle$beta %>% as.data.frame(.)
 rownames(beta_est) <- rownames(beta_est) %>%
@@ -144,7 +144,7 @@ rownames(beta_est) <- rownames(beta_est) %>%
   str_replace_all(c(", period = 365" = "", ", period = 1" = ""))
 behavior_betas <- beta_est
 
-move_pars <- readRDS(move_pars, file="Output/Models/move_pars.RDS")
+move_pars <- readRDS(file="Output/Models/move_pars.rds") %>% as.data.frame(.)
 
 fixed <- NamedList(move_pars, behavior_betas)
 constant <- NamedList(fixed)
@@ -224,13 +224,14 @@ homerange_kernels <- CreateHomeRangeKernelsParetoGamma(all_nests, study_nests,
 
 nests <- data.frame(study_nests[c("x","y")], data.frame(nest_id =
   study_nests["nest_id"]))
-spatial <- NamedList(base, nests, homerange_kernels)
+spatial <- NamedList(base, nests)#, homerange_kernels)
 
 ################################## SIM #########################################
 
 sim <- NamedList(agents, pars, spatial)
 RemoveExcept("sim")
-save(sim, file="Data/Simulation/sim.RData")
+save(sim, file="Data/Simulation/sim2.RData")
+#sim <- readRDS("Data/Simulation/sim2.rds")
 
 #plot(sim$spatial$homerange_kernels[[1]])
 SavePlot("homerange_kernel_1.png", height = 5, width=5)
@@ -240,4 +241,4 @@ agents <- sim$agents
 pars <- sim$pars
 spatial <- sim$spatial
 sim <- NamedList(agents, pars, spatial)
-save(sim, file="Data/Simulation/sim.RData")
+saveRDS(sim, file="Data/Simulation/sim2.rds")
