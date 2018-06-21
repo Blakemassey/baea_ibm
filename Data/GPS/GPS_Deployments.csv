@@ -3,14 +3,14 @@ serial,on_hand,deployed,end_data,failed,removed,recovered,deploy_location,bird_I
 1D6F4,20150723,20170604,,,,,East_Machias,1701,,,BRI Deployment,#9E425A,#974661
 1D658,20150723,20170604,,,,,Sprague_River,1703,,,BRI Deployment,#596A98,#4A72A6
 1B55A,20150709,20150913,20160304,,20160418,20160418,Onawa,1515,female,18,,#3B87A2,#3E8E93
-1DCE4,20150709,20150721,,,,,Branch,1514,male,17,,#449B75,#D16948
+1DCE4,20150709,20150721,20180101,,20180610,20180610,Branch,1514,male,17,"GPS unit recovered in 2018 June, but mortality probably occurred in late 2017 or early 2018 based on condition of remains (only feathers, no soft tissue or bones found)",#449B75,#D16948
 45895,20140101,20140202,,20140326,,,Cherryfield,1401,unknown,3,,#4DAF4A,#E41A1C
 72179,20130715,20131109,,,,,Madagascal,1302,female,2,,#6B886D,#974661
 72187,20130715,20130922,20140304,,20140411,20140411,Crooked,1301,unknown,1,"Eagle recovered from under a tree on 20140411.  Appears to have died about 2 weeks earlier, potentially due to territorial interactions.",#896191,#4A72A6
 1B557,20150414,20150622,,,,,Crooked,1510,female,13,,#AC5782,#48A462
 1B571,20150414,20150603,,,,,Musquash,1503,female,6,,#D56B41,#5D995D
 1B578,20150414,20150513,20150925,,20151009,20151009,Norway,1501,male,4,"Eagle died after 20150925 3pm, probably over the next 24-48 hours.  Body recovered on 20151009.",#FF7F00,#E41A1C
-1CBA5,20150414,20150620,,,,,Wilson,1509,male,12,,#FFB214,#A35390
+1CBA5,20150414,20150620,20180101,,20180610,20180610,Wilson,1509,male,12,"GPS unit recovered in 2018 June - found unit on beach, straps were intact, but no carcass. Bird probably died in/over ocean and then GPS came loose from remains.",#FFB214,#A35390
 1D4C9,20150414,20150603,,,,,Eskutassis,1504,female,7,,#FFE528,#FF7F00
 1DFAB,20150414,20150519,20151005,,20151006,20151009,Phillips,1502,female,5,Eagle hit by a car on Route 1A shortly after 3pm on 201501005.  Eagle taken to Avian Haven where the GPS transmitter was removed the following day.,#EDDD30,#FFB716
 1DFAB,,20170604,,,,,Cape_Walsh,1702,,,BRI Deployment,,

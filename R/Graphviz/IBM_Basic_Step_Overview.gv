@@ -14,24 +14,35 @@ digraph {
       "Eagle Location" -> "Select Behavior"
       "Select Behavior" -> "Behavior"
       "Behavior" -> "Flight?"
-      "Flight?" -> "Redistribution Kernel"[label = "Yes"]
+      "Flight?" -> "Redistribution Kernel"[label = " Yes"]
       "Redistribution Kernel" -> "New Location"
-      "Flight?" -> "Eagle Location"[label = "No"]
+      "Flight?" -> "Eagle Location"[label = " No"]
       "New Location" -> "Eagle Location"
 
   }
 
   subgraph cluster_1 {
-    label = 'Inputs'
+    label = "Inputs"
     fontsize = 16
     node[shape = rounded, fillcolor = YellowGreen, style = filled]
-      'External States', 'Step Selection Function', 'Movement Kernel'
+      "External States"
 
     edge [color = blue, style = dashed]
-      'External States' -> 'Redistribution Kernel'
-      'External States' -> 'Redistribution Kernel'
-      'Step Selection Function' -> 'Redistribution Kernel'
-      'Movement Kernel' -> 'Redistribution Kernel'
+      "External States" -> "Select Behavior"
   }
+
+  subgraph cluster_2 {
+    label = "Inputs"
+    fontsize = 16
+    node[shape = rounded, fillcolor = YellowGreen, style = filled]
+      "Step Selection Function", "Movement Kernel", "Conspecific Kernel"
+
+    edge [color = blue, style = dashed]
+      "External States" -> "Redistribution Kernel"
+      "Step Selection Function" -> "Redistribution Kernel"
+      "Movement Kernel" -> "Redistribution Kernel"
+      "Conspecific Kernel" -> "Redistribution Kernel"
+  }
+
 
 }

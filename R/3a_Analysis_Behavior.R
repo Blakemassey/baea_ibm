@@ -59,7 +59,8 @@ baea_perch <- baea_cruise %>%
       behavior)) %>%
   mutate(behavior = ifelse(is.na(behavior), "Perch", behavior)) # %>%
 baea_behavior <- baea_perch
-baea_behavior_simple <- baea_behavior %>% select(datetime, id, bh_nest:behavior)
+baea_behavior_simple <- baea_behavior %>%
+  dplyr::select(datetime, id, bh_nest:behavior)
 
 baea_flights <- CreateFlightPathSegments(baea_behavior) # %>% filter(id == "")
 
@@ -82,25 +83,11 @@ table(data.frame(unclass(rle(baea_behavior$bh_cruise))) %>%
 table(data.frame(unclass(rle(baea_behavior$bh_flight))) %>%
     filter(values == "Flight"))
 
-baea_behavior_rs <- baea_behavior %>%
-  group_by(id) %>%
-  sample_n(5000, replace = TRUE) %>%
-  ungroup(.)
-table(baea_behavior_rs$id)
-saveRDS(baea_behavior_rs, file="Data/Baea/baea_behavior_rs.rds")
-
 title_all = "Daily Behavior Distributions (all data)"
 PlotBehaviorProportionLine(baea_behavior, title = title_all)
-SaveGGPlot("Output/Plots/Behavior/Proportion_Line.png")
+SaveGGPlot("Products/Graphs/Behavior/Proportion_Line.svg", bg="transparent")
 PlotBehaviorProportionBar(baea_behavior, title = title_all)
-SaveGGPlot("Output/Plots/Behavior/Proportion_Bar.png")
-
-title_rs = "Daily Behavior Distributions (random sample)"
-PlotBehaviorProportionLine(baea_behavior_rs, title = title_rs)
-SaveGGPlot("Output/Plots/Behavior/Proportion_Line_RS.png")
-PlotBehaviorProportionBar(baea_behavior_rs, title = title_rs)
-SaveGGPlot("Output/Plots/Behavior/Proportion_Bar_RS.png")
-
+SaveGGPlot("Products/Graphs/Behavior/Proportion_Bar.svg", bg="transparent")
 
 
 #------------------------------------------------------------------------------#
@@ -128,7 +115,8 @@ SaveGGPlot("Output/Plots/Behavior/Proportion_Bar_RS.png")
 # baea_high_agl <- baea_behavior %>%
 #   filter(behavior == "Perch" | behavior == "Roost") %>%
 #   filter(agl >= 100)  #%>%
-#   dplyr::select(date:id, alt, step_time, step_length, agl, speed, bh_nest:bh_cruise, behavior)
+#   dplyr::select(date:id, alt, step_time, step_length, agl, speed,
+#   bh_nest:bh_cruise, behavior)
 #
 #
 # baea_high_agl2 <- baea_high_agl %>%
@@ -139,7 +127,8 @@ SaveGGPlot("Output/Plots/Behavior/Proportion_Bar_RS.png")
 #   point_color = "behavior", file = "BAEA - High AGL.kml")
 #
 # %>%
-#   dplyr::select(id, datetime, speed, agl, behavior, step_time, step_length, first, last)
+#   dplyr::select(id, datetime, speed, agl, behavior, step_time, step_length,
+#   first, last)
 #
 # AddFlightPathSegments <- function(df){
 #   df <- as.data.frame(df)
@@ -168,7 +157,7 @@ SaveGGPlot("Output/Plots/Behavior/Proportion_Bar_RS.png")
 # by_colors <- CreateColorsByAny(by="id", df=baea, output=TRUE)
 # study_years <- c(2013:2017)
 #
-# ################### PLOT 3-DAY RUNNING MEAN NEST DISTANCE ######################
+# ################### PLOT 3-DAY RUNNING MEAN NEST DISTANCE ####################
 #
 # # Plot 3-day running mean nest distance for all eagles
 # ggplot(data = baea_terr_sum) +

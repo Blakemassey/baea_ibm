@@ -554,6 +554,18 @@ LogisticByInflection <- function(x,
 }
 
 
+
+# This code should be re-written so the table is placed in "Products"
+suppressPackageStartupMessages(library(fitdistrplus))
+suppressPackageStartupMessages(library(xtable))
+getwd()
+load("C:/Work/R/Projects/baea/Output/fits_movements.RData")
+options(xtable.comment = FALSE)
+
+fits_df <- baear::SummarizeFitdist(fits_movements)
+print(xtable(fits_df),latex.environments = "", include.rownames=FALSE)
+
+
 ################################################################################
 ################################ OLD CODE ######################################
 ################################################################################
