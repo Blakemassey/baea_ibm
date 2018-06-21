@@ -1,0 +1,7 @@
+Data Layer,Source,IBM Component,Scale
+Developed,NLCD,Steps,Multi
+Distance to Hydro,NHD,Steps,Single
+Forest,NLCD,Steps,Multi
+Pasture,NLCD,Steps,Multi
+Wetland,NLCD,Steps,Multi
+Herb/Shrub,NLCD,Steps,Multi

@@ -2,19 +2,17 @@
 .Ruserdata
 
 Data/CTT/Deployed/Recent
-
-Data/Flow_Charts
 Data/GPS
-Data/MailR
-Data/Models/Archive
-Data/Nests/Archive
-Data/Turbines/Archive
-Data/R/Archive
-Data/Results/GIS/*
-Data/Results/Plots/*
-Data/Results/Sim/*
+Output/Analysis/Territorial
+Output/Sim
+Products/Graphs
+Products/Maps
+
 *.kml
 
+# Archive Folders #
+##################
+*Archive
 
 # Compiled source #
 ###################
