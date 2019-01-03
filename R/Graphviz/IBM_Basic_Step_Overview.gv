@@ -1,48 +1,112 @@
 digraph {
+  forcelabels=true;
+  rankdir = LR;
+  fontsize = 16
+  fontname = Helvetica
+  node [shape = oval, fontname = Helvetica, style = filled];
+  a01 [label = "Location", shape = oval, fillcolor = DeepSkyBlue];
+  a02 [label = "Select Behavior", shape = rectangle, fillcolor = Thistle];
+  a03 [label = "Behavior", shape = hexagon, fillcolor = Gold, margin =.05];
+  a04 [label = "Flight?", shape = diamond, fillcolor = LimeGreen];
+  a05 [label = "Redistribution Kernel", shape = rectangle, fillcolor = Thistle];
+  a06 [label = "New Location", shape = hexagon, fillcolor = Gold, margin=.05];
+  node [style = invis];
+  a07 ;
+  node [shape = polygon, style = filled, fillcolor = LightCoral,
+    fixedsize = true, margin = 0, skew = 0.1];
+  b01 [label = "Julian Date", width = 1.55];
+  b02 [label = "Diurnal Period", width = 1.65];
+  b03 [label = "Current Behavior", width = 1.75];
+  node [shape = polygon, style = filled, fillcolor = Khaki, fixedsize = true,
+    margin = 0, skew = 0.1];
+  c01 [label = "Resource Selection Functions", width = 2.95];
+  c02 [label = "Movement Kernel", width = 2.05];
+  c03 [label = "Conspecific Territories", width = 2.45];
   subgraph cluster_0 {
-    label = "Basic Step Process"
-    fontsize = "16"
-    node [fillcolor = CornflowerBlue, fontname = Helvetica, style = filled]
-      "Eagle Location", "Behavior", "New Location"
-    node [shape = rectangle, fillcolor = tan, fontname = Helvetica,
-      style = filled]
-      "Select Behavior", "Redistribution Kernel"
-    node[shape = diamond, fillcolor = Gold]
-      "Flight?"
-
-    edge [color = black]
-      "Eagle Location" -> "Select Behavior"
-      "Select Behavior" -> "Behavior"
-      "Behavior" -> "Flight?"
-      "Flight?" -> "Redistribution Kernel"[label = " Yes"]
-      "Redistribution Kernel" -> "New Location"
-      "Flight?" -> "Eagle Location"[label = " No"]
-      "New Location" -> "Eagle Location"
-
+    label = "Step Process Overview"
+    a01, a02, a03, a04, a05, a06
+    edge[constraint = false, weight = 1000, fontsize = 14, fontname = Helvetica]
+      a04  -> a01[taillabel = "False", labeldistance = 4]
+    edge[constraint = false, weight = .1, fontsize = 14]
+      a06  -> a01
+    edge[style = invis, constraint = true]
+      a07 -> a03
+      a02 -> b01
+      a05 -> c02
+    edge[style = solid, minlen = 1, color = black, constraint = true, dir =back,
+        fontsize = 14, fontname = Helvetica]
+      a06 -> a05
+      a05 -> a04[headlabel = "True    ", labeldistance = 2]
+      a04 -> a03 -> a02 -> a01
+    subgraph cluster_1 {
+      label = "State Variables";
+      color = grey20;
+      b01, b02, b03;
+      edge[color = blue,  minlen = 0, constraint = false, style = dashed, dir = front];
+        {b01 b02 b03} -> a02
+    }
+    subgraph cluster_2 {
+      label = "Environmental and Behavioral \nGIS Layers";
+      color = grey20;
+      c01, c02, c03;
+      edge[color = blue, minlen = 0, constraint = false, style = dashed, dir = front];
+        {c01 c02 c03} -> a05
+    }
+    {
+      rank=same;
+      a01, a02, a03, a04, a05, a06
+    }
   }
-
-  subgraph cluster_1 {
-    label = "Inputs"
-    fontsize = 16
-    node[shape = rounded, fillcolor = YellowGreen, style = filled]
-      "External States"
-
-    edge [color = blue, style = dashed]
-      "External States" -> "Select Behavior"
-  }
-
-  subgraph cluster_2 {
-    label = "Inputs"
-    fontsize = 16
-    node[shape = rounded, fillcolor = YellowGreen, style = filled]
-      "Step Selection Function", "Movement Kernel", "Conspecific Kernel"
-
-    edge [color = blue, style = dashed]
-      "External States" -> "Redistribution Kernel"
-      "Step Selection Function" -> "Redistribution Kernel"
-      "Movement Kernel" -> "Redistribution Kernel"
-      "Conspecific Kernel" -> "Redistribution Kernel"
-  }
-
-
 }
+
+//digraph {
+//  rankdir = TB
+//  subgraph cluster_0 {
+//    label = "Process Overview"
+//    fontsize = "16"
+//    node [fillcolor = DeepSkyBlue, fontname = Helvetica, style = filled]
+//      "Eagle Location", "New Location"
+//    node [fillcolor = Gold, fontname = Helvetica, style = filled]
+//      "Behavior"
+//    node [shape = rectangle, fillcolor = Thistle, fontname = Helvetica,
+//      style = filled]
+//      "Select Behavior", "Redistribution Kernel"
+//    subgraph cluster_1 {
+//      label = "State Variables"
+//      fontsize = 16;
+//      node[shape = rounded, fillcolor = LightCoral, style = filled]
+//        "Julian Date";
+//      node[shape = rounded, fillcolor = LightCoral, style = filled]
+//       "Daily Period";
+//      node[shape = rounded, fillcolor = LightCoral, style = filled]
+//        "Current Behavior";
+//      //edge[contstaint = false]
+      //  "Julian Date"->"Daily Period"
+      //"Daily Period"->"Current Behavior"
+//    }
+//    node[shape = diamond, fillcolor = LimeGreen]
+//      "Flight?"
+//    edge [color = black]
+//      "Eagle Location" -> "Select Behavior"
+//      "Select Behavior" -> "Behavior"
+//      "Behavior" -> "Flight?"
+//      "Flight?" -> "Redistribution Kernel"[label = " Yes"]
+//      "Redistribution Kernel" -> "New Location"
+//      "Flight?" -> "Eagle Location"[label = " No"]
+//      "New Location" -> "Eagle Location"
+//    subgraph cluster_2 {
+//      label = "Environmental and Behavioral \nGIS Layers"
+//      fontsize = 16
+//      node[shape = rounded, fillcolor = Khaki, style = filled]
+//      "Resource Selection Function", "Movement Kernel", "Conspecific Kernel"
+//    }
+//    edge[color = blue, style = dashed, weight = .5]
+//    "Julian Date" -> "Select Behavior"
+//    "Daily Period" -> "Select Behavior"
+//    "Current Behavior" -> "Select Behavior"
+//    "Resource Selection Function" -> "Redistribution Kernel"
+//    "Movement Kernel" -> "Redistribution Kernel"
+//    "Conspecific Kernel" -> "Redistribution Kernel";
+//  }
+//}
+

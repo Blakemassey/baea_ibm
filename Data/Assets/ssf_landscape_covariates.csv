@@ -1,7 +1,11 @@
-Data Layer,Source,IBM Component,Scale
-Developed,NLCD,Steps,Multi
-Distance to Hydro,NHD,Steps,Single
-Forest,NLCD,Steps,Multi
-Pasture,NLCD,Steps,Multi
-Wetland,NLCD,Steps,Multi
-Herb/Shrub,NLCD,Steps,Multi
+Data Source,Type,Data Variable,Dataset Component,IBM Model,Scale,Url,Production Date
+UMass - Designing Sustainable Landscapes,Landcover,DSLland,Developed,SSF,Multi,http://northatlanticlcc.org/spatial-data/terrestrial/dslland-version-3-northeast,2015
+UMass - Designing Sustainable Landscapes,Landcover,DSLland,Forest,SSF,Multi,http://northatlanticlcc.org/spatial-data/terrestrial/dslland-version-3-northeast,2015
+UMass - Designing Sustainable Landscapes,Landcover,DSLland,Pasture,SSF,Multi,http://northatlanticlcc.org/spatial-data/terrestrial/dslland-version-3-northeast,2015
+UMass - Designing Sustainable Landscapes,Landcover,DSLland,Wetland,SSF,Multi,http://northatlanticlcc.org/spatial-data/terrestrial/dslland-version-3-northeast,2015
+UMass - Designing Sustainable Landscapes,Landcover,DSLland,Herb/Shrub,SSF,Multi,http://northatlanticlcc.org/spatial-data/terrestrial/dslland-version-3-northeast,2015
+National Hydrography Dataset - High Resolution (Maine),Water,Waterbody,Distance to Hydro,SSF,Single,ftp://nhdftp.usgs.gov/DataSets/Staged/States/FileGDB/HighResolution/,2016
+National Hydrography Dataset - High Resolution (Maine),Water,WaterArea,Distance to Hydro,SSF,Single,ftp://nhdftp.usgs.gov/DataSets/Staged/States/FileGDB/HighResolution/,2016
+,,,,,,,
+NED 1_3 Arc Second,DEM,Elevation,Elevation,,,,
+NED 1_3 Arc Second,DEM,Hillshade,Hillshade,,,,

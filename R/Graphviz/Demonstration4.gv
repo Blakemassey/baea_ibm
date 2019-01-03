@@ -1,0 +1,57 @@
+digraph {
+
+  forcelabels=true;
+  rankdir = LR;
+  fontsize = "16"
+  node [shape=oval,fillcolor = Thistle, fontname = Helvetica, style = filled];
+  a01 [label = "Location", shape = house, fillcolor = DeepSkyBlue];
+  a02 [label = "Select Behavior", shape = rectangle, fillcolor = Thistle];
+  a03 [label = "Behavior", shape = parallelogram, fillcolor = Gold, margin=0];
+  a04 [label = "Flight?", shape = diamond, fillcolor = LimeGreen];
+  a05 [label = "Redistribution Kernel", shape = rectangle, fillcolor = Thistle];
+  a06 [label = "New Location", shape = parallelogram, fillcolor = Gold, margin=0];
+
+//   width=1.8, height=0.46, shape=polygon, fixedsize=true, label="This is a polygon\nwith skew", skew=0.3
+  a07 [style = invis];
+  b01 [label = "Julian Date", shape = rectangle, fillcolor = LightCoral];
+  b02 [label = "Diurnal Period", shape = rectangle, fillcolor = LightCoral];
+  b03 [label = "Current Behavior", shape = rectangle, fillcolor = LightCoral];
+  c01 [label = "Resource Selection Functions", shape = polygon, fixedsize = true, width = 2.85,  fillcolor = Khaki, margin = 0, skew=0.1];
+  c02 [label = "Movement Kernel", shape = rectangle, fillcolor = Khaki];
+  c03 [label = "Conspecific Territories", shape = rectangle, fillcolor = Khaki];
+  subgraph cluster_0 {
+    label = "Process Overview"
+    fontsize = "16"
+    a01, a02, a03, a04, a05, a06
+    edge[constraint = false, weight = 1000, labeldistance = 4]
+      a04  -> a01[taillabel = "False", fontsize = "16"]
+    edge[constraint = false, weight = .1]
+      a06  -> a01
+    edge[style = invis, constraint = true]
+      a07 -> a03
+      a02 -> b01
+      a05 -> c02
+    edge[style = solid, minlen = 1, color = black, constraint = true, dir = back, labeldistance = 2]
+      a06 -> a05
+      a05 -> a04[headlabel = "True    ", fontsize = "16"]
+      a04 -> a03 -> a02 -> a01
+    subgraph cluster_1 {
+      label = "State Variables";
+      color = grey20;
+      b01, b02, b03;
+      edge[color = blue,  minlen = 0, constraint = false, style = dashed, dir = front];
+        {b01 b02 b03} -> a02
+    }
+    subgraph cluster_2 {
+      label = "Environmental and Behavioral \nGIS Layers";
+      color = grey20;
+      c01, c02, c03;
+      edge[color = blue, minlen = 0, constraint = false, style = dashed, dir = front];
+        {c01 c02 c03} -> a05
+    }
+    {
+      rank=same;
+      a01, a02, a03, a04, a05, a06
+    }
+  }
+}

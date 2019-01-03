@@ -79,7 +79,7 @@ ggplot(baea_movements_perch_perch, aes(step_length)) +
   scale_y_continuous(labels = comma) +  ggtitle("Perch -> Perch") +
   theme(title = element_text(size = 20))
 SaveGGPlot(filename = "Perch_Perch_StepLengths.png",
-  path="Results/Analysis/Plots/Step_Length")
+  path="Products/Graphs/Step_Length")
 
 # Subset data for analysis of movement parameters (distance and direction)
 baea_movements <- baea_behavior %>%
@@ -208,8 +208,8 @@ move_pars <- full_join(weibull_pars, von_mises_pars, by=c("behavior",
 perch_to_perch <- which(move_pars[,"behavior_behavior"] == "Perch -> Perch")
 move_pars[perch_to_perch, "bern_p"] <- perch_perch_Bern # needed move prob
 
-write.csv(move_pars, file="Output/Tables/move_pars.csv") # for Powerpoint
-saveRDS(move_pars, file="Output/Models/move_pars.RDS")
+write.csv(move_pars, file="Products/Tables/move_pars.csv") # for Powerpoint
+saveRDS(move_pars, file="Output/Analysis/Movements/move_pars.rds")
 
 ################################ PLOTTING  #####################################
 

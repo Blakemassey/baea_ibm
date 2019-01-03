@@ -8,6 +8,8 @@ Output/Sim
 Products/Graphs
 Products/Maps
 
+# Kml Files #
+##################
 *.kml
 
 # Archive Folders #

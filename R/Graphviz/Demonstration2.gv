@@ -1,0 +1,78 @@
+digraph {
+  rankdir = TB;
+  //splines=line;
+  node [shape=oval];
+  a01 [label = "Node A1"];
+  a02 [label = "Node A2"];
+  a03 [label = "Node A3"];
+  a04 [label = "Node A4"];
+  a05 [label = "Node A5"];
+  a06 [label = "Node A6"];
+  a07 [label = "Node A7"];
+  a08 [label = "Node A8"];
+//  a09 [label = "Node A9"];
+//  a10 [label = "Node A10"];
+//  a11 [label = "Node A11"];
+//  a12 [label = "Node A12"];
+  b01 [label = "Node B1"];
+  b02 [label = "Node B2"];
+  b03 [label = "Node B3"];
+  c01 [label = "Node C1"];
+  c02 [label = "Node C2"];
+  c03 [label = "Node C3"];
+
+
+  subgraph cluster_0 {
+    label = "Process Overview"
+    fontsize = "16"
+      edge[constraint = false, weight = 1]
+
+        a04 -> a07 //-> a01
+        a06 -> a08 //-> a01
+        //a07 -> a01
+        //a08 -> a07
+
+      edge[color = red, constraint = true, weight = 1]
+        a01 -> a02 -> a03 -> a04 -> a05 -> a06 //-> a07 -> a08 -> a09 -> a10 -> a11 -> a12
+
+//      edge[color = green, constraint = false, weight = 1000]/
+//        b02 -> a03 -> c01
+
+      edge[color = green, constraint = false]
+        b01 -> a02
+        b02 -> a02
+        b03 -> a02
+
+      edge[color = green, constraint = false]
+        c01 -> a05
+        c02 -> a05
+        c03 -> a05
+
+      edge[style = invis, weight = .001, constraint = true];
+        b03 -> c01
+      //  a03 -> c01 // places c01 below a01
+      subgraph cluster_1 {
+        label = "Child one";
+        b01, b02, b03;
+        edge[style = invis, constraint = true];
+        b01 -> b02 -> b03
+      }
+      subgraph cluster_2 {
+        label = "Child two";
+         c01, c02, c03;
+         edge[style = invis, constraint = true];
+         c01 -> c02 -> c03
+      }
+    {
+      rank=same;
+      a07 [group=left];
+      a02
+    }
+    {
+      rank=same;
+      a08 [group=left];
+      a03
+    }
+
+  }
+}

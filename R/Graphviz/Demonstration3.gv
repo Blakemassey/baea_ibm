@@ -1,0 +1,103 @@
+digraph {
+
+    a1 [label = "A1", style=filled, fillcolor="green", shape="square"]
+    a2 [label = "A2", style=filled, fillcolor="green", shape="rectangle"]
+    a3 [label = "A3", style=filled, fillcolor="green", shape="oval"]
+    b1 [label = "B1", style=filled, fillcolor="green", shape="oval"]
+    b2 [label = "B2", style=filled, fillcolor="red", shape="octagon"]
+    b3 [label = "B3", style=filled, fillcolor="green", shape="oval"]
+    c1 [label = "C1", style=filled, fillcolor="green", shape="oval"]
+    c2 [label = "C2", style=filled, fillcolor="green", shape="octagon"]
+    c3 [label = "C3", style=filled, fillcolor="green", shape="oval"]
+    d1 [label = "D1", style=filled, fillcolor="green", shape="oval"]
+    d2 [label = "D2", style=filled, fillcolor="red", shape="octagon"]
+    d3 [label = "D3", fillcolor="green", shape="invtriangle"]
+    e1 [label = "E1", style=filled, fillcolor="green", shape="octagon"]
+    e2 [label = "E2", style=filled, fillcolor="red", shape="rectangle"]
+    e3 [label = "E3", style=filled, fillcolor="green", shape="square"]
+    f1 [label = "F1", style=filled, fillcolor="green", shape="octagon"]
+    f2 [label = "F2", style=filled, fillcolor="red", shape="rectangle"]
+    f3 [label = "F3", style=filled, fillcolor="green", shape="square"]
+
+  subgraph cluster_0 {
+    rankdir = TB;
+    label = "Process Overview"
+    fontsize = "16"
+
+      subgraph cluster_gc_1 {
+        label = "Grand-Child one";
+         a1, a2, a3;
+         edge[style = invis];
+         a1 -> a2 -> a3
+      }
+    {
+        rank=same;
+        node[];
+        a1, a2, a3
+   }
+    {
+        rank=same;
+        node[];
+        b1, b2, b3
+        edge[style = invis];
+        b1 -> b2 -> b3
+    }
+    {
+        rank=same;
+        node[];
+        c1, c2, c3
+    }
+    {
+        rank=same;
+        node[];
+        d1, d2, d3
+    }
+    {
+        rank=same;
+        node[];
+        e1, e2, e3
+        edge[color = red, constraint = false];
+        e1 -> e2 -> e3
+    }
+    {
+        rank=same;
+        node[];
+        f1;f2;f3
+        edge[color = red, constraint = false];
+        f1 -> f2 -> f3
+    }
+
+    edge[color = green, weight = 100];
+      a2->b2;
+      b2->c2;
+      c2->d2;
+      c2->a2;
+      d2->e2;
+      e2->f2;
+      f2->a2;
+
+    edge[color = orange, weight = 1];
+      a3->b2;
+      b3->b2;
+      c3->b2;
+      c1->d2;
+      d1->d2;
+      e1->d2;
+
+
+    edge[style=invis];
+    node[group=left];
+    a1 -> b1 -> c1 -> d1 -> e1;
+
+    edge[style=invis, weight = 3];
+    node[group=right];
+    a2 -> b2 -> c2 -> d2 -> e2;
+
+
+    edge[style=invis, weight = 3];
+    node[group=right];
+    a3 -> b3 -> c3 -> d3 -> e3 -> f3;
+
+    }
+
+}

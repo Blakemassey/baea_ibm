@@ -5,13 +5,11 @@
 #------------------------------------------------------------------------------#
 
 suppressPackageStartupMessages(library(lubridate))
-library(baear)
-library(gisr)
-library(ibmr)
+library(baear)#devtools::reload("C:/Users/blake/OneDrive/Work/R/Packages/baear")
+library(gisr) #devtools::reload("C:/Users/blake/OneDrive/Work/R/Packages/gisr")
+library(ibmr) #devtools::reload("C:/Users/blake/OneDrive/Work/R/Packages/ibmr")
 library(dplyr)
-#devtools::reload("C:/Work/R/Packages/baear")
-#devtools::reload("C:/Work/R/Packages/gisr")
-#devtools::reload("C:/Work/R/Packages/ibmr")
+
 
 ## Download RECENT Deployed Data -----------------------------------------------
 DownloadCTT(units="deployed", download="recent")
@@ -37,7 +35,7 @@ PlotLocationSunriseSunset(df=deployed, by="id", individual="",
   wrap=TRUE)
 
 ## Update Individual By Year KLM files -----------------------------------------
-UpdateIndByYearKMLs(df=deployed_all, update_year=2018, update_gdrive=TRUE)
+UpdateIndByYearKMLs(df=deployed_all, update_year=2018, update_gdrive=FALSE)
 
 ## Download ALL Deployed Data and Write a new "deployed.csv" File --------------
 #DownloadCTT(units="deployed", download="all")
@@ -58,11 +56,10 @@ ExportKMLTelemetryBAEA(df = bri_2018, file = "BRI Data - 2018.kmz")
 ################################ OLD CODE ######################################
 #------------------------------------------------------------------------------#
 
-bad <- which(df[,"id"]=="Cape_Walsh" & df[,"datetime"]=="2017-08-22 19:19:58")
-
-bad <- which(df[,"id"]=="Cape_Walsh" & df[,"datetime"]=="2017-11-15 07:45:39")
-which(df[,"id"]=="Cape_Walsh" & df[,"datetime"] > "2017-08-22 17:00:00" &
-  df[,"datetime"] < "2017-08-22 19:00:00")
-if (length(bad) > 0) df <- df[-bad, ]
-
-df[5140,]
+# bad <- which(df[,"id"]=="Cape_Walsh" & df[,"datetime"]=="2017-08-22 19:19:58")
+# bad <- which(df[,"id"]=="Cape_Walsh" & df[,"datetime"]=="2017-11-15 07:45:39")
+# which(df[,"id"]=="Cape_Walsh" & df[,"datetime"] > "2017-08-22 17:00:00" &
+#   df[,"datetime"] < "2017-08-22 19:00:00")
+# if (length(bad) > 0) df <- df[-bad, ]
+#
+# df[5140,]
