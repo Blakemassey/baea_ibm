@@ -44,7 +44,7 @@ image_output <- file.path("C:/Users/blake/Documents/PhD Program",
 
 ## Import Baea, Nests, and Base ------------------------------------------------
 baea <- readRDS(file="Data/BAEA/baea.rds")
-nests_active <- readRDS(file="Data/Nests/nests_active.RDS")
+nests_active <- readRDS(file="Data/Nests/Nests_rds/nests_active.RDS")
 base = raster(file.path("C:/ArcGIS/Data/BlankRaster/maine_30mc.tif"))
 
 ## Filter BAEA Data ------------------------------------------------------------
@@ -72,13 +72,14 @@ baea$lat_utm <- baea$y
 ############## CREATE NEST AND CONSPECIFIC DISTANCE RASTERS ####################
 
 ## Calculate Homerange Distance ------------------------------------------------
+package_dir <- "C:/Users/blake/OneDrive/Work/R/Packages"
 
-devtools::reload("C:/Work/R/Packages/baear")
-devtools::reload("C:/Work/R/Packages/gisr")
-devtools::reload("C:/Work/R/Packages/ibmr")
+devtools::reload(file.path(package_dir, "baear"))
+devtools::reload(file.path(package_dir, "gisr"))
+devtools::reload(file.path(package_dir, "ibmr"))
 
 homerange_distances <- AddHomeConEdgeDistanceBAEA(baea, nests_active, base,
-  output_dir = "Output/GIS/Analysis_Territorial", max_r = 30000,
+  output_dir = "Output/Analysis/Territorial", max_r = 30000,
   write_home_dist = TRUE, write_con_dist = FALSE, write_con_dist_nest = TRUE,
   write_edge_dist = FALSE, write_terr_edge = FALSE)
 

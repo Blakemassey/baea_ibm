@@ -2,12 +2,13 @@
 ## proper coordinate reference system (NAD83 UTM N19), extent, and resolution.
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 suppressPackageStartupMessages(library(dplyr))
+suppressPackageStartupMessages(library(fasterize))
 suppressPackageStartupMessages(library(foreign))
+suppressPackageStartupMessages(library(mapview))
 suppressPackageStartupMessages(library(plyr))
 suppressPackageStartupMessages(library(plotKML))
 suppressPackageStartupMessages(library(raster))
 suppressPackageStartupMessages(library(rgdal))
-suppressPackageStartupMessages(library(fasterize))
 suppressPackageStartupMessages(library(sf))
 suppressPackageStartupMessages(library(sp))
 
@@ -453,9 +454,37 @@ for(i in seq_along(tri_windows)){
     filename=tri_30mc, overwrite = TRUE)
 }
 
-#################################   OLD CODE   #################################
 
-#
+#############################  WIND CLASSES ####################################
+
+### Input Files ----------------------------------------------------------------
+
+wind_class <- st_read(file.path("C:/ArcGIS/Data/Wind",
+  "/Maine_Wind_High_Resolution/maine_50mwind.shp"))
+
+############################  WIND TURBINES ####################################
+
+### Input Files ----------------------------------------------------------------
+
+uswtdb_file <- file.path("C:/ArcGIS/Data/Wind/USGS_Wind_Turbine_2018-12-21",
+  "uswtdb_v1_2_20181001.shp")
+
+### Output Files ---------------------------------------------------------------
+
+wt_output <- "C:/ArcGIS/Data/R_Input/BAEA/wind_turbines.shp"
+
+### Import Shapefile and Subset Data -------------------------------------------
+
+uswtdb <- st_read(uswtdb_file)
+wt <- uswtdb %>% filter(t_state == "ME")
+table(wt$t_cap)
+mapview(wt)
+
+st_write(wt, wt_output, delete_layer = TRUE) # overwrites
+
+
+################################  OLD CODE  ####################################
+
 # maine_buff <- st_read(outline_file) %>% st_transform(wgs84n19)
 # maine_crop <- st_crop(maine_buff, ocean)
 # rm(maine_buff)

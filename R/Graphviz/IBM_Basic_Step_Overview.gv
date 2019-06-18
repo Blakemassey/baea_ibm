@@ -16,14 +16,14 @@ digraph {
     fixedsize = true, margin = 0, skew = 0.1];
   b01 [label = "Julian Date", width = 1.55];
   b02 [label = "Diurnal Period", width = 1.65];
-  b03 [label = "Current Behavior", width = 1.75];
+  b03 [label = "Current Behavior", width = 1.85];
   node [shape = polygon, style = filled, fillcolor = Khaki, fixedsize = true,
     margin = 0, skew = 0.1];
-  c01 [label = "Resource Selection Functions", width = 2.95];
+  c01 [label = "Resource Selection Functions", width = 3.15];
   c02 [label = "Movement Kernel", width = 2.05];
   c03 [label = "Conspecific Territories", width = 2.45];
   subgraph cluster_0 {
-    label = "Step Process Overview"
+    label = "Individual-based Model\nStep Process Overview"
     a01, a02, a03, a04, a05, a06
     edge[constraint = false, weight = 1000, fontsize = 14, fontname = Helvetica]
       a04  -> a01[taillabel = "False", labeldistance = 4]
@@ -46,7 +46,7 @@ digraph {
         {b01 b02 b03} -> a02
     }
     subgraph cluster_2 {
-      label = "Environmental and Behavioral \nGIS Layers";
+      label = "Environmental and Behavioral\nGIS Layers";
       color = grey20;
       c01, c02, c03;
       edge[color = blue, minlen = 0, constraint = false, style = dashed, dir = front];

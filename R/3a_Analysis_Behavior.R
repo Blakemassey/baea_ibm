@@ -87,6 +87,7 @@ title_all = "Daily Behavior Distributions (all data)"
 PlotBehaviorProportionLine(baea_behavior, title = title_all)
 SaveGGPlot("Products/Graphs/Behavior/Proportion_Line.svg", bg="transparent")
 PlotBehaviorProportionBar(baea_behavior, title = title_all)
+PlotBehaviorProportionBar(baea_behavior, title = "")
 SaveGGPlot("Products/Graphs/Behavior/Proportion_Bar.svg", bg="transparent")
 
 

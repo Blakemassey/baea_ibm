@@ -1,0 +1,8 @@
+ Parameter,Description,Values Range
+beta0,Intercept of multiple logistic regression function,-4.5 to 4.5 at 0.5
+beta1,Layer 1 slope (effect size),"1, 2, 3"
+beta2,Layer 2 slope (effect size),"1, 2, 3"
+beta3,Layer 3 slope (effect size),"1, 2, 3"
+sigma1,Layer 3 Gaussian kernel bandwidth,"0, 10, 20"
+sigma2,Layer 3 Gaussian kernel bandwidth,"0, 10, 20"
+sigma3,Layer 3 Gaussian kernel bandwidth,"0, 10, 20"

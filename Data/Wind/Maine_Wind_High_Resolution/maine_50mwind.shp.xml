@@ -1,0 +1,339 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<metadata>
+	<idinfo>
+		<citation>
+			<citeinfo>
+				<origin>AWS TrueWind/NREL</origin>
+				<pubdate>March, 2003</pubdate>
+				<title>Maine 50 m Wind Resource</title>
+				<geoform Sync="TRUE">vector digital data</geoform>
+				<othercit>The annual wind power estimates for this map were produced by AWS TrueWind using their Mesomap system and historical weather data.  This work was commissioned by the Massachusetts Technology Collaborative, in conjunction with the Connecticut Clean Energy Fund and Northeast Utilities, and the results have been validated by NREL.  However, the data is not suitable for micro-siting potential development projects.</othercit>
+				<onlink>\\LBRADY2\c\metadata\oh_wpc50m\oh_wpc50m.shp</onlink>
+				<ftname Sync="TRUE">maine_50mwind</ftname>
+			</citeinfo>
+		</citation>
+		<descript>
+			<abstract>Annual average wind resource potential for the state of Maine at a 50 meter height.</abstract>
+			<purpose>Provide information on the wind resource development potential within the state of Maine.</purpose>
+			<supplinf>The annual wind power estimates for this map were produced by AWS TrueWind using their Mesomap system and historical weather data.  This work was commissioned by the Massachusetts Technology Collaborative, in conjunction with the Connecticut Clean Energy Fund and Northeast Utilities, and the results have been validated by NREL.  However, the data is not suitable for micro-siting potential development projects.  This shapefile was generated from a raster dataset with a 200 m resolution, in a UTM zone 19 datum WGS 84 projection system.</supplinf>
+			<langdata Sync="TRUE">en</langdata>
+		</descript>
+		<timeperd>
+			<timeinfo>
+				<sngdate>
+					<caldate>March, 2003</caldate>
+				</sngdate>
+			</timeinfo>
+			<current>publication date</current>
+		</timeperd>
+		<status>
+			<progress>Complete</progress>
+			<update>None planned</update>
+		</status>
+		<spdom>
+			<bounding>
+				<westbc Sync="TRUE">-71.084126</westbc>
+				<eastbc Sync="TRUE">-66.949827</eastbc>
+				<northbc Sync="TRUE">47.453616</northbc>
+				<southbc Sync="TRUE">43.064573</southbc>
+			</bounding>
+			<lboundng>
+				<leftbc Sync="TRUE">-71.084126</leftbc>
+				<rightbc Sync="TRUE">-66.949827</rightbc>
+				<topbc Sync="TRUE">47.453616</topbc>
+				<bottombc Sync="TRUE">43.064573</bottombc>
+			</lboundng>
+		</spdom>
+		<keywords>
+			<theme>
+				<themekt>none</themekt>
+				<themekey>wind</themekey>
+				<themekey>resource</themekey>
+				<themekey>potential</themekey>
+			</theme>
+			<place>
+				<placekt>none</placekt>
+				<placekey>Maine</placekey>
+			</place>
+			<temporal>
+				<tempkt>none</tempkt>
+				<tempkey>Annual</tempkey>
+			</temporal>
+		</keywords>
+		<accconst>None</accconst>
+		<useconst>This GIS data was developed by the National Renewable Energy Laboratory ("NREL"), which is operated by the Alliance for Sustainable Energy, LLC  for the U.S. Department of Energy ("DOE"). The user is granted the right, without any fee or cost, to use, copy, modify, alter, enhance and distribute this data for any purpose whatsoever, provided that this entire notice appears in all copies of the data. Further, the user of this data agrees to credit NREL in any publications or software that incorporate or use the data.
+
+Access to and use of the GIS data shall further impose the following obligations on the User. The names DOE/NREL may not be used in any advertising or publicity to endorse or promote any product or commercial entity using or incorporating the GIS data unless specific written authorization is obtained from DOE/NREL. The User also understands that DOE/NREL shall not be obligated to provide updates, support, consulting, training or assistance of any kind whatsoever with regard to the use of the GIS data.
+
+THE GIS DATA IS PROVIDED "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL DOE/NREL BE LIABLE FOR ANY SPECIAL, INDIRECT OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER, INCLUDING BUT NOT LIMITED TO CLAIMS ASSOCIATED WITH THE LOSS OF DATA OR PROFITS, WHICH MAY RESULT FROM AN ACTION IN CONTRACT, NEGLIGENCE OR OTHER TORTIOUS CLAIM THAT ARISES OUT OF OR IN CONNECTION WITH THE ACCESS OR USE OF THE GIS DATA.
+
+The User acknowledges that access to the GIS data is subject to U.S. Export laws and regulations and any use or transfer of the GIS data must be authorized under those regulations. The User shall not use, distribute, transfer, or transmit GIS data or any products incorporating the GIS data except in compliance with U.S. export regulations. If requested by DOE/NREL, the User agrees to sign written assurances and other export-related documentation as may be required to comply with U.S. export regulations.</useconst>
+		<ptcontac>
+			<cntinfo>
+				<cntperp>
+					<cntper>Donna Heimiller</cntper>
+					<cntorg>National Renewable Energy Laboratory</cntorg>
+				</cntperp>
+				<cntpos>Scientist II (GIS)</cntpos>
+				<cntaddr>
+					<addrtype>mailing and physical address</addrtype>
+					<address>1617 Cole Blvd</address>
+					<city>Golden</city>
+					<state>Colorado</state>
+					<postal>80401</postal>
+					<country>USA</country>
+				</cntaddr>
+				<cntvoice>303-384-7098</cntvoice>
+				<cntfax>303-275-4675</cntfax>
+				<cntemail>donna.heimiller@nrel.gov</cntemail>
+			</cntinfo>
+		</ptcontac>
+		<native Sync="TRUE">Microsoft Windows XP Version 5.1 (Build 2600) Service Pack 3; ESRI ArcCatalog 9.3.0.1770</native>
+		<natvform Sync="TRUE">Shapefile</natvform>
+	</idinfo>
+	<dataqual>
+		<lineage>
+			<procstep>
+				<procdesc>Dataset copied.</procdesc>
+			</procstep>
+			<procstep>
+				<procdesc>Metadata imported.</procdesc>
+				<srcused>C:\DOCUME~1\mmenand\LOCALS~1\Temp\xml5A9.tmp</srcused>
+			</procstep>
+			<procstep>
+				<procdesc>Metadata imported.</procdesc>
+				<srcused>C:\DOCUME~1\mmenand\LOCALS~1\Temp\xml5AA.tmp</srcused>
+			</procstep>
+			<procstep>
+				<procdesc Sync="TRUE">Metadata imported.</procdesc>
+				<srcused Sync="TRUE">C:\DOCUME~1\mmenand\LOCALS~1\Temp\xml620.tmp</srcused>
+				<date Sync="TRUE">20041207</date>
+				<time Sync="TRUE">15264000</time>
+			</procstep>
+			<procstep>
+				<procdesc Sync="TRUE">Metadata imported.</procdesc>
+				<srcused Sync="TRUE">C:\MetaData\oh_wpc50m\metadata.xml</srcused>
+				<date Sync="TRUE">20041207</date>
+				<time Sync="TRUE">15501000</time>
+			</procstep>
+			<procstep><procdesc Sync="TRUE">Metadata imported.</procdesc><srcused Sync="TRUE">C:\DOCUME~1\mmenand\LOCALS~1\Temp\xml633.tmp</srcused><date Sync="TRUE">20041207</date><time Sync="TRUE">15582900</time></procstep></lineage>
+	</dataqual>
+	<spdoinfo>
+		<direct Sync="TRUE">Vector</direct>
+		<ptvctinf>
+			<sdtsterm Name="maine_50mwind">
+				<sdtstype Sync="TRUE">G-polygon</sdtstype>
+				<ptvctcnt Sync="TRUE">19462</ptvctcnt>
+			</sdtsterm>
+			<esriterm Name="maine_50mwind">
+				<efeatyp Sync="TRUE">Simple</efeatyp>
+				<esritopo Sync="TRUE">FALSE</esritopo>
+				<linrefer Sync="TRUE">FALSE</linrefer>
+				<spindex Sync="TRUE">FALSE</spindex>
+				<efeageom Sync="TRUE">Polygon</efeageom>
+				<efeacnt Sync="TRUE">19462</efeacnt>
+			</esriterm>
+		</ptvctinf>
+	</spdoinfo>
+	<spref>
+		<horizsys>
+			<geograph>
+				<latres Sync="TRUE">0.000000</latres>
+				<longres Sync="TRUE">0.000000</longres>
+				<geogunit Sync="TRUE">Decimal degrees</geogunit>
+			</geograph>
+			<geodetic>
+				<horizdn Sync="TRUE">D_WGS_1984</horizdn>
+				<ellips Sync="TRUE">WGS_1984</ellips>
+				<semiaxis Sync="TRUE">6378137.000000</semiaxis>
+				<denflat Sync="TRUE">298.257224</denflat>
+			</geodetic>
+			<cordsysn>
+				<geogcsn Sync="TRUE">GCS_WGS_1984</geogcsn>
+			</cordsysn>
+		</horizsys>
+	</spref>
+	<eainfo>
+		<detailed Name="maine_50mwind">
+			<enttyp>
+				<enttypl Sync="TRUE">maine_50mwind</enttypl>
+				<enttypc Sync="TRUE">19462</enttypc>
+				<enttypt Sync="TRUE">Feature Class</enttypt>
+			</enttyp>
+			<attr>
+				<attrlabl>FID</attrlabl>
+				<attrdef>Internal feature number.</attrdef>
+				<attrdefs>ESRI</attrdefs>
+				<attrdomv>
+					<udom>Sequential unique whole numbers that are automatically generated.</udom>
+				</attrdomv>
+				<attalias Sync="TRUE">FID</attalias><attrtype Sync="TRUE">OID</attrtype><attwidth Sync="TRUE">4</attwidth><atprecis Sync="TRUE">0</atprecis><attscale Sync="TRUE">0</attscale></attr>
+			<attr>
+				<attrlabl>Shape</attrlabl>
+				<attrdef>Feature geometry.</attrdef>
+				<attrdefs>ESRI</attrdefs>
+				<attrdomv>
+					<udom>Coordinates defining the features.</udom>
+				</attrdomv>
+				<attalias Sync="TRUE">Shape</attalias><attrtype Sync="TRUE">Geometry</attrtype><attwidth Sync="TRUE">0</attwidth><atprecis Sync="TRUE">0</atprecis><attscale Sync="TRUE">0</attscale></attr>
+			<attr>
+				<attrlabl>ID</attrlabl>
+				<attrtype Sync="TRUE">Number</attrtype>
+				<attwidth Sync="TRUE">10</attwidth>
+				<attalias Sync="TRUE">ID</attalias></attr>
+			<attr>
+				<attrlabl Sync="TRUE">WPC</attrlabl>
+				<attalias Sync="TRUE">WPC</attalias>
+				<attrtype Sync="TRUE">Number</attrtype>
+				<attwidth Sync="TRUE">4</attwidth>
+				<attrdef>Wind Power Class</attrdef></attr>
+		</detailed>
+		<overview>
+			<eaover>
+Wind power class is an indicator of likely resource strength, with a higher wind power class representing higher wind resource levels.  The following classification information is for utility-scale applications at a 50 meter height.
+
+Power   Resource   50 m Wind Power
+Class    Potential    Density (W/m2)
+1          Poor                0 - 200
+2          Marginal       200 - 300
+3          Fair              300 - 400
+4          Good            400 - 500
+5          Excellent       500 - 600
+6          Outstanding  600 - 800
+7          Superb             &gt; 800
+</eaover>
+		</overview>
+	</eainfo>
+	<distinfo>
+		<resdesc>Downloadable Data</resdesc>
+		<distliab>This GIS data was developed by the National Renewable Energy Laboratory ("NREL"), which is operated by the Alliance for Sustainable Energy, LLC for the U.S. Department of Energy ("DOE"). The user is granted the right, without any fee or cost, to use, copy, modify, alter, enhance and distribute this data for any purpose whatsoever, provided that this entire notice appears in all copies of the data. Further, the user of this data agrees to credit NREL in any publications or software that incorporate or use the data.
+
+Access to and use of the GIS data shall further impose the following obligations on the User. The names DOE/NREL may not be used in any advertising or publicity to endorse or promote any product or commercial entity using or incorporating the GIS data unless specific written authorization is obtained from DOE/NREL. The User also understands that DOE/NREL shall not be obligated to provide updates, support, consulting, training or assistance of any kind whatsoever with regard to the use of the GIS data.
+
+THE GIS DATA IS PROVIDED "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL DOE/NREL BE LIABLE FOR ANY SPECIAL, INDIRECT OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER, INCLUDING BUT NOT LIMITED TO CLAIMS ASSOCIATED WITH THE LOSS OF DATA OR PROFITS, WHICH MAY RESULT FROM AN ACTION IN CONTRACT, NEGLIGENCE OR OTHER TORTIOUS CLAIM THAT ARISES OUT OF OR IN CONNECTION WITH THE ACCESS OR USE OF THE GIS DATA.
+
+The User acknowledges that access to the GIS data is subject to U.S. Export laws and regulations and any use or transfer of the GIS data must be authorized under those regulations. The User shall not use, distribute, transfer, or transmit GIS data or any products incorporating the GIS data except in compliance with U.S. export regulations. If requested by DOE/NREL, the User agrees to sign written assurances and other export-related documentation as may be required to comply with U.S. export regulations.</distliab>
+		<stdorder>
+			<digform>
+				<digtinfo>
+					<transize>6.233</transize>
+					<dssize Sync="TRUE">9.314</dssize>
+				</digtinfo>
+			</digform>
+		</stdorder>
+	</distinfo>
+	<metainfo>
+		<metd Sync="TRUE">20090302</metd>
+		<metc>
+			<cntinfo>
+				<cntorgp>
+					<cntorg>National Renewable Energy Laboratory</cntorg>
+					<cntper>Pamela Gray-Hann</cntper>
+				</cntorgp>
+				<cntaddr>
+					<addrtype>mailing and physical address</addrtype>
+					<address>1617 Cole Blvd</address>
+					<city>Golden</city>
+					<state>Colorado</state>
+					<postal>80401</postal>
+					<country>USA</country>
+				</cntaddr>
+				<cntvoice>303-275-4626</cntvoice>
+				<cntfax>303-275-4675</cntfax>
+				<cntemail>pamela.gray.hann@nrel.gov</cntemail>
+			</cntinfo>
+		</metc>
+		<metstdn Sync="TRUE">FGDC Content Standards for Digital Geospatial Metadata</metstdn>
+		<metstdv Sync="TRUE">FGDC-STD-001-1998</metstdv>
+		<mettc Sync="TRUE">local time</mettc>
+		<metextns>
+			<onlink>http://www.esri.com/metadata/esriprof80.html</onlink>
+			<metprof>ESRI Metadata Profile</metprof>
+		</metextns>
+		<langmeta Sync="TRUE">en</langmeta>
+		<metextns><onlink Sync="TRUE">http://www.esri.com/metadata/esriprof80.html</onlink><metprof Sync="TRUE">ESRI Metadata Profile</metprof></metextns></metainfo>
+	<dataIdInfo>
+		<envirDesc Sync="TRUE">Microsoft Windows XP Version 5.1 (Build 2600) Service Pack 3; ESRI ArcCatalog 9.3.0.1770</envirDesc>
+		<dataLang>
+			<languageCode Sync="TRUE" value="en"></languageCode>
+		</dataLang>
+		<geoBox esriExtentType="decdegrees">
+			<westBL Sync="TRUE">-71.084126</westBL>
+			<eastBL Sync="TRUE">-66.949827</eastBL>
+			<northBL Sync="TRUE">47.453616</northBL>
+			<southBL Sync="TRUE">43.064573</southBL>
+			<exTypeCode Sync="TRUE">1</exTypeCode>
+		</geoBox>
+		<idCitation>
+			<resTitle Sync="TRUE">maine_50mwind</resTitle>
+			<presForm>
+				<PresFormCd Sync="TRUE" value="005"></PresFormCd>
+			</presForm>
+		</idCitation>
+		<spatRpType>
+			<SpatRepTypCd Sync="TRUE" value="001"></SpatRepTypCd>
+		</spatRpType>
+		<dataExt>
+			<geoEle>
+				<GeoBndBox esriExtentType="native">
+					<westBL Sync="TRUE">-71.084126</westBL>
+					<northBL Sync="TRUE">47.453616</northBL>
+					<southBL Sync="TRUE">43.064573</southBL>
+					<eastBL Sync="TRUE">-66.949827</eastBL>
+					<exTypeCode Sync="TRUE">1</exTypeCode>
+				</GeoBndBox>
+			</geoEle>
+		</dataExt>
+	</dataIdInfo>
+	<distInfo>
+		<distributor>
+			<distorTran>
+				<onLineSrc>
+					<orDesc Sync="TRUE">002</orDesc>
+					<protocol Sync="TRUE">Local Area Network</protocol>
+					<linkage Sync="TRUE">file://\\PGRAY-12799S\C$\Documents and Settings\PGray\Desktop\GISdatazipfiles\Wind_Data\extracted_wind\maine_50mwind.shp</linkage>
+				</onLineSrc>
+				<transSize Sync="TRUE">9.314</transSize>
+			</distorTran>
+			<distorFormat>
+				<formatName Sync="TRUE">Shapefile</formatName>
+			</distorFormat>
+		</distributor>
+	</distInfo>
+	<Esri>
+		<CreaDate>20041207</CreaDate>
+		<ModDate>20090302</ModDate>
+		<ModTime>07482000</ModTime>
+		<SyncDate>20090302</SyncDate>
+		<SyncOnce>FALSE</SyncOnce>
+		<SyncTime>07452900</SyncTime>
+		<CreaTime>15582900</CreaTime>
+		<MetaID>{B2C1A2AE-85D6-4336-AF11-95EC02C980B5}</MetaID></Esri>
+	<mdChar>
+		<CharSetCd Sync="TRUE" value="004"></CharSetCd>
+	</mdChar>
+	<mdDateSt Sync="TRUE">20090302</mdDateSt>
+	<mdHrLv>
+		<ScopeCd Sync="TRUE" value="005"></ScopeCd>
+	</mdHrLv>
+	<mdHrLvName Sync="TRUE">dataset</mdHrLvName>
+	<mdLang>
+		<languageCode Sync="TRUE" value="en"></languageCode>
+	</mdLang>
+	<mdStanName Sync="TRUE">ISO 19115 Geographic Information - Metadata</mdStanName>
+	<mdStanVer Sync="TRUE">DIS_ESRI1.0</mdStanVer>
+	<refSysInfo>
+		<RefSystem>
+			<refSysID>
+				<identCode Sync="TRUE">GCS_WGS_1984</identCode>
+			</refSysID>
+		</RefSystem>
+	</refSysInfo>
+	<spatRepInfo>
+		<VectSpatRep>
+			<topLvl>
+				<TopoLevCd Sync="TRUE" value="001"></TopoLevCd>
+			</topLvl>
+			<geometObjs Name="maine_50mwind"><geoObjTyp><GeoObjTypCd Sync="TRUE" value="001"></GeoObjTypCd></geoObjTyp><geoObjCnt Sync="TRUE">19462</geoObjCnt></geometObjs></VectSpatRep>
+	</spatRepInfo>
+</metadata>
