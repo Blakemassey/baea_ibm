@@ -10,6 +10,8 @@ base <- raster(file.path("C:/ArcGIS/Data/BlankRaster/maine_30mc.tif"))
 baea_dir <- "C:/Users/blake/OneDrive/Work/R/Projects/baea_ibm/Data/BAEA"
 nests_dir <- file.path("C:/Users/blake/OneDrive/Work/R/Projects/baea_ibm",
   "Data/Nests/Nests_rds")
+turbine_dir <- file.path("C:/ArcGIS/Data/R_Input/BAEA")
+
 wind_dir <- file.path("C:/Users/blake/OneDrive/Work/R/Projects/baea_ibm",
   "Data/Wind")
 maps_dir <- "C:/Users/blake/OneDrive/Work/R/Projects/baea_ibm/Products/Maps"
@@ -36,6 +38,11 @@ maine <- read_sf(file.path("C:/ArcGIS/Data/BlankPolygon/MaineOutline.shp")) %>%
 wind_class <- read_sf(file.path(wind_dir, "Maine_Wind_High_Resolution",
   "maine_50mwind.shp")) %>%
   st_transform(crs = 32619)
+
+# Turbines
+turbines <- read_sf(file.path(turbine_dir, "wind_turbines.shp")) %>%
+  st_transform(crs = 32619)
+
 
 ## ----------------------------- CREATE MAPS -------------------------------- ##
 
@@ -444,7 +451,7 @@ maps_fig_file = file.path("Products/Maps/Covar_Sigmas",
   "Covar123_Sigma0_10_20Figure.png")
 image_write(covar_sigma_fig, path = maps_fig_file, format = ".png")
 
-#### ------------------------- WILSON SCENARIOS MAP ----------------------- ####
+9#### ------------------------- WILSON SCENARIOS MAP ----------------------- ####
 
 pacman::p_load(units, stringr)
 
@@ -538,7 +545,9 @@ wind_wilson_ns <- wind_wilson_ns %>%
 # Wilson Map
 wilson_map <-
   tm_layout(asp = 1) +
-  tm_shape(wilson_om, is.master = TRUE) +
+  tm_shape(wilson_bb_sf, is.master = TRUE) +
+    tm_fill(col = NA) +
+  tm_shape(wilson_om) +
     tm_rgb() +
   tm_shape(wilson, title = "Wilson Nest") +
     tm_bubbles(col = "yellow",  border.lwd = 3,  size = .75) +
@@ -597,6 +606,167 @@ tmap_save(tm = wilson_map, filename = file.path(maps_dir, "Wilson_Buildout",
   insets_vp =  viewport(x = 0.85, y = 0.167, width = 0.25, height = 0.25),
   unit = "in", dpi = 300, height = 6, width = 6.1)
 
+#### ------------------- ELLIS TURBINE DISTANCE MAP ----------------------- ####
+
+pacman::p_load(units, stringr)
+
+# ESRI Baselayers
+esri_url <- "https://server.arcgisonline.com/ArcGIS/rest/services/"
+esri_tile <- "/MapServer/tile/{z}/{y}/{x}"
+om_type <- paste0(esri_url, "NatGeo_World_Map", esri_tile)
+
+# Rasters
+base <- raster(file.path("C:/ArcGIS/Data/BlankRaster/maine_30mc.tif"))
+ellis_raster <- crop(base, as_Spatial(ellis_bb_sf))
+wt_dist <- distanceFromPoints(ellis_raster, wt_ellis)
+wt_dist[wt_dist > 2000] = NA
+wt_dist_shift <- shift(wt_dist, 50000, 0)
+
+# Filter nest data
+ellis <- nests_study %>% filter(name == "Ellis")  %>%
+  st_transform(crs = 32619)
+
+ellis_map_center <- ellis
+sfc <- st_sfc(st_point(c(st_coordinates(ellis)[1] + 2250,
+  st_coordinates(ellis)[2] - 700)))
+st_geometry(ellis_map_center) <- sfc
+st_crs(ellis_map_center) <- 32619
+
+ellis_bb <- st_buffer(ellis_map_center, 5500) %>% bb(.)
+mapview(ellis_bb)
+
+wt_ellis <- st_crop(turbines, ellis_bb)
+mapview(wt_ellis)
+
+# Get osm baselayer for ellis
+ellis_bb_sf <- st_as_sfc(bb(ellis_bb, relative = TRUE, height = 1,
+  width = 1))
+ellis_bb_ext <- CreateOSMBaseBB(ellis_bb_sf, type = "om_type")
+ellis_down <- OpenStreetMap::openmap(ellis_bb_ext[[1]], ellis_bb_ext[[2]],
+  zoom = 13, minNumTiles = 21, type = om_type)  # may need to add/adjust 'zoom'
+ellis_om <- RasterizeOMDownload(ellis_down)
+
+# Ellis Map Raster
+ellis_map <-
+  tm_layout(asp = 1) +
+  tm_shape(ellis_bb_sf, is.master = TRUE) +
+    tm_fill(col = NA) +
+  tm_shape(ellis_om) +
+    tm_rgb() +
+  tm_shape(ellis, title = "Ellis Nest") +
+    tm_bubbles(col = "yellow", border.lwd = 3,  size = .75) +
+  tm_shape(wt_dist) +
+    tm_raster("layer", palette = "-plasma", alpha = .6, style = "cont",
+     legend.show = FALSE)  +
+  tm_shape(wt_dist_shift) +
+    tm_raster("layer", palette = "-plasma", alpha = 1, style = "cont",
+      breaks = c(0, 500, 1000, 1500, 2000),
+      title = "Turbine Distance (m)", legend.show = TRUE)  +
+  tm_shape(turbines, title = "Wind Turbines") +
+    tm_symbols(col = "black", shape = 4,  border.lwd = 2,  size = .25) +
+  tm_layout(main.title = NULL, #paste0("GPS Locations: ", id_i),
+    main.title.position = "center",
+    main.title.size = 1.15,
+    title.snap.to.legend = TRUE) +
+  tm_legend(title.size = 1, text.size = .85,
+    outside = FALSE, position = c("left", "top"), frame = TRUE,
+    legend.bg.color = "white", legend.format = list(format = "f", big.mark = "")) +
+  tm_compass(type = "4star",  show.labels = 1, size = 2.5,
+    position = c(.85, .87)) +
+  tm_scale_bar(size = .75, width = .2, breaks = c(0, 1, 2),
+    position = c(.05, .01)) +
+  tm_grid(n.x = 4, n.y = 5, projection = 4326, col = "grey85", alpha = .75,
+    labels.col = "grey25", labels.format = list(format = "f", big.mark = ""),
+    labels.inside.frame = FALSE) +
+  tm_xlab("") + tm_ylab("")
+ellis_map
+
+#tmaptools::palette_explorer()
+
+# ellis Overview Map
+ellis_overview_center <- ellis
+sfc <- st_sfc(st_point(c(st_coordinates(ellis)[1] + 50000,
+  st_coordinates(ellis)[2] - 0)))
+st_geometry(ellis_overview_center) <- sfc
+st_crs(ellis_overview_center) <- 32619
+
+ellis_overview_buff <- st_buffer(ellis_overview_center, 120000) %>% bb(.)
+mapview(ellis_overview_buff)
+ellis_overview_bb <- bb_poly(bb(ellis_overview_buff, ext = 1))
+om_type <- paste0(esri_url, "NatGeo_World_Map", esri_tile)
+ellis_overview_bb_ext <- CreateOSMBaseBB(ellis_overview_bb, type = "om_type")
+ellis_overview_bb_down = OpenStreetMap::openmap(ellis_overview_bb_ext[[1]],
+  ellis_overview_bb_ext[[2]], zoom = 6, minNumTiles = 21, type = om_type)
+ellis_overview_bb_om <- RasterizeOMDownload(ellis_overview_bb_down)
+
+ellis_overview <-
+  tm_shape(ellis_overview_bb_om, is.master = TRUE) +
+    tm_rgb() +
+  tm_shape(ellis_bb_sf) +
+    tm_borders(col = "red", lwd = 3) +
+  tm_scale_bar(size = .75, width = .2, breaks = c(0, 50, 100),
+    position = c(.45, -.03))
+ellis_overview
+
+tmap_save(tm = ellis_map, filename = file.path(maps_dir, "Ellis_Turbines",
+  "ellis_map.svg"), insets_tm = ellis_overview,
+  insets_vp =  viewport(x = 0.85, y = 0.167, width = 0.25, height = 0.25),
+  unit = "in", dpi = 300, height = 6, width = 6.1)
+
+# Ellis Map Polygons (Not currently currently, but may be useful)
+
+wt_buff_400 <- st_buffer(wt_ellis, c(400)) %>% st_union(.)
+wt_buff_600 <- st_buffer(wt_ellis, c(600)) %>% st_union(.)
+wt_buff_800 <- st_buffer(wt_ellis, c(800)) %>% st_union(.)
+wt_buff_1000 <- st_buffer(wt_ellis, c(1000)) %>% st_union(.)
+
+wt_buffs_200 <- st_buffer(wt_ellis, c(200)) %>% st_union(.)
+wt_buffs_400 <- st_sym_difference(wt_buff_400, wt_buff_200)
+wt_buffs_600 <- st_sym_difference(wt_buff_600, wt_buff_400)
+wt_buffs_800 <- st_sym_difference(wt_buff_800, wt_buff_600)
+wt_buffs_1000 <- st_sym_difference(wt_buff_1000, wt_buff_800)
+
+ellis_map_polys <-
+  tm_layout(asp = 1) +
+  tm_shape(ellis_bb_sf, is.master = TRUE) +
+    tm_fill(col = NA) +
+  tm_shape(ellis_om) +
+    tm_rgb() +
+  tm_shape(ellis, title = "Ellis Nest") +
+    tm_bubbles(col = "yellow", border.lwd = 3,  size = .75) +
+  tm_shape(wt_buffs_1000, title = "Wind Turbine Buffers") +
+     tm_polygons(col = viridis(10, option = v_col)[3], alpha = v_alpha,
+       border.lwd = 3) +
+  tm_shape(wt_buffs_800, title = "Wind Turbine Buffers") +
+     tm_polygons(col = viridis(10, option = v_col)[4], alpha = v_alpha,
+       border.lwd = 3) +
+  tm_shape(wt_buffs_600, title = "Wind Turbine buffers") +
+     tm_polygons(col = viridis(10, option = v_col)[5], alpha = v_alpha,
+       border.lwd = 3) +
+  tm_shape(wt_buffs_400, title = "Wind Turbine Buffers") +
+     tm_polygons(col = viridis(10, option = v_col)[6], alpha = v_alpha,
+       border.lwd = 3) +
+  tm_shape(wt_buffs_200, title = "Wind Turbine Buffers") +
+     tm_polygons(col = viridis(10, option = v_col)[7], alpha = v_alpha,
+       border.lwd = 3) +
+  tm_shape(turbines, title = "Wind Turbines") +
+    tm_symbols(col = "black", shape = 4,  border.lwd = 2,  size = .25) +
+  tm_layout(main.title = NULL, #paste0("GPS Locations: ", id_i),
+    main.title.position = "center",
+    main.title.size = 1.15,
+    title.snap.to.legend = TRUE) +
+  tm_legend(legend.show = FALSE, title.size = 1, text.size = .85,
+    outside = FALSE, position = c("left", "top"), frame = TRUE,
+    legend.bg.color = "white", legend.format = list(format = "f", big.mark = "")) +
+  tm_compass(type = "4star",  show.labels = 1, size = 2.5,
+    position = c(.85, .87)) +
+  tm_scale_bar(size = .75, width = .2, breaks = c(0, 1, 2),
+    position = c(.05, .01)) +
+  tm_grid(n.x = 4, n.y = 5, projection = 4326, col = "grey85", alpha = .75,
+    labels.col = "grey25", labels.format = list(format = "f", big.mark = ""),
+    labels.inside.frame = FALSE) +
+  tm_xlab("") + tm_ylab("")
+ellis_map_polys
 
 # ---------------------------------------------------------------------------- #
 ################################ OLD CODE ######################################

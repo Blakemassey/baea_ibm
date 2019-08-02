@@ -85,12 +85,12 @@ homerange_distances <- AddHomeConEdgeDistanceBAEA(baea, nests_active, base,
 
 ## Merge ConDist Rasters -------------------------------------------------------
 
-con_dist_files <- list.files("Output/GIS/Analysis_Territorial",
-  pattern="^ConDist_+.+tif$", full.names=TRUE, recursive = TRUE)
+con_dist_files <- list.files("Output/Analysis/Territorial",
+  pattern="^ConDistNest_+.+tif$", full.names=TRUE, recursive = TRUE)
 con_dist <- list()
 for(i in 1:length(con_dist_files)){con_dist[[i]] <- raster(con_dist_files[i])}
 con_dist <- do.call(merge, con_dist)
-writeRaster(con_dist, filename=file.path("Output/GIS/Analysis_Territorial",
+writeRaster(con_dist, filename=file.path("Output/Analysis/Territorial",
   "ConDist_All.tif"), format="GTiff", overwrite=TRUE)
 plot(con_dist)
 
@@ -560,7 +560,7 @@ LogisticByInflection <- function(x,
 suppressPackageStartupMessages(library(fitdistrplus))
 suppressPackageStartupMessages(library(xtable))
 getwd()
-load("C:/Work/R/Projects/baea/Output/fits_movements.RData")
+load("Output/fits_movements.RData")
 options(xtable.comment = FALSE)
 
 fits_df <- baear::SummarizeFitdist(fits_movements)
