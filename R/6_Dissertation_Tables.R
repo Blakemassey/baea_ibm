@@ -2,7 +2,9 @@ library(pacman)
 p_load(DT, dplyr, readr, stringr, xtable)
 options(stringsAsFactors = FALSE)
 
-# SSF Analysis Landscape Covariates --------------------------------------------
+############################## CHAPTER 1 #######################################
+
+# SSF Analysis Parameter Sets --------------------------------------------------
 optim_parm_sets_org <- read_csv("Data/Assets/opt_parm_set_examples.csv")
 
 optim_parm_sets <- optim_parm_sets_org %>%
@@ -67,3 +69,9 @@ print(ssf_land_covar_xtable,
   sanitize.colnames.function=bold,
   file = "Products/Tables/SSF_Landscape_Covariates.tex")
 
+# SSF Analysis Landscape Covariates --------------------------------------------
+ssf_land_covar_org <- read_csv("Data/Assets/ssf_landscape_covariates.csv")
+
+ssf_land_covar <- ssf_land_covar_org %>%
+  filter(!is.na(Type)) %>%
+  dplyr::select(Class, Covariate, Description, Source)
