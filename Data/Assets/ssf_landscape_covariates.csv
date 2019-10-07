@@ -1,20 +1,20 @@
 Class,Covariate,Description,Source,Data Source Full,Type,Data Variable,IBM Model,Scale,Maximum Scale  m ,URL,Production Date
 Landcover,Developed,Development class,UMass - DSL,UMass - Designing Sustainable Landscapes,Composition,DSLland,SSF,Multi,5000,http://northatlanticlcc.org/spatial-data/terrestrial/dslland-version-3-northeast,2015
-Landcover,Distance to Developed,Distance to developed class,UMass - DSL,UMass - Designing Sustainable Landscapes,Composition,DSLland,SSF,Single,5000,,NA
+Landcover,Distance to Developed,Distance to developed class,UMass - DSL,UMass - Designing Sustainable Landscapes,Composition,DSLland,SSF,Single,5000,http://northatlanticlcc.org/spatial-data/terrestrial/dslland-version-3-northeast,2015
 Landcover,Forest,Aggregated forest classes,UMass - DSL,UMass - Designing Sustainable Landscapes,Composition,DSLland,SSF,Multi,5000,http://northatlanticlcc.org/spatial-data/terrestrial/dslland-version-3-northeast,2015
 Landcover,Pasture,Aggregated pasture classes,UMass - DSL,UMass - Designing Sustainable Landscapes,Composition,DSLland,SSF,Multi,5000,http://northatlanticlcc.org/spatial-data/terrestrial/dslland-version-3-northeast,2015
 Landcover,Wetland,Aggregated wetland classes,UMass - DSL,UMass - Designing Sustainable Landscapes,Composition,DSLland,SSF,Multi,5000,http://northatlanticlcc.org/spatial-data/terrestrial/dslland-version-3-northeast,2015
 Landcover,Herb/Shrub,Aggregated herbaceous / shrubland classes,UMass - DSL,UMass - Designing Sustainable Landscapes,Composition,DSLland,SSF,Multi,5000,http://northatlanticlcc.org/spatial-data/terrestrial/dslland-version-3-northeast,2015
 ,,,,,,,,,,,
-Hydrology,Distance to Water,Distance to waterbody / water Area,USGS - National Hydrography Dataset,USGS - National Hydrography Dataset - High Resolution (Maine),Hydrology,Waterbody/WaterArea,SSF,Single,5000,ftp://nhdftp.usgs.gov/DataSets/Staged/States/FileGDB/HighResolution/,2016
+Hydrology,Distance to Water,Distance to waterbody / water area,USGS - National Hydrography Dataset,USGS - National Hydrography Dataset - High Resolution (Maine),Hydrology,Waterbody/WaterArea,SSF,Single,5000,ftp://nhdftp.usgs.gov/DataSets/Staged/States/FileGDB/HighResolution/,2016
 ,,,,,,,,,,,
-Wind Turbines,Wind Turbines,Wind turbine point locations,USGS - United States Wind Turbine Database,USGS - United States Wind Turbine Database,Anthropogenic,Wind Turbines,SSF,Multi,5000,https://eerscmap.usgs.gov/uswtdb,2018
+Wind Turbines,Distance to Wind Turbines,Distance to wind turbines,USGS - United States Wind Turbine Database,USGS - United States Wind Turbine Database,Anthropogenic,Wind Turbines,SSF,Multi,5000,https://eerscmap.usgs.gov/uswtdb,2018
 Wind Resource,Wind Class,Wind class at 50m hub height,NREL ,NREL - Maine High Resolution Wind Class 50m Hub Height,Wind Resource,Wind Class,SSF,Multi,2000,https://www.nrel.gov/gis/data-wind.html,2009
-Wind Resource,Wind Speed,Wind speed at 90m (used in Maximum Potential Updraft),NREL,NREL - Offshore Average Wind Speed at  90m,Wind Resource,Wind Speed 90m,SSF,Multi,2000,https://www.nrel.gov/gis/data-wind.html,2009
 ,,,,,,,,,,,
 Topographic,Elevation,DEM elevation,USGS - NED 1/3 Arc Second,USGS - NED 1_3 Arc Second,Topographic,Elevation,SSF,Multi,2000,https://nationalmap.gov/3DEP/3dep_prodserv.html,2017
-Topographic,Hillshade,DEM hillshade,USGS - NED 1/3 Arc Second,USGS - NED 1_3 Arc Second,Topographic,Hillshade,SSF,Multi,2000,https://nationalmap.gov/3DEP/3dep_prodserv.html,2017
+Topographic,Slope,DEM slope (degrees),USGS - NED 1/3 Arc Second,USGS - NED 1_3 Arc Second (calculated from Elevation),Topographic,Slope,SSF,Multi,2000,https://nationalmap.gov/3DEP/3dep_prodserv.html,2017
+Topographic,Eastness,Eastness (radians),USGS - NED 1/3 Arc Second,USGS - NED 1_3 Arc Second (calculated from Slope),Topographic,Eastness,SSF,Multi,2000,https://nationalmap.gov/3DEP/3dep_prodserv.html,2017
+Topographic,Northness,Northness (radians),USGS - NED 1/3 Arc Second,USGS - NED 1_3 Arc Second (calculated from Slope),Topographic,Northness,SSF,Multi,2000,https://nationalmap.gov/3DEP/3dep_prodserv.html,2017
 Topographic,Roughness,Difference between the maximum and the minimum value of a cell and its surrounding cells,USGS - NED 1/3 Arc Second,USGS - NED 1_3 Arc Second,Topographic,Roughness,SSF,Multi,2000,https://nationalmap.gov/3DEP/3dep_prodserv.html,2017
 Topographic,Topographic Position Index,Difference between the value of a cell and the mean value of its surrounding cells,USGS - NED 1/3 Arc Second,USGS - NED 1_3 Arc Second,Topographic,Topographic Position Index,SSF,Multi,2000,https://nationalmap.gov/3DEP/3dep_prodserv.html,2017
 Topographic,Terrain Ruggedness Index,Mean of the absolute differences between the value of a cell and the value of its surrounding cells,USGS - NED 1/3 Arc Second,USGS - NED 1_3 Arc Second,Topographic,Terrain Ruggedness Index,SSF,Multi,2000,https://nationalmap.gov/3DEP/3dep_prodserv.html,2017
-Topographic,Maximum Potential Updraft,Standard wind speed * sin(Slope) * (cos(Wind Direction - Aspect)) ,USGS - NED 1/3 Arc Second,USGS - NED 1_3 Arc Second,Topographic,Maximum Potential Updraft,SSF,Multi,1000,https://nationalmap.gov/3DEP/3dep_prodserv.html,2017

@@ -1,18 +1,17 @@
---------------------------------------------------------------------------------
+### ------------------------------------------------------------------------ ###
 ### This script is for importing baea data (.csv) and nest data (.csv) to
 ### create raster layers of home dist and con dist
---------------------------------------------------------------------------------
+### ------------------------------------------------------------------------ ###
 
 ## Import Packages and Scripts -------------------------------------------------
 library(baear)
 library(gisr)
-
 library(dplyr)
 library(lubridate)
 
 ## Import Deployed BAEA Data ---------------------------------------------------
-load(file="C:/Work/R/Data/R_Input/BAEA/baea.RData")
-load(file="C:/Work/R/Data/R_Input/BAEA/baea_spdf.RData")
+load(file="Data/BAEA/baea.rds")
+load(file="Data/BAEA/baea_spdf.rds")
 
 ## Filter BAEA Data ------------------------------------------------------------
 week_ago <- as.character(floor_date(now() - period(1, "week"), "day"))
@@ -47,7 +46,6 @@ ExportShapefileFromPoints(df=baea_100, name="baea",
 ExportKMLTelemetryBAEA(baea_100, file = "BAEA_100.kml",
   output_dir = "C:/Users/Blake/Desktop")
 
-
 ## Plotting 100 points ---------------------------------------------------------
 
 library(ggplot2)
@@ -76,14 +74,17 @@ ggplot(data = maine) +
   theme_map() + theme(legend.position = c(1, .1))
 
 
+## Get Date Ranges
+
+baea %>%
+
 #------------------------------------------------------------------------------#
 ################################ OLD CODE ######################################
 #------------------------------------------------------------------------------#
-
-# ## Import Base
+## Import Base
 # base = raster(file.path("C:/ArcGIS/Data/BlankRaster/maine_30mc.tif"))
 #
-# ## Extract raster values and put into baea spatial points dataframe ----------
+# ## Extract raster values and put into baea spatial points dataframe ------- ##
 #
 # baea$edge_dist <- extract(edge_dist, baea_spdf)
 # baea$home_dist <- extract(home_dist, baea_spdf)
@@ -95,10 +96,10 @@ ggplot(data = maine) +
 # source('C:/Work/R/Functions/sim/move.R')
 # wgs84n19 <- CRS("+init=epsg:32619") # WGS84 UTM 19N
 #
-# Join Landscape Raster Values to BAEA locations -------------------------------
+# Join Landscape Raster Values to BAEA locations ---------------------------- ##
 # Maine_stack <- ImportLandscapeRasterStack()
 # PrintRasterNames(Maine_stack)
 # baea_land <- AddLandscapeValues(baea, Maine_stack, clean_up = TRUE)
 #
-# Add Nest Use Data ------------------------------------------------------------
+# Add Nest Use Data --------------------------------------------------------- ##
 # baea_nest <- AddNestData(baea_land)

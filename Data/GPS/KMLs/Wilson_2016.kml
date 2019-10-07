@@ -112,8 +112,8 @@ xmlns:atom="http://www.w3.org/2005/Atom">
 					ID: Wilson
 					Date: 2016-01-14
 					Time: 12:33 PM
-					Longitude: -68.75442
-					Latitude: 44.53046
+					Longitude: -68.754425
+					Latitude: 44.530464
 					Altitude: 19
 					Speed: 1
 				</description>
@@ -121,7 +121,7 @@ xmlns:atom="http://www.w3.org/2005/Atom">
 			<Point>
 				<extrude>FALSE</extrude>
 				<altitudeMode>absolute</altitudeMode>
-					<coordinates>-68.75442,44.53046,19</coordinates>
+					<coordinates>-68.754425,44.530464,19</coordinates>
 			</Point>
 	</Placemark>
 	<Placemark>
@@ -135,8 +135,8 @@ xmlns:atom="http://www.w3.org/2005/Atom">
 					ID: Wilson
 					Date: 2016-01-14
 					Time: 01:04 PM
-					Longitude: -68.75513
-					Latitude: 44.53077
+					Longitude: -68.755135
+					Latitude: 44.530773
 					Altitude: 17
 					Speed: 0
 				</description>
@@ -144,7 +144,7 @@ xmlns:atom="http://www.w3.org/2005/Atom">
 			<Point>
 				<extrude>FALSE</extrude>
 				<altitudeMode>absolute</altitudeMode>
-					<coordinates>-68.75513,44.53077,17</coordinates>
+					<coordinates>-68.755135,44.530773,17</coordinates>
 			</Point>
 	</Placemark>
 	<Placemark>
@@ -158,8 +158,8 @@ xmlns:atom="http://www.w3.org/2005/Atom">
 					ID: Wilson
 					Date: 2016-01-14
 					Time: 01:38 PM
-					Longitude: -68.75262
-					Latitude: 44.52812
+					Longitude: -68.752617
+					Latitude: 44.528122
 					Altitude: 22
 					Speed: 0
 				</description>
@@ -167,7 +167,7 @@ xmlns:atom="http://www.w3.org/2005/Atom">
 			<Point>
 				<extrude>FALSE</extrude>
 				<altitudeMode>absolute</altitudeMode>
-					<coordinates>-68.75262,44.52812,22</coordinates>
+					<coordinates>-68.752617,44.528122,22</coordinates>
 			</Point>
 	</Placemark>
 	<Placemark>
@@ -181,8 +181,8 @@ xmlns:atom="http://www.w3.org/2005/Atom">
 					ID: Wilson
 					Date: 2016-01-14
 					Time: 02:23 PM
-					Longitude: -68.75657
-					Latitude: 44.51676
+					Longitude: -68.756569
+					Latitude: 44.516762
 					Altitude: 21
 					Speed: 1
 				</description>
@@ -190,7 +190,7 @@ xmlns:atom="http://www.w3.org/2005/Atom">
 			<Point>
 				<extrude>FALSE</extrude>
 				<altitudeMode>absolute</altitudeMode>
-					<coordinates>-68.75657,44.51676,21</coordinates>
+					<coordinates>-68.756569,44.516762,21</coordinates>
 			</Point>
 	</Placemark>
 	<Placemark>
@@ -204,8 +204,8 @@ xmlns:atom="http://www.w3.org/2005/Atom">
 					ID: Wilson
 					Date: 2016-01-14
 					Time: 02:38 PM
-					Longitude: -68.75642
-					Latitude: 44.51414
+					Longitude: -68.756424
+					Latitude: 44.514145
 					Altitude: 28
 					Speed: 0
 				</description>
@@ -213,7 +213,7 @@ xmlns:atom="http://www.w3.org/2005/Atom">
 			<Point>
 				<extrude>FALSE</extrude>
 				<altitudeMode>absolute</altitudeMode>
-					<coordinates>-68.75642,44.51414,28</coordinates>
+					<coordinates>-68.756424,44.514145,28</coordinates>
 			</Point>
 	</Placemark>
 	<Placemark>
@@ -227,7 +227,7 @@ xmlns:atom="http://www.w3.org/2005/Atom">
 					ID: Wilson
 					Date: 2016-01-14
 					Time: 02:53 PM
-					Longitude: -68.75642
+					Longitude: -68.756424
 					Latitude: 44.51408
 					Altitude: 33
 					Speed: 0
@@ -236,7 +236,7 @@ xmlns:atom="http://www.w3.org/2005/Atom">
 			<Point>
 				<extrude>FALSE</extrude>
 				<altitudeMode>absolute</altitudeMode>
-					<coordinates>-68.75642,44.51408,33</coordinates>
+					<coordinates>-68.756424,44.51408,33</coordinates>
 			</Point>
 	</Placemark>
 	<Placemark>
@@ -250,8 +250,8 @@ xmlns:atom="http://www.w3.org/2005/Atom">
 					ID: Wilson
 					Date: 2016-01-14
 					Time: 03:08 PM
-					Longitude: -68.75642
-					Latitude: 44.51419
+					Longitude: -68.756416
+					Latitude: 44.514194
 					Altitude: 22
 					Speed: 0
 				</description>
@@ -259,7 +259,7 @@ xmlns:atom="http://www.w3.org/2005/Atom">
 			<Point>
 				<extrude>FALSE</extrude>
 				<altitudeMode>absolute</altitudeMode>
-					<coordinates>-68.75642,44.51419,22</coordinates>
+					<coordinates>-68.756416,44.514194,22</coordinates>
 			</Point>
 	</Placemark>
 	<Placemark>
@@ -273,8 +273,8 @@ xmlns:atom="http://www.w3.org/2005/Atom">
 					ID: Wilson
 					Date: 2016-01-14
 					Time: 03:24 PM
-					Longitude: -68.75643
-					Latitude: 44.51421
+					Longitude: -68.756432
+					Latitude: 44.514214
 					Altitude: 17
 					Speed: 0
 				</description>
@@ -282,7 +282,7 @@ xmlns:atom="http://www.w3.org/2005/Atom">
 			<Point>
 				<extrude>FALSE</extrude>
 				<altitudeMode>absolute</altitudeMode>
-					<coordinates>-68.75643,44.51421,17</coordinates>
+					<coordinates>-68.756432,44.514214,17</coordinates>
 			</Point>
 	</Placemark>
 	<Placemark>
@@ -296,7 +296,7 @@ xmlns:atom="http://www.w3.org/2005/Atom">
 					ID: Wilson
 					Date: 2016-01-14
 					Time: 03:40 PM
-					Longitude: -68.75644
+					Longitude: -68.756439
 					Latitude: 44.51424
 					Altitude: 26
 					Speed: 0
@@ -305,7 +305,7 @@ xmlns:atom="http://www.w3.org/2005/Atom">
 			<Point>
 				<extrude>FALSE</extrude>
 				<altitudeMode>absolute</altitudeMode>
-					<coordinates>-68.75644,44.51424,26</coordinates>
+					<coordinates>-68.756439,44.51424,26</coordinates>
 			</Point>
 	</Placemark>
 	<Placemark>
@@ -319,8 +319,8 @@ xmlns:atom="http://www.w3.org/2005/Atom">
 					ID: Wilson
 					Date: 2016-01-14
 					Time: 03:55 PM
-					Longitude: -68.75643
-					Latitude: 44.51423
+					Longitude: -68.756432
+					Latitude: 44.514225
 					Altitude: 7
 					Speed: 0
 				</description>
@@ -328,7 +328,7 @@ xmlns:atom="http://www.w3.org/2005/Atom">
 			<Point>
 				<extrude>FALSE</extrude>
 				<altitudeMode>absolute</altitudeMode>
-					<coordinates>-68.75643,44.51423,7</coordinates>
+					<coordinates>-68.756432,44.514225,7</coordinates>
 			</Point>
 	</Placemark>
 	<Placemark>
@@ -342,8 +342,8 @@ xmlns:atom="http://www.w3.org/2005/Atom">
 					ID: Wilson
 					Date: 2016-01-14
 					Time: 04:10 PM
-					Longitude: -68.75645
-					Latitude: 44.51417
+					Longitude: -68.756454
+					Latitude: 44.514168
 					Altitude: 14
 					Speed: 0
 				</description>
@@ -351,7 +351,7 @@ xmlns:atom="http://www.w3.org/2005/Atom">
 			<Point>
 				<extrude>FALSE</extrude>
 				<altitudeMode>absolute</altitudeMode>
-					<coordinates>-68.75645,44.51417,14</coordinates>
+					<coordinates>-68.756454,44.514168,14</coordinates>
 			</Point>
 	</Placemark>
 	<Placemark>
@@ -365,8 +365,8 @@ xmlns:atom="http://www.w3.org/2005/Atom">
 					ID: Wilson
 					Date: 2016-01-14
 					Time: 04:25 PM
-					Longitude: -68.75643
-					Latitude: 44.5142
+					Longitude: -68.756432
+					Latitude: 44.514202
 					Altitude: 18
 					Speed: 0
 				</description>
@@ -374,7 +374,7 @@ xmlns:atom="http://www.w3.org/2005/Atom">
 			<Point>
 				<extrude>FALSE</extrude>
 				<altitudeMode>absolute</altitudeMode>
-					<coordinates>-68.75643,44.5142,18</coordinates>
+					<coordinates>-68.756432,44.514202,18</coordinates>
 			</Point>
 	</Placemark>
 	<Placemark>
@@ -389,7 +389,7 @@ xmlns:atom="http://www.w3.org/2005/Atom">
 					Date: 2016-01-14
 					Time: 04:41 PM
 					Longitude: -68.75647
-					Latitude: 44.51415
+					Latitude: 44.514149
 					Altitude: 24
 					Speed: 0
 				</description>
@@ -397,7 +397,7 @@ xmlns:atom="http://www.w3.org/2005/Atom">
 			<Point>
 				<extrude>FALSE</extrude>
 				<altitudeMode>absolute</altitudeMode>
-					<coordinates>-68.75647,44.51415,24</coordinates>
+					<coordinates>-68.75647,44.514149,24</coordinates>
 			</Point>
 	</Placemark>
 	<Placemark>
@@ -412,7 +412,7 @@ xmlns:atom="http://www.w3.org/2005/Atom">
 					Date: 2016-01-14
 					Time: 04:56 PM
 					Longitude: -68.75647
-					Latitude: 44.51419
+					Latitude: 44.514187
 					Altitude: 29
 					Speed: 0
 				</description>
@@ -420,7 +420,7 @@ xmlns:atom="http://www.w3.org/2005/Atom">
 			<Point>
 				<extrude>FALSE</extrude>
 				<altitudeMode>absolute</altitudeMode>
-					<coordinates>-68.75647,44.51419,29</coordinates>
+					<coordinates>-68.75647,44.514187,29</coordinates>
 			</Point>
 	</Placemark>
 	<Placemark>
@@ -434,8 +434,8 @@ xmlns:atom="http://www.w3.org/2005/Atom">
 					ID: Wilson
 					Date: 2016-01-14
 					Time: 05:12 PM
-					Longitude: -68.75651
-					Latitude: 44.51419
+					Longitude: -68.756508
+					Latitude: 44.514187
 					Altitude: 14
 					Speed: 0
 				</description>
@@ -443,7 +443,7 @@ xmlns:atom="http://www.w3.org/2005/Atom">
 			<Point>
 				<extrude>FALSE</extrude>
 				<altitudeMode>absolute</altitudeMode>
-					<coordinates>-68.75651,44.51419,14</coordinates>
+					<coordinates>-68.756508,44.514187,14</coordinates>
 			</Point>
 	</Placemark>
 	<Placemark>
@@ -457,8 +457,8 @@ xmlns:atom="http://www.w3.org/2005/Atom">
 					ID: Wilson
 					Date: 2016-01-14
 					Time: 05:27 PM
-					Longitude: -68.75656
-					Latitude: 44.51424
+					Longitude: -68.756561
+					Latitude: 44.514244
 					Altitude: 27
 					Speed: 0
 				</description>
@@ -466,7 +466,7 @@ xmlns:atom="http://www.w3.org/2005/Atom">
 			<Point>
 				<extrude>FALSE</extrude>
 				<altitudeMode>absolute</altitudeMode>
-					<coordinates>-68.75656,44.51424,27</coordinates>
+					<coordinates>-68.756561,44.514244,27</coordinates>
 			</Point>
 	</Placemark>
 	<Placemark>
@@ -480,8 +480,8 @@ xmlns:atom="http://www.w3.org/2005/Atom">
 					ID: Wilson
 					Date: 2016-01-15
 					Time: 06:04 AM
-					Longitude: -68.75674
-					Latitude: 44.51535
+					Longitude: -68.756744
+					Latitude: 44.515347
 					Altitude: -304
 					Speed: 0
 				</description>
@@ -489,7 +489,7 @@ xmlns:atom="http://www.w3.org/2005/Atom">
 			<Point>
 				<extrude>FALSE</extrude>
 				<altitudeMode>absolute</altitudeMode>
-					<coordinates>-68.75674,44.51535,-304</coordinates>
+					<coordinates>-68.756744,44.515347,-304</coordinates>
 			</Point>
 	</Placemark>
 	<Placemark>
@@ -503,8 +503,8 @@ xmlns:atom="http://www.w3.org/2005/Atom">
 					ID: Wilson
 					Date: 2016-01-15
 					Time: 06:32 AM
-					Longitude: -68.75645
-					Latitude: 44.51422
+					Longitude: -68.756454
+					Latitude: 44.514221
 					Altitude: 9
 					Speed: 0
 				</description>
@@ -512,7 +512,7 @@ xmlns:atom="http://www.w3.org/2005/Atom">
 			<Point>
 				<extrude>FALSE</extrude>
 				<altitudeMode>absolute</altitudeMode>
-					<coordinates>-68.75645,44.51422,9</coordinates>
+					<coordinates>-68.756454,44.514221,9</coordinates>
 			</Point>
 	</Placemark>
 	<Placemark>
@@ -526,8 +526,8 @@ xmlns:atom="http://www.w3.org/2005/Atom">
 					ID: Wilson
 					Date: 2016-01-15
 					Time: 06:49 AM
-					Longitude: -68.75643
-					Latitude: 44.51414
+					Longitude: -68.756432
+					Latitude: 44.514137
 					Altitude: 22
 					Speed: 0
 				</description>
@@ -535,7 +535,7 @@ xmlns:atom="http://www.w3.org/2005/Atom">
 			<Point>
 				<extrude>FALSE</extrude>
 				<altitudeMode>absolute</altitudeMode>
-					<coordinates>-68.75643,44.51414,22</coordinates>
+					<coordinates>-68.756432,44.514137,22</coordinates>
 			</Point>
 	</Placemark>
 	<Placemark>
@@ -549,8 +549,8 @@ xmlns:atom="http://www.w3.org/2005/Atom">
 					ID: Wilson
 					Date: 2016-01-15
 					Time: 07:03 AM
-					Longitude: -68.75649
-					Latitude: 44.51421
+					Longitude: -68.756493
+					Latitude: 44.514214
 					Altitude: 33
 					Speed: 0
 				</description>
@@ -558,7 +558,7 @@ xmlns:atom="http://www.w3.org/2005/Atom">
 			<Point>
 				<extrude>FALSE</extrude>
 				<altitudeMode>absolute</altitudeMode>
-					<coordinates>-68.75649,44.51421,33</coordinates>
+					<coordinates>-68.756493,44.514214,33</coordinates>
 			</Point>
 	</Placemark>
 	<Placemark>
@@ -572,8 +572,8 @@ xmlns:atom="http://www.w3.org/2005/Atom">
 					ID: Wilson
 					Date: 2016-01-15
 					Time: 07:19 AM
-					Longitude: -68.75642
-					Latitude: 44.51408
+					Longitude: -68.756416
+					Latitude: 44.514076
 					Altitude: 23
 					Speed: 0
 				</description>
@@ -581,7 +581,7 @@ xmlns:atom="http://www.w3.org/2005/Atom">
 			<Point>
 				<extrude>FALSE</extrude>
 				<altitudeMode>absolute</altitudeMode>
-					<coordinates>-68.75642,44.51408,23</coordinates>
+					<coordinates>-68.756416,44.514076,23</coordinates>
 			</Point>
 	</Placemark>
 	<Placemark>
@@ -595,8 +595,8 @@ xmlns:atom="http://www.w3.org/2005/Atom">
 					ID: Wilson
 					Date: 2016-01-15
 					Time: 07:50 AM
-					Longitude: -68.7563
-					Latitude: 44.51433
+					Longitude: -68.756302
+					Latitude: 44.514332
 					Altitude: 5
 					Speed: 0
 				</description>
@@ -604,7 +604,7 @@ xmlns:atom="http://www.w3.org/2005/Atom">
 			<Point>
 				<extrude>FALSE</extrude>
 				<altitudeMode>absolute</altitudeMode>
-					<coordinates>-68.7563,44.51433,5</coordinates>
+					<coordinates>-68.756302,44.514332,5</coordinates>
 			</Point>
 	</Placemark>
 	<Placemark>
@@ -619,7 +619,7 @@ xmlns:atom="http://www.w3.org/2005/Atom">
 					Date: 2016-01-15
 					Time: 08:05 AM
 					Longitude: -68.75663
-					Latitude: 44.51409
+					Latitude: 44.514091
 					Altitude: 39
 					Speed: 0
 				</description>
@@ -627,7 +627,7 @@ xmlns:atom="http://www.w3.org/2005/Atom">
 			<Point>
 				<extrude>FALSE</extrude>
 				<altitudeMode>absolute</altitudeMode>
-					<coordinates>-68.75663,44.51409,39</coordinates>
+					<coordinates>-68.75663,44.514091,39</coordinates>
 			</Point>
 	</Placemark>
 	<Placemark>
@@ -641,8 +641,8 @@ xmlns:atom="http://www.w3.org/2005/Atom">
 					ID: Wilson
 					Date: 2016-01-15
 					Time: 08:20 AM
-					Longitude: -68.75648
-					Latitude: 44.51422
+					Longitude: -68.756485
+					Latitude: 44.514217
 					Altitude: 21
 					Speed: 0
 				</description>
@@ -650,7 +650,7 @@ xmlns:atom="http://www.w3.org/2005/Atom">
 			<Point>
 				<extrude>FALSE</extrude>
 				<altitudeMode>absolute</altitudeMode>
-					<coordinates>-68.75648,44.51422,21</coordinates>
+					<coordinates>-68.756485,44.514217,21</coordinates>
 			</Point>
 	</Placemark>
 	<Placemark>
@@ -664,8 +664,8 @@ xmlns:atom="http://www.w3.org/2005/Atom">
 					ID: Wilson
 					Date: 2016-01-15
 					Time: 08:35 AM
-					Longitude: -68.75649
-					Latitude: 44.51423
+					Longitude: -68.756493
+					Latitude: 44.514233
 					Altitude: 19
 					Speed: 0
 				</description>
@@ -673,7 +673,7 @@ xmlns:atom="http://www.w3.org/2005/Atom">
 			<Point>
 				<extrude>FALSE</extrude>
 				<altitudeMode>absolute</altitudeMode>
-					<coordinates>-68.75649,44.51423,19</coordinates>
+					<coordinates>-68.756493,44.514233,19</coordinates>
 			</Point>
 	</Placemark>
 	<Placemark>
@@ -688,7 +688,7 @@ xmlns:atom="http://www.w3.org/2005/Atom">
 					Date: 2016-01-15
 					Time: 08:51 AM
 					Longitude: -68.75647
-					Latitude: 44.5142
+					Latitude: 44.514202
 					Altitude: 26
 					Speed: 0
 				</description>
@@ -696,7 +696,7 @@ xmlns:atom="http://www.w3.org/2005/Atom">
 			<Point>
 				<extrude>FALSE</extrude>
 				<altitudeMode>absolute</altitudeMode>
-					<coordinates>-68.75647,44.5142,26</coordinates>
+					<coordinates>-68.75647,44.514202,26</coordinates>
 			</Point>
 	</Placemark>
 	<Placemark>
@@ -710,8 +710,8 @@ xmlns:atom="http://www.w3.org/2005/Atom">
 					ID: Wilson
 					Date: 2016-01-15
 					Time: 09:06 AM
-					Longitude: -68.75652
-					Latitude: 44.51423
+					Longitude: -68.756516
+					Latitude: 44.514233
 					Altitude: 54
 					Speed: 0
 				</description>
@@ -719,7 +719,7 @@ xmlns:atom="http://www.w3.org/2005/Atom">
 			<Point>
 				<extrude>FALSE</extrude>
 				<altitudeMode>absolute</altitudeMode>
-					<coordinates>-68.75652,44.51423,54</coordinates>
+					<coordinates>-68.756516,44.514233,54</coordinates>
 			</Point>
 	</Placemark>
 	<Placemark>
@@ -733,8 +733,8 @@ xmlns:atom="http://www.w3.org/2005/Atom">
 					ID: Wilson
 					Date: 2016-01-15
 					Time: 09:21 AM
-					Longitude: -68.75645
-					Latitude: 44.51417
+					Longitude: -68.756447
+					Latitude: 44.514168
 					Altitude: 2
 					Speed: 0
 				</description>
@@ -742,7 +742,7 @@ xmlns:atom="http://www.w3.org/2005/Atom">
 			<Point>
 				<extrude>FALSE</extrude>
 				<altitudeMode>absolute</altitudeMode>
-					<coordinates>-68.75645,44.51417,2</coordinates>
+					<coordinates>-68.756447,44.514168,2</coordinates>
 			</Point>
 	</Placemark>
 	<Placemark>
@@ -756,8 +756,8 @@ xmlns:atom="http://www.w3.org/2005/Atom">
 					ID: Wilson
 					Date: 2016-01-15
 					Time: 09:37 AM
-					Longitude: -68.75642
-					Latitude: 44.51416
+					Longitude: -68.756424
+					Latitude: 44.514164
 					Altitude: 24
 					Speed: 0
 				</description>
@@ -765,7 +765,7 @@ xmlns:atom="http://www.w3.org/2005/Atom">
 			<Point>
 				<extrude>FALSE</extrude>
 				<altitudeMode>absolute</altitudeMode>
-					<coordinates>-68.75642,44.51416,24</coordinates>
+					<coordinates>-68.756424,44.514164,24</coordinates>
 			</Point>
 	</Placemark>
 	<Placemark>
@@ -779,8 +779,8 @@ xmlns:atom="http://www.w3.org/2005/Atom">
 					ID: Wilson
 					Date: 2016-01-15
 					Time: 09:52 AM
-					Longitude: -68.75656
-					Latitude: 44.51419
+					Longitude: -68.756561
+					Latitude: 44.514187
 					Altitude: 35
 					Speed: 0
 				</description>
@@ -788,7 +788,7 @@ xmlns:atom="http://www.w3.org/2005/Atom">
 			<Point>
 				<extrude>FALSE</extrude>
 				<altitudeMode>absolute</altitudeMode>
-					<coordinates>-68.75656,44.51419,35</coordinates>
+					<coordinates>-68.756561,44.514187,35</coordinates>
 			</Point>
 	</Placemark>
 	<Placemark>
@@ -802,7 +802,7 @@ xmlns:atom="http://www.w3.org/2005/Atom">
 					ID: Wilson
 					Date: 2016-01-15
 					Time: 10:07 AM
-					Longitude: -68.75648
+					Longitude: -68.756485
 					Latitude: 44.51424
 					Altitude: 31
 					Speed: 0
@@ -811,7 +811,7 @@ xmlns:atom="http://www.w3.org/2005/Atom">
 			<Point>
 				<extrude>FALSE</extrude>
 				<altitudeMode>absolute</altitudeMode>
-					<coordinates>-68.75648,44.51424,31</coordinates>
+					<coordinates>-68.756485,44.51424,31</coordinates>
 			</Point>
 	</Placemark>
 	<Placemark>
@@ -825,8 +825,8 @@ xmlns:atom="http://www.w3.org/2005/Atom">
 					ID: Wilson
 					Date: 2016-01-15
 					Time: 10:23 AM
-					Longitude: -68.75649
-					Latitude: 44.51418
+					Longitude: -68.756493
+					Latitude: 44.514179
 					Altitude: 29
 					Speed: 0
 				</description>
@@ -834,7 +834,7 @@ xmlns:atom="http://www.w3.org/2005/Atom">
 			<Point>
 				<extrude>FALSE</extrude>
 				<altitudeMode>absolute</altitudeMode>
-					<coordinates>-68.75649,44.51418,29</coordinates>
+					<coordinates>-68.756493,44.514179,29</coordinates>
 			</Point>
 	</Placemark>
 	<Placemark>
@@ -848,8 +848,8 @@ xmlns:atom="http://www.w3.org/2005/Atom">
 					ID: Wilson
 					Date: 2016-01-15
 					Time: 10:38 AM
-					Longitude: -68.75648
-					Latitude: 44.51424
+					Longitude: -68.756485
+					Latitude: 44.514236
 					Altitude: 23
 					Speed: 0
 				</description>
@@ -857,7 +857,7 @@ xmlns:atom="http://www.w3.org/2005/Atom">
 			<Point>
 				<extrude>FALSE</extrude>
 				<altitudeMode>absolute</altitudeMode>
-					<coordinates>-68.75648,44.51424,23</coordinates>
+					<coordinates>-68.756485,44.514236,23</coordinates>
 			</Point>
 	</Placemark>
 	<Placemark>
@@ -871,8 +871,8 @@ xmlns:atom="http://www.w3.org/2005/Atom">
 					ID: Wilson
 					Date: 2016-01-15
 					Time: 11:08 AM
-					Longitude: -68.75636
-					Latitude: 44.51424
+					Longitude: -68.756363
+					Latitude: 44.514244
 					Altitude: 8
 					Speed: 0
 				</description>
@@ -880,7 +880,7 @@ xmlns:atom="http://www.w3.org/2005/Atom">
 			<Point>
 				<extrude>FALSE</extrude>
 				<altitudeMode>absolute</altitudeMode>
-					<coordinates>-68.75636,44.51424,8</coordinates>
+					<coordinates>-68.756363,44.514244,8</coordinates>
 			</Point>
 	</Placemark>
 	<Placemark>
@@ -894,8 +894,8 @@ xmlns:atom="http://www.w3.org/2005/Atom">
 					ID: Wilson
 					Date: 2016-01-15
 					Time: 11:24 AM
-					Longitude: -68.75642
-					Latitude: 44.51426
+					Longitude: -68.756424
+					Latitude: 44.514259
 					Altitude: -15
 					Speed: 0
 				</description>
@@ -903,7 +903,7 @@ xmlns:atom="http://www.w3.org/2005/Atom">
 			<Point>
 				<extrude>FALSE</extrude>
 				<altitudeMode>absolute</altitudeMode>
-					<coordinates>-68.75642,44.51426,-15</coordinates>
+					<coordinates>-68.756424,44.514259,-15</coordinates>
 			</Point>
 	</Placemark>
 	<Placemark>
@@ -917,8 +917,8 @@ xmlns:atom="http://www.w3.org/2005/Atom">
 					ID: Wilson
 					Date: 2016-01-15
 					Time: 05:29 PM
-					Longitude: -68.75909
-					Latitude: 44.50843
+					Longitude: -68.759087
+					Latitude: 44.508427
 					Altitude: 11
 					Speed: 0
 				</description>
@@ -926,7 +926,7 @@ xmlns:atom="http://www.w3.org/2005/Atom">
 			<Point>
 				<extrude>FALSE</extrude>
 				<altitudeMode>absolute</altitudeMode>
-					<coordinates>-68.75909,44.50843,11</coordinates>
+					<coordinates>-68.759087,44.508427,11</coordinates>
 			</Point>
 	</Placemark>
 	<Placemark>
@@ -940,7 +940,7 @@ xmlns:atom="http://www.w3.org/2005/Atom">
 					ID: Wilson
 					Date: 2016-03-09
 					Time: 05:34 PM
-					Longitude: -68.78489
+					Longitude: -68.784889
 					Latitude: 44.44804
 					Altitude: 33
 					Speed: 0
@@ -949,7 +949,7 @@ xmlns:atom="http://www.w3.org/2005/Atom">
 			<Point>
 				<extrude>FALSE</extrude>
 				<altitudeMode>absolute</altitudeMode>
-					<coordinates>-68.78489,44.44804,33</coordinates>
+					<coordinates>-68.784889,44.44804,33</coordinates>
 			</Point>
 	</Placemark>
 	<Placemark>
@@ -963,8 +963,8 @@ xmlns:atom="http://www.w3.org/2005/Atom">
 					ID: Wilson
 					Date: 2016-03-09
 					Time: 05:35 PM
-					Longitude: -68.78477
-					Latitude: 44.448
+					Longitude: -68.784775
+					Latitude: 44.448002
 					Altitude: 23
 					Speed: 0
 				</description>
@@ -972,7 +972,7 @@ xmlns:atom="http://www.w3.org/2005/Atom">
 			<Point>
 				<extrude>FALSE</extrude>
 				<altitudeMode>absolute</altitudeMode>
-					<coordinates>-68.78477,44.448,23</coordinates>
+					<coordinates>-68.784775,44.448002,23</coordinates>
 			</Point>
 	</Placemark>
 	<Placemark>
@@ -986,8 +986,8 @@ xmlns:atom="http://www.w3.org/2005/Atom">
 					ID: Wilson
 					Date: 2016-03-09
 					Time: 06:39 PM
-					Longitude: -68.78483
-					Latitude: 44.44806
+					Longitude: -68.784828
+					Latitude: 44.448063
 					Altitude: 43
 					Speed: 1
 				</description>
@@ -995,7 +995,7 @@ xmlns:atom="http://www.w3.org/2005/Atom">
 			<Point>
 				<extrude>FALSE</extrude>
 				<altitudeMode>absolute</altitudeMode>
-					<coordinates>-68.78483,44.44806,43</coordinates>
+					<coordinates>-68.784828,44.448063,43</coordinates>
 			</Point>
 	</Placemark>
 	<Placemark>
@@ -1009,8 +1009,8 @@ xmlns:atom="http://www.w3.org/2005/Atom">
 					ID: Wilson
 					Date: 2016-03-10
 					Time: 04:53 AM
-					Longitude: -68.78525
-					Latitude: 44.44807
+					Longitude: -68.785248
+					Latitude: 44.448074
 					Altitude: 4
 					Speed: 0
 				</description>
@@ -1018,7 +1018,7 @@ xmlns:atom="http://www.w3.org/2005/Atom">
 			<Point>
 				<extrude>FALSE</extrude>
 				<altitudeMode>absolute</altitudeMode>
-					<coordinates>-68.78525,44.44807,4</coordinates>
+					<coordinates>-68.785248,44.448074,4</coordinates>
 			</Point>
 	</Placemark>
 	<Placemark>
@@ -1032,8 +1032,8 @@ xmlns:atom="http://www.w3.org/2005/Atom">
 					ID: Wilson
 					Date: 2016-03-10
 					Time: 06:45 PM
-					Longitude: -68.76578
-					Latitude: 44.44367
+					Longitude: -68.765785
+					Latitude: 44.443668
 					Altitude: 2068
 					Speed: 0
 				</description>
@@ -1041,7 +1041,7 @@ xmlns:atom="http://www.w3.org/2005/Atom">
 			<Point>
 				<extrude>FALSE</extrude>
 				<altitudeMode>absolute</altitudeMode>
-					<coordinates>-68.76578,44.44367,2068</coordinates>
+					<coordinates>-68.765785,44.443668,2068</coordinates>
 			</Point>
 	</Placemark>
 	<Placemark>
@@ -1055,8 +1055,8 @@ xmlns:atom="http://www.w3.org/2005/Atom">
 					ID: Wilson
 					Date: 2016-03-11
 					Time: 04:51 AM
-					Longitude: -68.78509
-					Latitude: 44.4481
+					Longitude: -68.785088
+					Latitude: 44.448105
 					Altitude: 18
 					Speed: 0
 				</description>
@@ -1064,7 +1064,7 @@ xmlns:atom="http://www.w3.org/2005/Atom">
 			<Point>
 				<extrude>FALSE</extrude>
 				<altitudeMode>absolute</altitudeMode>
-					<coordinates>-68.78509,44.4481,18</coordinates>
+					<coordinates>-68.785088,44.448105,18</coordinates>
 			</Point>
 	</Placemark>
 	<Placemark>
@@ -1078,8 +1078,8 @@ xmlns:atom="http://www.w3.org/2005/Atom">
 					ID: Wilson
 					Date: 2016-04-07
 					Time: 05:20 PM
-					Longitude: -68.78497
-					Latitude: 44.44805
+					Longitude: -68.784973
+					Latitude: 44.448048
 					Altitude: 36
 					Speed: 0
 				</description>
@@ -1087,7 +1087,7 @@ xmlns:atom="http://www.w3.org/2005/Atom">
 			<Point>
 				<extrude>FALSE</extrude>
 				<altitudeMode>absolute</altitudeMode>
-					<coordinates>-68.78497,44.44805,36</coordinates>
+					<coordinates>-68.784973,44.448048,36</coordinates>
 			</Point>
 	</Placemark>
 	<Placemark>
@@ -1101,7 +1101,7 @@ xmlns:atom="http://www.w3.org/2005/Atom">
 					ID: Wilson
 					Date: 2016-04-07
 					Time: 05:21 PM
-					Longitude: -68.78509
+					Longitude: -68.785095
 					Latitude: 44.44812
 					Altitude: 20
 					Speed: 0
@@ -1110,7 +1110,7 @@ xmlns:atom="http://www.w3.org/2005/Atom">
 			<Point>
 				<extrude>FALSE</extrude>
 				<altitudeMode>absolute</altitudeMode>
-					<coordinates>-68.78509,44.44812,20</coordinates>
+					<coordinates>-68.785095,44.44812,20</coordinates>
 			</Point>
 	</Placemark>
 	<Placemark>
@@ -1124,8 +1124,8 @@ xmlns:atom="http://www.w3.org/2005/Atom">
 					ID: Wilson
 					Date: 2016-04-07
 					Time: 07:19 PM
-					Longitude: -68.78502
-					Latitude: 44.44813
+					Longitude: -68.785019
+					Latitude: 44.448132
 					Altitude: 21
 					Speed: 0
 				</description>
@@ -1133,14 +1133,14 @@ xmlns:atom="http://www.w3.org/2005/Atom">
 			<Point>
 				<extrude>FALSE</extrude>
 				<altitudeMode>absolute</altitudeMode>
-					<coordinates>-68.78502,44.44813,21</coordinates>
+					<coordinates>-68.785019,44.448132,21</coordinates>
 			</Point>
 	</Placemark>
 	<Placemark>
 		<name>2016-04-08 03:55 AM</name>
 		<TimeSpan>
 			<begin>2016-04-08T03:55</begin> 
-			<end>2016-04-08T03:55:02</end> 
+			<end>2016-04-08T09:16:32</end> 
 		</TimeSpan>
 			<Snippet></Snippet>
 				<description>
@@ -1148,7 +1148,7 @@ xmlns:atom="http://www.w3.org/2005/Atom">
 					Date: 2016-04-08
 					Time: 03:55 AM
 					Longitude: -68.8787
-					Latitude: 44.41294
+					Latitude: 44.412937
 					Altitude: 20
 					Speed: 1
 				</description>
@@ -1156,7 +1156,53 @@ xmlns:atom="http://www.w3.org/2005/Atom">
 			<Point>
 				<extrude>FALSE</extrude>
 				<altitudeMode>absolute</altitudeMode>
-					<coordinates>-68.8787,44.41294,20</coordinates>
+					<coordinates>-68.8787,44.412937,20</coordinates>
+			</Point>
+	</Placemark>
+	<Placemark>
+		<name>2016-04-08 09:16 AM</name>
+		<TimeSpan>
+			<begin>2016-04-08T09:16</begin> 
+			<end>2016-04-09T03:55:41</end> 
+		</TimeSpan>
+			<Snippet></Snippet>
+				<description>
+					ID: Wilson
+					Date: 2016-04-08
+					Time: 09:16 AM
+					Longitude: -68.938454
+					Latitude: 44.434864
+					Altitude: 24
+					Speed: 0
+				</description>
+			<styleUrl>#Point_Wilson</styleUrl>
+			<Point>
+				<extrude>FALSE</extrude>
+				<altitudeMode>absolute</altitudeMode>
+					<coordinates>-68.938454,44.434864,24</coordinates>
+			</Point>
+	</Placemark>
+	<Placemark>
+		<name>2016-04-09 03:55 AM</name>
+		<TimeSpan>
+			<begin>2016-04-09T03:55</begin> 
+			<end>2016-04-09T03:55:41</end> 
+		</TimeSpan>
+			<Snippet></Snippet>
+				<description>
+					ID: Wilson
+					Date: 2016-04-09
+					Time: 03:55 AM
+					Longitude: -68.938171
+					Latitude: 44.435081
+					Altitude: 14
+					Speed: 0
+				</description>
+			<styleUrl>#Point_Wilson</styleUrl>
+			<Point>
+				<extrude>FALSE</extrude>
+				<altitudeMode>absolute</altitudeMode>
+					<coordinates>-68.938171,44.435081,14</coordinates>
 			</Point>
 	</Placemark>
 	</Folder>
@@ -1212,6 +1258,8 @@ xmlns:atom="http://www.w3.org/2005/Atom">
 					<when>2016-04-07T17:21Z </when>
 					<when>2016-04-07T19:19Z </when>
 					<when>2016-04-08T03:55Z </when>
+					<when>2016-04-08T09:16Z </when>
+					<when>2016-04-09T03:55Z </when>
 					<gx:coord>-68.754425 44.530464 19 </gx:coord>
 					<gx:coord>-68.755135 44.530773 17 </gx:coord>
 					<gx:coord>-68.752617 44.528122 22 </gx:coord>
@@ -1258,8 +1306,10 @@ xmlns:atom="http://www.w3.org/2005/Atom">
 					<gx:coord>-68.785095 44.44812 20 </gx:coord>
 					<gx:coord>-68.785019 44.448132 21 </gx:coord>
 					<gx:coord>-68.8787 44.412937 20 </gx:coord>
+					<gx:coord>-68.938454 44.434864 24 </gx:coord>
+					<gx:coord>-68.938171 44.435081 14 </gx:coord>
 		</gx:Track>
 	</Placemark>
- 	</Folder>
+	</Folder>
 </Document>
 </kml>

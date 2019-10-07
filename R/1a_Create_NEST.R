@@ -20,7 +20,7 @@ options(stringsAsFactors = FALSE)
 options(row.names = FALSE)
 
 csv_output_dir = "Data/Nests/Nests_csv"
-kml_output_dir = "C:/ArcGIS/Data/BAEA/Nests/KMLs"
+kml_output_dir = "Data/Nests/Nests_kml"
 rds_output_dir = "Data/Nests/Nests_rds"
 
 ############################ IFW NESTS - ALL ###################################
@@ -159,9 +159,10 @@ ExportKMLPoints(nests_intact_last, id = "nest_site",
 nests_study_csv <- read.csv("Data/Nests/Original_Data/Study_20170325.csv")
     # Updated MusquashE and Sheepscot on 20160223
     # Updated Upper on 20160317
-    # Updatee Davis on 20160327
+    # Updated Davis on 20160327
     # Updated Musquash on 20161106
     # Updated Sandy, Hebron, and Musquash on 20170325
+    # Updated Sandy, Ellis, and Musquash on 20190901
 
 nests_study <- left_join(nests_study_csv, nests_intact_all %>%
   dplyr::select(nest_site, site_name, comments:nest_comments),

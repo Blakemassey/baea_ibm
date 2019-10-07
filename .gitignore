@@ -4,6 +4,7 @@
 rosm.cache
 Data/CTT/Deployed/Recent
 Data/GPS
+Output/Analysis/Homerange/homerange_akde.rds
 Output/Analysis/Territorial
 Output/Sim
 Products/Graphs

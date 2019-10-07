@@ -6,8 +6,8 @@ library(gisr)
 library(baear)
 
 # Import Deployed Data and Convert to BAEA -------------------------------------
-deployed_all <- readRDS(file="Data/CTT/Deployed/Deployed.rds")
-baea <- ImportBAEA(existing=deployed_all, import=FALSE)
+deployed_all <- readRDS(file = "Data/CTT/Deployed/Deployed.rds")
+baea <- ImportBAEA(existing = deployed_all, import = FALSE)
 baea <- AddNestData(baea)
 baea <- AddSeason(baea)
 baea <- AddElevationData(baea)
@@ -19,9 +19,9 @@ saveRDS(baea, "Data/BAEA/baea.rds")
 suppressPackageStartupMessages(library(sp))
 wgs84n19 <- CRS("+init=epsg:32619") # WGS84 UTM 19N
 baea_spdf <- SpatialPointsDataFrame(baea[c("long_utm", "lat_utm")],
-  bbox=NULL, data=baea, proj4string=wgs84n19)
+  bbox = NULL, data = baea, proj4string = wgs84n19)
 
-saveRDS(baea_spdf, file="Data/BAEA/baea_spdf.rds")
+saveRDS(baea_spdf, file = "Data/BAEA/baea_spdf.rds")
 
 #------------------------------------------------------------------------------#
 ################################ OLD CODE ######################################

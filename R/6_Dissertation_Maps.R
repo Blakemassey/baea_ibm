@@ -1,7 +1,23 @@
+############################# MAPS SETUP #######################################
+
 # Load packages
-pacman::p_load(gisr, baear, cartography, dplyr, grid, leaflet,magick, mapview,
+pacman::p_load(gisr, baear, cartography, dplyr, grid, leaflet, magick, mapview,
   OpenStreetMap, plotly, prettymapr, purrr, raster, rosm, rsvg, sf, tmap,
   tmaptools, viridis, webshot)
+
+pacman::p_load(ctmm, devtools, dplyr, fitdistrplus, ggplot2, ggthemes,
+  lubridate, mapview, move, raster, sf, tmaptools, units, zoo)
+library(baear)
+library(gisr)
+library(ibmr)
+
+options(stringsAsFactors = FALSE)
+theme_update(plot.title = element_text(hjust = 0.5))
+
+
+# Coordinate systems
+wgs84 <- CRS("+init=epsg:4326") # WGS84 Lat/Long
+wgs84n19 <- CRS("+init=epsg:32619") # WGS84 UTM 19N
 
 # Rasters
 base <- raster(file.path("C:/ArcGIS/Data/BlankRaster/maine_30mc.tif"))
@@ -11,6 +27,7 @@ baea_dir <- "C:/Users/blake/OneDrive/Work/R/Projects/baea_ibm/Data/BAEA"
 nests_dir <- file.path("C:/Users/blake/OneDrive/Work/R/Projects/baea_ibm",
   "Data/Nests/Nests_rds")
 turbine_dir <- file.path("C:/ArcGIS/Data/R_Input/BAEA")
+tex_dir <- "C:/Users/Blake/OneDrive/Work/LaTeX/BMassey_Dissertation"
 
 wind_dir <- file.path("C:/Users/blake/OneDrive/Work/R/Projects/baea_ibm",
   "Data/Wind")
@@ -43,9 +60,6 @@ wind_class <- read_sf(file.path(wind_dir, "Maine_Wind_High_Resolution",
 turbines <- read_sf(file.path(turbine_dir, "wind_turbines.shp")) %>%
   st_transform(crs = 32619)
 
-
-## ----------------------------- CREATE MAPS -------------------------------- ##
-
 tmap_mode("plot")
 
 ## Maine Overview Map ------------------------------------------------------- ##
@@ -65,7 +79,11 @@ esri_tile <- "/MapServer/tile/{z}/{y}/{x}"
 om_type <- paste0(esri_url, "NatGeo_World_Map", esri_tile)
 
 
-#### ----------------------- NESTS OVERVIEW MAPS -------------------------- ####
+############################################################################# ##
+#### -------------------------- CHAPTER 2 --------------------------------- ####
+############################################################################# ##
+
+#### ----------------------- NESTS OVERVIEW MAPS -------------------------------
 
 maine_bb_sf <- st_as_sfc(bb(maine, relative = TRUE, height = 1.15, width = 2))
 maine_bb_ext <- CreateOSMBaseBB(maine_bb_sf, type = "om_type")
@@ -108,7 +126,7 @@ nests_overview
 tmap_save(tm = nests_overview, filename = file.path(maps_dir, "Trapping_Sites",
   "Trapping_Sites_Overview.svg"), unit = "in", dpi = 300, height = 8, width = 6)
 
-#### ---------------------- BAEA INDIVIDUAL MAPS -------------------------- ####
+#### ---------------------- BAEA INDIVIDUAL MAPS -------------------------------
 
 # Getting the ratio and background correct requires 3 components:
 # 1) Getting enough coverage of basemap by adjusting bb() 'height'/'weight' args
@@ -117,341 +135,132 @@ tmap_save(tm = nests_overview, filename = file.path(maps_dir, "Trapping_Sites",
 
 # Select id and year
 table(baea$id, baea$year) # Determine available individual/year combos
-id_i <- "Sandy"
-year_i <- 2018
+id_i <- "Norway"
+year_i <- 2015
 
-### Flightpath Maps ------------------------------------------------------------
 
-# Filter data, create fightpaths
-baea_i <- baea %>% filter(id == id_i) %>% filter(year == year_i) %>%
-  st_transform(., crs = as.character(OpenStreetMap::osm()))
+### ------------------------- Home Range Maps ----------------------------------
 
-baea_i_lines <- baea_i %>%
-  group_by(id) %>%
-  arrange(datetime) %>%
-  summarize(m = mean(year), do_union = FALSE) %>%
-  st_cast("LINESTRING")
-
-# Get osm baselayer for baea_i
-baea_i_bb_sf <- st_as_sfc(bb(baea_i, relative = TRUE, height = 3,
-  width = 2))
-baea_i_bb_ext <- CreateOSMBaseBB(baea_i_bb_sf, type = "om_type")
-baea_i_down = OpenStreetMap::openmap(baea_i_bb_ext[[1]], baea_i_bb_ext[[2]],
-  minNumTiles = 21, type = om_type)  # may need to add and adjust 'zoom' arg
-baea_i_om <- RasterizeOMDownload(baea_i_down)
-
-baea_i_x_dist <- as.numeric(approx_distances(bb(baea_i, ext = 1.15))[1])/1000/5
-baea_i_x_breaks <- as.numeric(unlist(scales::cbreaks(c(0, baea_i_x_dist),
-  scales::pretty_breaks(3))[1]))
-
-# All flight paths and points
-baea_i_paths <-
-  tm_layout(asp = 1) +
-  tm_shape(baea_i_om) +
-    tm_rgb() +
-  tm_shape(baea_i_lines) +
-    tm_lines("#ffffff", lwd = 2, alpha = .5) + # brewer.pal(5, "RdGy")[3]
-  tm_shape(baea_i,
-    bbox = bb(baea_i, ext = 1.15), is.master = TRUE) +
-    tm_dots(size = 0.075, col = "#404040") +   # brewer.pal(5, "RdGy")[5]
-  tm_layout(main.title = NULL, #paste0("GPS Locations: ", id_i),
-    main.title.position = "center",
-    main.title.size = 1.15,
-    title.snap.to.legend = TRUE) +
-  tm_legend(title.size = 1, text.size = .85,
-    outside = TRUE, position = c("right", "bottom")) +
-  tm_scale_bar(size = .75, width = .2,
-    breaks = baea_i_x_breaks,
-    position = c(.05, .01)) +
-  tm_compass(type = "4star",  show.labels = 1, size = 2.5,
-    position = c(.875, .875)) +
-  tm_grid(n.x = 4, n.y = 5, projection = 4326, col = "grey85", alpha = .75,
-    labels.col = "grey25", labels.format = list(format = "f", big.mark = ""),
-    labels.inside.frame = FALSE) +
-  tm_xlab("") + tm_ylab("")
-baea_i_paths
-
-baea_i_bb = gisr::CreateMapExtentBB(baea_i, asp = 1, ext = 1.15)
+homerange_akde <- readRDS(file.path("Output/Analysis/Homerange",
+  "homerange_akde.rds"))
+baea_hr <- readRDS("Data/BAEA/baea_homerange.rds")
 
 # Use "Tmap_baselayers.R" script to get other baselayers
-maine_bb_sf <- st_as_sfc(bb(maine, relative = TRUE, height = 1,
-  width = 2))
-maine_baea_i <- sf::st_union(x = maine_bb_sf, y = baea_i_bb %>%
-  st_transform(st_crs(maine_bb_sf)))
-maine_i_bb <- bb_poly(bb(maine_baea_i, ext = 1.15))
-maine_i_bb_ext <- CreateOSMBaseBB(maine_i_bb, type = "om_type")
-maine_i_down = OpenStreetMap::openmap(maine_i_bb_ext[[1]],
-  maine_i_bb_ext[[2]], zoom = 5, minNumTiles = 9, type = om_type)
-maine_i_om <- RasterizeOMDownload(maine_i_down)
+maine_bb_sf <- st_as_sfc(bb(maine, relative = TRUE, height = 1, width = 2))
+maine_bb <- bb_poly(bb(maine_bb_sf, ext = 1.15))
+maine_bb_ext <- CreateOSMBaseBB(maine_bb, type = "om_type")
+maine_down = OpenStreetMap::openmap(maine_bb_ext[[1]], maine_bb_ext[[2]],
+  zoom = 5, minNumTiles = 9, type = om_type)
+maine_om <- RasterizeOMDownload(maine_down)
 
-maine_i_overview <-
-  tm_shape(maine_i_om) +
-    tm_rgb() +
-  tm_shape(maine) + # setting this as master sets lat/long
-    tm_borders(col = "black") +
-  tm_shape(baea_i_bb) +
-    tm_borders(col = "red")
-maine_i_overview
+# For mapping
+for (i in unique(baea_hr$id)){
+  baea_hr_i <- baea_hr %>% filter(id == i) %>% arrange(datetime)
+  homerange_akde_i <- homerange_akde %>% filter(id == i)
+  for (j in unique(baea_hr_i$year)){
+    print(paste0("ID:", i, "; ", "Year:", j))
+    baea_hr_k <- baea_hr_i %>% filter(year == j)
+    homerange_akde_k <- homerange_akde_i %>% filter(year == j)
+    akde_k <- homerange_akde_k %>% pull(hr_akde) %>% pluck(1)
+    ud_95_sp_k <- SpatialPolygonsDataFrame.UD(akde_k, level.UD = 0.95,
+      level = 0.95)
+    ud_95_sf_k <- st_as_sf(ud_95_sp_k) %>% slice(2)
+    ud_50_sp_k <- SpatialPolygonsDataFrame.UD(akde_k, level.UD = 0.5,
+      level = 0.95)
+    ud_50_sf_k <- st_as_sf(ud_50_sp_k) %>% slice(2)
+    baea_sf_k <- st_as_sf(baea_hr_k, coords = c("long_utm", "lat_utm"),
+      crs = 32619, agr = "constant")
+    # mapview(list(ud_95_sf_k, ud_50_sf_k, baea_sf_k),
+    #   zcol = list(NULL, NULL, NULL),
+    #   legend = list(TRUE, FALSE, FALSE), homebutton = list(FALSE, TRUE, TRUE))
 
-tmap_save(tm = baea_i_paths, filename = file.path(maps_dir, "Individuals",
-  paste0(year_i, "_", id_i, ".svg")), insets_tm = maine_i_overview,
-  insets_vp =  viewport(x = 0.855, y = 0.145, width = 0.2, height = 0.2),
-  unit = "in", dpi = 300, height = 6, width = 6)
+    # Filter data, create fightpaths
+    baea_k <- baea_hr_k %>% st_as_sf(., coords = c("long_utm", "lat_utm"),
+      crs = 32619)  %>%
+      st_transform(., crs = as.character(OpenStreetMap::osm()))
+    baea_k_lines <- baea_k %>% group_by(id) %>% arrange(datetime) %>%
+      summarize(m = mean(year), do_union = FALSE) %>%
+      st_cast("LINESTRING")
 
-# Create 2d kernel density data - isopleth lines, polygons, and rasters
-baea_i_smooth <- smooth_map(baea_i, cover = as(CreateExtentSF(baea_i, 1),
-  "Spatial"), nlevels = 10)
+    # Get osm baselayer for baea_k
+    baea_k_bb_sf <- st_as_sfc(bb(baea_k, relative = TRUE, height = 4, width =4))
+    baea_k_bb_ext <- CreateOSMBaseBB(baea_k_bb_sf, type = "om_type")
+    baea_k_down = OpenStreetMap::openmap(baea_k_bb_ext[[1]], baea_k_bb_ext[[2]],
+      minNumTiles = 21, type = om_type)  # may need to add and adjust 'zoom' arg
+    baea_k_om <- RasterizeOMDownload(baea_k_down)
+    baea_dist_sf <- st_as_sfc(bb(baea_k, relative = TRUE, height = 1, width =1))
+    baea_k_x_dist <- as.numeric(approx_distances(bb(baea_dist_sf,
+      ext = 1.15))[1])/1000/5
+    baea_k_x_breaks <- as.numeric(unlist(scales::cbreaks(c(0, baea_k_x_dist),
+      scales::pretty_breaks(2))[1]))
+    print(baea_k_x_breaks)
 
-### Isopleth Maps --------------------------------------------------------------
+    # Home range, points, and flight paths
+    baea_k_hr_paths <-
+      tm_layout(asp = 1) +
+      tm_shape(baea_k_om) +
+        tm_rgb() +
+      tm_shape(baea_k_lines) +
+        tm_lines("#ffffff", lwd = 2, alpha = .25) +
+      tm_shape(baea_k,
+        bbox = bb(baea_k, ext = 1.15), is.master = TRUE) +
+        tm_dots(size = 0.075, col = "#700074", alpha = .5) +
+      tm_shape(ud_95_sf_k) +
+        tm_polygons(col = "yellow", alpha = .15) +
+      tm_shape(ud_95_sf_k) +
+        tm_borders(col= "yellow", lwd = 2) +
+      tm_shape(ud_50_sf_k) +
+        tm_polygons(col = "red", alpha = .15) +
+      tm_shape(ud_50_sf_k) +
+        tm_borders(col= "red", lwd = 2) +
+      tm_layout(main.title = NULL, #paste0("GPS Locations: ", id_i),
+        main.title.position = "center",
+        main.title.size = 1.15,
+        title.snap.to.legend = TRUE) +
+      tm_legend(title.size = 1, text.size = .85,
+        outside = TRUE, position = c("right", "bottom")) +
+      tm_scale_bar(text.size = .75, width = .2,
+        breaks = baea_k_x_breaks,
+        position = c(.05, .01)) +
+      tm_compass(type = "4star",  show.labels = 1, size = 2.5,
+        position = c(.875, .875)) +
+     tm_grid(n.x = 4, n.y = 5, projection = 4326, col = "grey85", alpha = 0,
+       labels.col = "grey25", labels.format = list(format = "f", big.mark = ""),
+       labels.inside.frame = FALSE) +
+      tm_xlab("") + tm_ylab("")
 
-# Drop lowest density polygon
-baea_i_smooth_polys <- st_intersection(baea_i_smooth$polygons,
-  baea_i_smooth$polygons %>% arrange(level) %>% slice(-1))
+    # Maine Overview Map
+    baea_k_bb = gisr::CreateMapExtentBB(baea_k, asp = 1, ext = 1.15)
+    maine_overview <-
+      tm_shape(maine_om) +
+        tm_rgb() +
+      tm_shape(maine) + # setting this as master sets lat/long
+        tm_borders(col = "black") +
+      tm_shape(baea_k_bb) +
+        tm_borders(col = "red")
 
-mapview(baea_i_smooth_polys)
+    # Export to TEMP Folder
+    tmap_save(tm = baea_k_hr_paths, filename = file.path("C:/Temp",
+      paste0(i, "_", j, ".svg")),
+      insets_tm = maine_overview,
+      insets_vp =  viewport(x = 0.881, y = 0.147, width = 0.2, height = 0.2),
+      unit = "in", dpi = 300, height = 6, width = 6)
 
-# Isolate highest density polygon
-baea_i_smooth_poly1 <- st_intersection(baea_i_smooth$polygons,
-  baea_i_smooth$polygons %>% arrange(rev(level)) %>% slice(1))
-
-# Download om for polys_i
-polys_i_bb_sf <- st_as_sfc(bb(baea_i_smooth_polys, relative = TRUE, height = 1.15,
-  width = 1.15))
-polys_i_bb_ext <- CreateOSMBaseBB(polys_i_bb_sf, type = "om_type")
-polys_i_down = OpenStreetMap::openmap(polys_i_bb_ext[[1]], polys_i_bb_ext[[2]],
-  minNumTiles = 21, type = om_type)
-polys_i_om <- RasterizeOsMDownload(polys_i_down)
-
-# Download om for poly1_i
-poly1_i_bb_sf <- st_as_sfc(bb(baea_i_smooth_poly1, relative = TRUE, height = 2,
-  width = 2))
-poly1_i_bb_ext <- CreateOSMBaseBB(poly1_i_bb_sf, type = "om_type")
-poly1_i_down = OpenStreetMap::openmap(poly1_i_bb_ext[[1]], poly1_i_bb_ext[[2]],
-  minNumTiles = 21, type = om_type)
-poly1_i_om <- RasterizeOsMDownload(poly1_i_down)
-
-# All but lowest density isopleth
-tm_shape(polys_i_om) +
-  tm_raster() +
-tm_shape(baea_i_smooth$raster) +
-  tm_raster("count", alpha = .5) +
-tm_shape(baea_i_smooth$iso) +
-  tm_iso("black", size = .5, fontcolor="black")
-
-# Highest density isopleth
-tm_shape(poly1_i_om) +
-  tm_rgb() +
-tm_shape(baea_i_smooth_polys) +
-  tm_fill("level", alpha = .5) +
-tm_borders()
-
-
-### ------------------------- Hexbin Maps --------------------------------------
-
-# Select id and year
-table(baea$id, baea$year) # Determine available individual/year combos
-id_i <- "Ellis"
-year_i <- 2018
-
-# Filter data, create fightpaths
-baea_i <- baea %>% filter(id == id_i) %>% filter(year == year_i)
-
-baea_i_hexgrid <- st_make_grid(bb_poly(baea_i), cellsize = 9000, square = FALSE)
-plot(baea_i_hexgrid)
-baea_i_hexs = aggregate(baea_i %>% transmute(pt = 1), baea_i_hexgrid, sum) %>%
-  filter(pt > 0)
-plot(baea_i_hexs)
-mapview(baea_i_hexs)
-
-# Download om for polys_i
-hexs_i_bb_sf <- CreateMapExtentBB(baea_i_hexs, ext = 1.15, asp = 1)
-hexs_i_bb_ext <- CreateOSMBaseBB(hexs_i_bb_sf, type = "om_type")
-hexs_i_down <- OpenStreetMap::openmap(hexs_i_bb_ext[[1]], hexs_i_bb_ext[[2]],
-  minNumTiles = 21, type = om_type)
-hexs_i_om <- RasterizeOsMDownload(hexs_i_down)
-
-baea_i_x_dist <- as.numeric(approx_distances(bb(baea_i, ext = 1.15))[1])/1000/5
-baea_i_x_breaks <- as.numeric(unlist(scales::cbreaks(c(0, baea_i_x_dist),
-  scales::pretty_breaks(3))[1]))
-
-baea_i_hexbins <-
-  tm_layout(asp = 1) +
-  tm_shape(hexs_i_om) +
-    tm_rgb() +
-#  tm_shape(baea_i) +
-#    tm_dots(size = 0.075, col = "black") +
-  tm_shape(baea_i_lines) +
-    tm_lines("yellow", lwd = 2, alpha = .5) +
-  tm_shape(baea_i_hexs,
-      bbox = bb(baea_i, ext = 1.15), is.master = TRUE) +
-    tm_fill(col = 'pt', alpha = .5, palette = viridis(5, option = "D")) +
-    tm_borders(col = "black") +
-  tm_layout(main.title = paste0("Hexbins: ", id_i),
-    main.title.position = "center",
-    main.title.size = 1.15,
-    title.snap.to.legend = TRUE) +
-  tm_legend(title.size = 1, text.size = .85,
-    outside = FALSE, position = c("right", "bottom")) +
-  tm_scale_bar(size = .75, width = .2,
-    breaks = baea_i_x_breaks,
-    position = c(.05, .01)) +
-  tm_compass(type = "4star",  show.labels = 1, size = 2.5,
-    position = c(.875, .875)) +
-  tm_grid(n.x = 4, n.y = 5, projection = 4326, col = "grey85", alpha = .75,
-    labels.col = "grey25", labels.format = list(format = "f", big.mark = ""),
-    labels.inside.frame = FALSE) +
-  tm_xlab("") + tm_ylab("")
-baea_i_hexbins
-
-
-
-
-#### ------------------- COVAR-SIGMA EXAMPLE MAPS ------------------------- ####
-
-pacman::p_load(purrr, magick, rsvg, update = FALSE)
-
-load_covars <- TRUE
-if (isTRUE(load_covars)){
-  covar1 <- raster("Data/GIS/covar1.tif")
-  covar2 <- raster("Data/GIS/covar2.tif")
-  covar3 <- raster("Data/GIS/covar3.tif")
-  names(covar1) <- "elev"
-  names(covar2) <- "develop"
-  names(covar3) <- "gauss"
-}
-
-# Set Sigma Range for Sigma Combinations Models --------------------------------
-
-combo_sigmas <- c(seq(0, 40, by = 10))
-
-# Create Covar Sigma Rasters Brick ---------------------------------------------
-
-covar_brick <- brick(c(
-  tibble(sigma = combo_sigmas, covar = "covar1") %>% pmap(., SmoothRaster),
-  tibble(sigma = combo_sigmas, covar = "covar2") %>% pmap(., SmoothRaster),
-  tibble(sigma = combo_sigmas, covar = "covar3") %>% pmap(., SmoothRaster)))
-
-# Download Basemaps ------------------------------------------------------------
-
-# ESRI Baselayer, Must use OpenStreeMap::openmap() and 'om_type' argument
-esri_url <- "https://server.arcgisonline.com/ArcGIS/rest/services/"
-esri_tile <- "/MapServer/tile/{z}/{y}/{x}"
-om_type <- paste0(esri_url, "NatGeo_World_Map", esri_tile)
-
-covar1_ext <- CreateMapExtentBB(st_as_sfc(bb(covar1)), 1.15, 10/7.5)
-covar1_om_bb <- CreateOSMBaseBB(covar1_ext, type = "om_type")
-covar1_om_down = OpenStreetMap::openmap(covar1_om_bb[[1]], covar1_om_bb[[2]],
-  minNumTiles = 21, type = om_type, zoom = 12)
-covar1_base <- RasterizeOMDownload(covar1_om_down)
-
-covar12_ext <- CreateMapExtentBB(st_as_sfc(bb(covar1)), 1.25, 10/7.5)
-covar12_om_bb <- CreateOSMBaseBB(covar12_ext, type = "om_type")
-covar12_om_down = OpenStreetMap::openmap(covar12_om_bb[[1]], covar12_om_bb[[2]],
-  minNumTiles = 21, type = om_type, zoom = 12)
-covar12_base <- RasterizeOMDownload(covar12_om_down)
-
-rm(esri_url, esri_tile, om_type, covar1_ext, covar1_om_bb, covar1_om_down,
-   covar12_ext, covar12_om_bb, covar12_om_down)
-
-covars <- c("covar1", "covar2", "covar3")
-covar_pals <- c("viridis", "cividis", "inferno")
-sigmas <- c(0, 10, 20)
-
-covar_sigma_maps <- rep(list(NA),length(covars)*length(sigmas))
-
-for (i in 1:length(covars)){
-  if(all(!is.na(covar_sigma_maps))){
-    covar_sigma_maps <- rep(list(NA),length(covars)*length(sigmas))
-  }
-  covar_i <- get(covars[i])
-  covar_pal_i <- covar_pals[i]
-  for (j in 1:length(sigmas)){
-    sigma_j <- sigmas[j]
-    covar_sigma <- subset(covar_brick, subset = paste0(names(covar_i), sigma_j))
-    covar_sigma_map <- tm_shape(covar12_base) + tm_rgb() +
-      tm_shape(st_as_sfc(bb(covar1)), ext = 1.25, is.master = TRUE) +
-      tm_borders(col = NULL, lwd = 2) + tm_shape(covar_sigma) +
-      tm_raster(palette = covar_pal_i, n = 20, alpha = 1) +
-      tm_layout(asp =  10/7.5, outer.margins = rep(0, 4),
-        title.bg.color = NA,
-        title.size = 1.25,
-        title.position = c("center", "TOP"), title.snap.to.legend = FALSE) +
-      tm_legend(show = FALSE, title.size = .65, text.size = .5, frame = TRUE,
-        outside = FALSE, position = c("right", "center"),
-        legend.bg.color = "grey80") +
-      tm_scale_bar(breaks = c(0, 2, 4), size = .35, position = c(.02, .00)) +
-      tm_compass(type = "arrow",  show.labels = 0, size = .8,
-        position = c(.90, .88))
-    k <- min(which(is.na(covar_sigma_maps)))
-    covar_sigma_maps[[k]] <- covar_sigma_map
+    # Export to LaTeX Folder
+    # tmap_save(tm = baea_i_paths, filename = file.path(tex_dir,
+    #   "Figures/Ch2/HR_Maps", paste0(i, "_", j, ".svg")),
+    #   insets_tm = maine_overview,
+    #   insets_vp =  viewport(x = 0.855, y = 0.145, width = 0.2, height = 0.2),
+    #   unit = "in", dpi = 300, height = 6, width = 6)
   }
 }
 
-covar123_sigma0_10_20_facet_map <- tmap_arrange(
-  covar_sigma_maps[[1]], covar_sigma_maps[[2]], covar_sigma_maps[[3]],
-  covar_sigma_maps[[4]], covar_sigma_maps[[5]], covar_sigma_maps[[6]],
-  covar_sigma_maps[[7]], covar_sigma_maps[[8]], covar_sigma_maps[[9]],
-  nrow = 3, ncol = 3,
-  asp = NA, outer.margins = rep(0, 4))
 
-maps_file = file.path("Products/Maps/Covar_Sigmas",
-  "Covar123_Sigma0_10_20Facet.png")
-tmap_save(tm = covar123_sigma0_10_20_facet_map, filename = maps_file,
-  unit = "in", dpi = 300, height = 5, width = 5)
+############################################################################# ##
+#### -------------------------- CHAPTER 4 --------------------------------- ####
+############################################################################# ##
 
-# Create legends figure
-
-covar_sigma_legends <- rep(list(NA), length(covars))
-for (i in 1:length(covars)){
-  covar_i <- get(covars[i])
-  covar_pal_i <- covar_pals[i]
-    sigma_j <- sigmas[1]
-    covar_sigma <- subset(covar_brick, subset = paste0(names(covar_i), sigma_j))
-    covar_sigma_legend <- tm_shape(covar_sigma) +
-      tm_raster(palette = covar_pal_i, n = 10, alpha = 1, title = "Value") +
-      tm_layout(legend.only = TRUE, #legend.bg.color = "grey80",
-        outer.margins = rep(-1, 4), inner.margins = rep(-1, 4)) +
-      tm_legend(text.size = 1, title.size = 1.5, design.mode = FALSE)
-    k <- min(which(is.na(covar_sigma_legends)))
-    covar_sigma_legends[[k]] <- covar_sigma_legend
-}
-covar123_sigma0_10_20_facet_legend <- tmap_arrange(
-  covar_sigma_legends[[1]], covar_sigma_legends[[2]], covar_sigma_legends[[3]],
-  nrow = 3, ncol = 1, outer.margins = rep(0, 4))
-covar123_sigma0_10_20_facet_legend
-
-legend_file = file.path("Products/Maps/Covar_Sigmas",
-  "Covar123_Sigma0_10_20Facet_Legend.png")
-tmap_save(tm = covar123_sigma0_10_20_facet_legend, filename = legend_file,
-  unit = "in", dpi = 300, height = 5, width = 1)
-
-covar_sigma_maps <- image_read(maps_file)
-covar_sigma_legend <- image_read(legend_file)
-covar_sigma_legend1 <- image_scale(image_trim(image_crop(covar_sigma_legend,
-  "300x500")), "x450") # was "x475"
-covar_sigma_legend2 <- image_scale(image_trim(image_crop(covar_sigma_legend,
-  "300x500+0+500")), "x450")
-covar_sigma_legend3 <- image_scale(image_trim(image_crop(covar_sigma_legend,
-  "300x500+0+1000")), "x450")
-backgrd <- image_blank(2000, 1600, color = "white")
-covar_sigma_fig <- image_composite(backgrd, covar_sigma_maps,
-    offset = "+275+100") %>%
-  image_composite(., covar_sigma_legend1, offset = "+1800+115") %>%
-  image_composite(., covar_sigma_legend2, offset = "+1800+615") %>%
-  image_composite(., covar_sigma_legend3, offset = "+1800+1115") %>%
-  image_annotate("Layer 1", size = 55, location = "+45+340") %>%
-  image_annotate("Layer 2", size = 55, location = "+45+840") %>%
-  image_annotate("Layer 3", size = 55, location = "+45+1340") %>%
-  image_annotate("Original Scale", size = 55, location = "+360+25") %>%
-  image_annotate("Sigma 10", size = 55, location = "+915+25") %>%
-  image_annotate("Sigma 20", size = 55, location = "+1415+25")
-covar_sigma_fig
-
-maps_fig_file = file.path("Products/Maps/Covar_Sigmas",
-  "Covar123_Sigma0_10_20Figure.png")
-image_write(covar_sigma_fig, path = maps_fig_file, format = ".png")
-
-9#### ------------------------- WILSON SCENARIOS MAP ----------------------- ####
+#### ------------------------- WILSON SCENARIOS MAP ----------------------------
 
 pacman::p_load(units, stringr)
 
@@ -606,7 +415,7 @@ tmap_save(tm = wilson_map, filename = file.path(maps_dir, "Wilson_Buildout",
   insets_vp =  viewport(x = 0.85, y = 0.167, width = 0.25, height = 0.25),
   unit = "in", dpi = 300, height = 6, width = 6.1)
 
-#### ------------------- ELLIS TURBINE DISTANCE MAP ----------------------- ####
+#### ------------------- ELLIS TURBINE DISTANCE MAP ----------------------------
 
 pacman::p_load(units, stringr)
 
@@ -771,6 +580,193 @@ ellis_map_polys
 # ---------------------------------------------------------------------------- #
 ################################ OLD CODE ######################################
 # ---------------------------------------------------------------------------- #
+
+
+
+### Flightpath Maps ------------------------------------------------------------
+
+# Filter data, create fightpaths
+baea_i <- baea %>% filter(id == id_i) %>% filter(year == year_i) %>%
+  st_transform(., crs = as.character(OpenStreetMap::osm()))
+
+baea_i_lines <- baea_i %>%
+  group_by(id) %>%
+  arrange(datetime) %>%
+  summarize(m = mean(year), do_union = FALSE) %>%
+  st_cast("LINESTRING")
+
+# Get osm baselayer for baea_i
+baea_i_bb_sf <- st_as_sfc(bb(baea_i, relative = TRUE, height = 3,
+  width = 2))
+baea_i_bb_ext <- CreateOSMBaseBB(baea_i_bb_sf, type = "om_type")
+baea_i_down = OpenStreetMap::openmap(baea_i_bb_ext[[1]], baea_i_bb_ext[[2]],
+  minNumTiles = 21, type = om_type)  # may need to add and adjust 'zoom' arg
+baea_i_om <- RasterizeOMDownload(baea_i_down)
+
+baea_i_x_dist <- as.numeric(approx_distances(bb(baea_i, ext = 1.15))[1])/1000/5
+baea_i_x_breaks <- as.numeric(unlist(scales::cbreaks(c(0, baea_i_x_dist),
+  scales::pretty_breaks(3))[1]))
+
+# All flight paths and points
+baea_i_paths <-
+  tm_layout(asp = 1) +
+  tm_shape(baea_i_om) +
+    tm_rgb() +
+  tm_shape(baea_i_lines) +
+    tm_lines("#ffffff", lwd = 2, alpha = .5) + # brewer.pal(5, "RdGy")[3]
+  tm_shape(baea_i,
+    bbox = bb(baea_i, ext = 1.15), is.master = TRUE) +
+    tm_dots(size = 0.075, col = "#404040") +   # brewer.pal(5, "RdGy")[5]
+  tm_layout(main.title = NULL, #paste0("GPS Locations: ", id_i),
+    main.title.position = "center",
+    main.title.size = 1.15,
+    title.snap.to.legend = TRUE) +
+  tm_legend(title.size = 1, text.size = .85,
+    outside = TRUE, position = c("right", "bottom")) +
+  tm_scale_bar(text.size = .75, width = .2,
+    breaks = baea_i_x_breaks,
+    position = c(.05, .01)) +
+  tm_compass(type = "4star",  show.labels = 1, size = 2.5,
+    position = c(.875, .875)) +
+  tm_grid(n.x = 4, n.y = 5, projection = 4326, col = "grey85", alpha = .75,
+    labels.col = "grey25", labels.format = list(format = "f", big.mark = ""),
+    labels.inside.frame = FALSE) +
+  tm_xlab("") + tm_ylab("")
+baea_i_paths
+
+baea_i_bb = gisr::CreateMapExtentBB(baea_i, asp = 1, ext = 1.15)
+
+# Use "Tmap_baselayers.R" script to get other baselayers
+maine_bb_sf <- st_as_sfc(bb(maine, relative = TRUE, height = 1,
+  width = 2))
+maine_baea_i <- sf::st_union(x = maine_bb_sf, y = baea_i_bb %>%
+  st_transform(st_crs(maine_bb_sf)))
+maine_i_bb <- bb_poly(bb(maine_baea_i, ext = 1.15))
+maine_i_bb_ext <- CreateOSMBaseBB(maine_i_bb, type = "om_type")
+maine_i_down = OpenStreetMap::openmap(maine_i_bb_ext[[1]],
+  maine_i_bb_ext[[2]], zoom = 5, minNumTiles = 9, type = om_type)
+maine_i_om <- RasterizeOMDownload(maine_i_down)
+
+maine_i_overview <-
+  tm_shape(maine_i_om) +
+    tm_rgb() +
+  tm_shape(maine) + # setting this as master sets lat/long
+    tm_borders(col = "black") +
+  tm_shape(baea_i_bb) +
+    tm_borders(col = "red")
+maine_i_overview
+
+tmap_save(tm = baea_i_paths, filename = file.path(maps_dir, "Individuals",
+  paste0(year_i, "_", id_i, ".svg")), insets_tm = maine_i_overview,
+  insets_vp =  viewport(x = 0.855, y = 0.145, width = 0.2, height = 0.2),
+  unit = "in", dpi = 300, height = 6, width = 6)
+
+# Create 2d kernel density data - isopleth lines, polygons, and rasters
+baea_i_smooth <- smooth_map(baea_i, cover = as(CreateExtentSF(baea_i, 1),
+  "Spatial"), nlevels = 10)
+
+### Isopleth Maps --------------------------------------------------------------
+
+# Drop lowest density polygon
+baea_i_smooth_polys <- st_intersection(baea_i_smooth$polygons,
+  baea_i_smooth$polygons %>% arrange(level) %>% slice(-1))
+
+mapview(baea_i_smooth_polys)
+
+# Isolate highest density polygon
+baea_i_smooth_poly1 <- st_intersection(baea_i_smooth$polygons,
+  baea_i_smooth$polygons %>% arrange(rev(level)) %>% slice(1))
+
+# Download om for polys_i
+polys_i_bb_sf <- st_as_sfc(bb(baea_i_smooth_polys, relative = TRUE,
+  height = 1.15, width = 1.15))
+polys_i_bb_ext <- CreateOSMBaseBB(polys_i_bb_sf, type = "om_type")
+polys_i_down = OpenStreetMap::openmap(polys_i_bb_ext[[1]], polys_i_bb_ext[[2]],
+  minNumTiles = 21, type = om_type)
+polys_i_om <- RasterizeOsMDownload(polys_i_down)
+
+# Download om for poly1_i
+poly1_i_bb_sf <- st_as_sfc(bb(baea_i_smooth_poly1, relative = TRUE, height = 2,
+  width = 2))
+poly1_i_bb_ext <- CreateOSMBaseBB(poly1_i_bb_sf, type = "om_type")
+poly1_i_down = OpenStreetMap::openmap(poly1_i_bb_ext[[1]], poly1_i_bb_ext[[2]],
+  minNumTiles = 21, type = om_type)
+poly1_i_om <- RasterizeOsMDownload(poly1_i_down)
+
+# All but lowest density isopleth
+tm_shape(polys_i_om) +
+  tm_raster() +
+tm_shape(baea_i_smooth$raster) +
+  tm_raster("count", alpha = .5) +
+tm_shape(baea_i_smooth$iso) +
+  tm_iso("black", size = .5, fontcolor="black")
+
+# Highest density isopleth
+tm_shape(poly1_i_om) +
+  tm_rgb() +
+tm_shape(baea_i_smooth_polys) +
+  tm_fill("level", alpha = .5) +
+tm_borders()
+
+
+### ------------------------- Hexbin Maps --------------------------------------
+
+# Select id and year
+table(baea$id, baea$year) # Determine available individual/year combos
+id_i <- "Ellis"
+year_i <- 2018
+
+# Filter data, create fightpaths
+baea_i <- baea %>% filter(id == id_i) %>% filter(year == year_i)
+
+baea_i_hexgrid <- st_make_grid(bb_poly(baea_i), cellsize = 9000, square = FALSE)
+plot(baea_i_hexgrid)
+baea_i_hexs = aggregate(baea_i %>% transmute(pt = 1), baea_i_hexgrid, sum) %>%
+  filter(pt > 0)
+plot(baea_i_hexs)
+mapview(baea_i_hexs)
+
+# Download om for polys_i
+hexs_i_bb_sf <- CreateMapExtentBB(baea_i_hexs, ext = 1.15, asp = 1)
+hexs_i_bb_ext <- CreateOSMBaseBB(hexs_i_bb_sf, type = "om_type")
+hexs_i_down <- OpenStreetMap::openmap(hexs_i_bb_ext[[1]], hexs_i_bb_ext[[2]],
+  minNumTiles = 21, type = om_type)
+hexs_i_om <- RasterizeOsMDownload(hexs_i_down)
+
+baea_i_x_dist <- as.numeric(approx_distances(bb(baea_i, ext = 1.15))[1])/1000/5
+baea_i_x_breaks <- as.numeric(unlist(scales::cbreaks(c(0, baea_i_x_dist),
+  scales::pretty_breaks(3))[1]))
+
+baea_i_hexbins <-
+  tm_layout(asp = 1) +
+  tm_shape(hexs_i_om) +
+    tm_rgb() +
+#  tm_shape(baea_i) +
+#    tm_dots(size = 0.075, col = "black") +
+  tm_shape(baea_i_lines) +
+    tm_lines("yellow", lwd = 2, alpha = .5) +
+  tm_shape(baea_i_hexs,
+      bbox = bb(baea_i, ext = 1.15), is.master = TRUE) +
+    tm_fill(col = 'pt', alpha = .5, palette = viridis(5, option = "D")) +
+    tm_borders(col = "black") +
+  tm_layout(main.title = paste0("Hexbins: ", id_i),
+    main.title.position = "center",
+    main.title.size = 1.15,
+    title.snap.to.legend = TRUE) +
+  tm_legend(title.size = 1, text.size = .85,
+    outside = FALSE, position = c("right", "bottom")) +
+  tm_scale_bar(size = .75, width = .2,
+    breaks = baea_i_x_breaks,
+    position = c(.05, .01)) +
+  tm_compass(type = "4star",  show.labels = 1, size = 2.5,
+    position = c(.875, .875)) +
+  tm_grid(n.x = 4, n.y = 5, projection = 4326, col = "grey85", alpha = .75,
+    labels.col = "grey25", labels.format = list(format = "f", big.mark = ""),
+    labels.inside.frame = FALSE) +
+  tm_xlab("") + tm_ylab("")
+baea_i_hexbins
+
+
 
 #
 # baea_i, asp = 4, ext = 1.15
