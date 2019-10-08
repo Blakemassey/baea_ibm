@@ -374,7 +374,7 @@ ggplot(homerange_metrics_area_sum %>% filter(!id %in% c(remove_list)),
   scale_color_brewer(type = "qual", palette = "Paired") +
   guides(color = guide_legend(title = "Eagle\nID")) +
   ggtitle("50% UD")
-# No pattern
+# No consistent pattern
 
 # 95% UD
 ggplot(homerange_metrics_area_sum %>% filter(!id %in% c(remove_list)),
@@ -385,7 +385,7 @@ ggplot(homerange_metrics_area_sum %>% filter(!id %in% c(remove_list)),
   scale_color_brewer(type = "qual", palette = "Paired") +
   guides(color = guide_legend(title = "Eagle\nID")) +
   ggtitle("95% UD")
-# Increase in size with increased # GPS locations
+# Generally positive correlation
 
 # Range of 50% UD values by ID
 ggplot(homerange_metrics_area_sum %>% filter(!id %in% c(remove_list)),
@@ -460,7 +460,7 @@ homerange_akde <- readRDS(file.path("Output/Analysis/Homerange",
 baea_hr <- readRDS("Data/BAEA/baea_homerange.rds")
 
 i <- "Musquash"
-j <- 2015
+j <- 2018
 
 for (i in unique(homerange_akde$id)){
   homerange_akde_i <- homerange_akde %>% filter(id == i)

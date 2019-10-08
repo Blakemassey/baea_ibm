@@ -14,7 +14,6 @@ library(ibmr)
 options(stringsAsFactors = FALSE)
 theme_update(plot.title = element_text(hjust = 0.5))
 
-
 # Coordinate systems
 wgs84 <- CRS("+init=epsg:4326") # WGS84 Lat/Long
 wgs84n19 <- CRS("+init=epsg:32619") # WGS84 UTM 19N
@@ -38,7 +37,7 @@ report_maps_dir <- file.path("C:/Users/blake/Documents/PhD Program/Reports",
 # Nests
 nests_study_org <- readRDS(file.path(nests_dir, "nests_study.rds"))
 nests_study <- st_as_sf(x = nests_study_org, coords = c("long", "lat"),
-  crs = "+proj=longlat +datum=WGS84") %>% filter(!name  %in% c("Davis", "Upper"))
+  crs = "+proj=longlat +datum=WGS84") %>% filter(!name %in% c("Davis", "Upper"))
 
 # Bald Eagle Data
 baea_org <- readRDS(file.path(baea_dir, "baea.rds"))
@@ -90,16 +89,17 @@ maine_bb_ext <- CreateOSMBaseBB(maine_bb_sf, type = "om_type")
 
 # Use "Tmap_baselayers.R" script to get other baselayers
 maine_down = OpenStreetMap::openmap(maine_bb_ext[[1]], maine_bb_ext[[2]],
-  minNumTiles = 9, type = om_type)
+  zoom = 7, minNumTiles = 9, type = om_type)
 maine_om <- RasterizeOMDownload(maine_down)
 
-maine_overview <-  tm_layout(asp = .75) +
+maine_bb_sf <- st_as_sfc(bb(maine %>% st_transform(., crs = crs(maine_om)),
+  ext = 1.1))
+
+maine_overview <- tm_layout(asp = .75) +
+  tm_shape(maine_bb_sf) +
+    tm_borders(col = NA) +
   tm_shape(maine_om) +
-    tm_rgb() +
-  tm_shape(maine,
-    bbox = bb(maine, ext = 1.15), is.master = TRUE) + # this sets map crs
-    tm_borders(col = "black")
-maine_overview
+    tm_rgb()
 
 nests_overview <- maine_overview +
   tm_layout(
@@ -110,9 +110,9 @@ nests_overview <- maine_overview +
     title.snap.to.legend = TRUE) +
   tm_legend(title.size = 1, text.size = .85, outside = FALSE,
     position = c("right", "bottom")) +
-  tm_scale_bar(breaks = c(0, 50, 100), size = .75, position = c(.68, .01)) +
+  tm_scale_bar(breaks = c(0, 50, 100), text.size = .75, position = c(.72, .01)) +
   tm_compass(type = "4star",  show.labels = 1, size = 3,
-    position = c(.85, .88))+
+    position = c(.85, .88)) +
   tm_grid(n.x = 4, n.y = 5, projection = 4326, col = "grey85", alpha = .75,
     labels.col = "grey25", labels.format = list(format = "f", big.mark = ""),
     labels.inside.frame = FALSE) +
@@ -121,9 +121,10 @@ nests_overview <- maine_overview +
   tm_symbols("yellow", size = .5) +
 	tm_text("name", shadow = TRUE, auto.placement = TRUE, size = .75) +
   tm_xlab("") + tm_ylab("")
+
 nests_overview
 
-tmap_save(tm = nests_overview, filename = file.path(maps_dir, "Trapping_Sites",
+tmap_save(tm = nests_overview, filename = file.path(tex_dir, "Figures/Ch2",
   "Trapping_Sites_Overview.svg"), unit = "in", dpi = 300, height = 8, width = 6)
 
 #### ---------------------- BAEA INDIVIDUAL MAPS -------------------------------
@@ -135,9 +136,8 @@ tmap_save(tm = nests_overview, filename = file.path(maps_dir, "Trapping_Sites",
 
 # Select id and year
 table(baea$id, baea$year) # Determine available individual/year combos
-id_i <- "Norway"
-year_i <- 2015
-
+i <- "Norway"
+j <- 2015
 
 ### ------------------------- Home Range Maps ----------------------------------
 
@@ -247,11 +247,11 @@ for (i in unique(baea_hr$id)){
       unit = "in", dpi = 300, height = 6, width = 6)
 
     # Export to LaTeX Folder
-    # tmap_save(tm = baea_i_paths, filename = file.path(tex_dir,
-    #   "Figures/Ch2/HR_Maps", paste0(i, "_", j, ".svg")),
-    #   insets_tm = maine_overview,
-    #   insets_vp =  viewport(x = 0.855, y = 0.145, width = 0.2, height = 0.2),
-    #   unit = "in", dpi = 300, height = 6, width = 6)
+    tmap_save(tm = baea_i_paths, filename = file.path(tex_dir,
+      "Figures/Ch2/HR_Maps", paste0(i, "_", j, ".svg")),
+      insets_tm = maine_overview,
+      insets_vp =  viewport(x = 0.881, y = 0.147, width = 0.2, height = 0.2),
+      unit = "in", dpi = 300, height = 6, width = 6)
   }
 }
 

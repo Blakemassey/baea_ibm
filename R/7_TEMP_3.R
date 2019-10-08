@@ -1,3 +1,51 @@
+# Use "Tmap_baselayers.R" script to get other baselayers
+maine_bb_sf <- st_as_sfc(bb(maine, relative = TRUE, height = 1, width = 2))
+maine_bb <- bb_poly(bb(maine_bb_sf, ext = 1.15))
+maine_bb_ext <- CreateOSMBaseBB(maine_bb, type = "om_type")
+maine_down = OpenStreetMap::openmap(maine_bb_ext[[1]], maine_bb_ext[[2]],
+  zoom = 6, minNumTiles = 9, type = om_type)
+maine_om <- RasterizeOMDownload(maine_down)
+
+maine_overview <- tm_layout(asp = .75) +
+  tm_shape(maine_om) +
+    tm_rgb() +
+  tm_shape(maine, bbox = maine) + # this sets map crs
+    tm_borders(col = NA)
+maine_overview
+
+extend
+
+bb(maine %>% st_transform(., crs = crs(maine_om)), ext = 1.15)
+
+maine_bb_sf <- st_as_sfc(bb(maine %>% st_transform(., crs = crs(maine_om)), ext = 1.1))
+
+maine_overview <- tm_layout(asp = .75) +
+  tm_shape(maine_bb_sf) +
+    tm_borders(col = NA) +
+  tm_shape(maine_om) +
+    tm_rgb()
+
+maine_overview +
+  tm_layout(
+    main.title = NULL,
+    main.title.position = "center",
+    main.title.size = 1.15,
+    title.position = c(.65, .02),
+    title.snap.to.legend = TRUE) +
+  tm_legend(title.size = 1, text.size = .85, outside = FALSE,
+    position = c("right", "bottom")) +
+  tm_scale_bar(breaks = c(0, 50, 100), text.size = .75, position = c(.68, .01)) +
+  tm_compass(type = "4star",  show.labels = 1, size = 3,
+    position = c(.85, .88)) +
+  tm_grid(n.x = 4, n.y = 5, projection = 4326, col = "grey85", alpha = .75,
+    labels.col = "grey25", labels.format = list(format = "f", big.mark = ""),
+    labels.inside.frame = FALSE) +
+  tm_shape(maine) + tm_borders(col = "black") +  # ME outline overlays grid
+  tm_shape(nests_study %>% filter(nest_site != "446R01")) +
+  tm_symbols("yellow", size = .5) +
+	tm_text("name", shadow = TRUE, auto.placement = TRUE, size = .75) +
+  tm_xlab("") + tm_ylab("")
+
 # THIS TEMP FILE IS FOR:
 # Trying to get a consistent map template for all of the potential individuals
 
