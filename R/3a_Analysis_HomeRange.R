@@ -281,7 +281,7 @@ for (i in unique(baea_hr$id)){
     #raster::plot(elev_k);raster::plot(tpi_k);raster::plot(tri_k)
     #raster::plot(roughness_k)
     # Calculate landcover metrics
-    homerange_k_metrics <- tibble(
+    hr_land_metrics_k <- tibble(
       id = i, year = j,
       locs = nrow(baea_hr_k),
       ud_95_total = st_area(ud_95_sf_k),
@@ -326,14 +326,14 @@ for (i in unique(baea_hr$id)){
       mutate(ud_50_shrub_herb_prop = ud_50_shrub_herb/ud_50_total) %>%
       mutate(ud_50_wetland_prop = ud_50_wetland/ud_50_total)
     if(i == unique(baea_hr$id)[1] && j == unique(baea_hr_i$year)[1]) {
-      homerange_metrics <- homerange_k_metrics %>% slice(0)
+      hr_land_metrics <- hr_land_metrics_k %>% slice(0)
       tibble(baea = akde_k)
-      homerange_akde <- tibble(id = NA, year = NA, hr_akde = list(akde_k)) %>%
+      hr_akde <- tibble(id = NA, year = NA, hr_akde = list(akde_k)) %>%
         slice(0)
-      print("Created homerange_metrics")
+      print("Created hr_land_metrics and hr_akde")
     }
-    homerange_metrics <- bind_rows(homerange_metrics, homerange_k_metrics)
-    homerange_akde <- bind_rows(homerange_akde, tibble(id = i, year = j,
+    hr_land_metrics <- bind_rows(hr_land_metrics, hr_land_metrics_k)
+    hr_akde <- bind_rows(hr_akde, tibble(id = i, year = j,
       hr_akde = list(akde_k)))
     rm(baea_hr_k, move_k, guess_k, fit_k, telemetry_k,
       ud_50_sf_k, ud_95_sf_k, akde_k,
@@ -343,30 +343,137 @@ for (i in unique(baea_hr$id)){
       pasture_k_intersect, shrub_herb_k_intersect, wetland_k_intersect,
       elev_95_k, tpi_95_k, tri_95_k, roughness_95_k,
       elev_50_k, tpi_50_k, tri_50_k, roughness_50_k,
-      homerange_k_metrics)
+      hr_land_metrics_k)
   }
   rm(baea_hr_i)
 }
-saveRDS(homerange_metrics,"Output/Analysis/Homerange/homerange_metrics_all.rds")
-saveRDS(homerange_akde, "Output/Analysis/Homerange/homerange_akde.rds")
+saveRDS(hr_land_metrics,"Output/Analysis/Homerange/hr_land_metrics.rds")
+saveRDS(hr_akde, "Output/Analysis/Homerange/hr_akde.rds")
+
+
+# Hydro Features ---------------------------------------------------------------
+
+## Input Files
+nhd_file <- "C:/ArcGIS/Data/Hydrology/NHDH_ME.gdb"
+hr_akde <- readRDS(file.path("Output/Analysis/Homerange",
+  "hr_akde.rds"))
+baea_hr <- readRDS("Data/BAEA/baea_homerange.rds")
+
+waterbody <- st_read(dsn = nhd_file, layer = "NHDWaterbody") %>%
+  st_transform(wgs84n19)
+waterarea <- st_read(dsn = nhd_file, layer = "NHDArea") %>%
+  filter(!FType %in% c(336, 343)) %>%
+  st_transform(wgs84n19)
+
+# i <- "Branch"; j <- 2015  # for testing
+for (i in unique(hr_akde$id)){
+  hr_akde_i <- hr_akde %>% filter(id == i)
+  baea_hr_i <- baea_hr %>% filter(id == i)
+  for (j in unique(hr_akde_i$year)){
+    print(paste0("ID:", i, " - ", "Year:", j))
+    hr_akde_k <- hr_akde_i %>% filter(year == j)
+    akde_k <- hr_akde_k %>% pull(hr_akde) %>% pluck(1)
+    ud_95_sp_k <- SpatialPolygonsDataFrame.UD(akde_k, level.UD = 0.95,
+      level = 0.95)
+    ud_95_sf_k <- st_as_sf(ud_95_sp_k) %>% slice(2)
+    ud_50_sp_k <- SpatialPolygonsDataFrame.UD(akde_k, level.UD = 0.5,
+      level = 0.95)
+    ud_50_sf_k <- st_as_sf(ud_50_sp_k) %>% slice(2)
+    waterbody_ud50_rows <- st_intersects(ud_50_sf_k, waterbody) %>% unlist()
+    waterbody_ud50 <- waterbody %>% slice(waterbody_ud50_rows)
+    waterbody_ud95_rows <- st_intersects(ud_95_sf_k, waterbody) %>% unlist()
+    waterbody_ud95 <- waterbody %>% slice(waterbody_ud95_rows)
+    waterarea_ud50_rows <- st_intersects(ud_50_sf_k, waterarea) %>% unlist()
+    waterarea_ud50 <- waterarea %>% slice(waterarea_ud50_rows)
+    waterarea_ud95_rows <- st_intersects(ud_95_sf_k, waterarea) %>% unlist()
+    waterarea_ud95 <- waterarea %>% slice(waterarea_ud95_rows)
+    # mapview(list(ud_50_sf_k, waterbody_ud50), zcol = list(NULL, NULL),
+    #     legend = list(TRUE, TRUE), homebutton = list(TRUE, TRUE))
+    # mapview(list(ud_95_sf_k, waterbody_ud95), zcol = list(NULL, NULL),
+    #     legend = list(TRUE, TRUE), homebutton = list(TRUE, TRUE))
+    # mapview(list(ud_50_sf_k, waterarea_ud50), zcol = list(NULL, NULL),
+    #     legend = list(TRUE, TRUE), homebutton = list(TRUE, TRUE))
+    # mapview(list(ud_95_sf_k, waterarea_ud95), zcol = list(NULL, NULL),
+    #     legend = list(TRUE, TRUE), homebutton = list(TRUE, TRUE))
+    waterbody_ud50_area <- waterbody_ud50 %>% st_drop_geometry(.) %>%
+      dplyr::summarise(ud_50_waterbody_area = sum(AreaSqKm)) %>%
+      slice(1) %>% pull(ud_50_waterbody_area)
+    waterbody_ud50_n <- waterbody_ud50 %>% st_drop_geometry(.) %>%
+      dplyr::summarise(ud_50_waterbody_n = dplyr::n()) %>%
+      slice(1) %>% pull(ud_50_waterbody_n)
+    waterbody_ud95_area <- waterbody_ud95 %>% st_drop_geometry(.) %>%
+      dplyr::summarise(ud_95_waterbody_area = sum(AreaSqKm)) %>%
+      slice(1) %>% pull(ud_95_waterbody_area)
+    waterbody_ud95_n <- waterbody_ud95 %>% st_drop_geometry(.) %>%
+      dplyr::summarise(ud_95_waterbody_n = dplyr::n()) %>%
+      slice(1) %>% pull(ud_95_waterbody_n)
+    waterarea_ud50_area <- waterarea_ud50 %>% st_drop_geometry(.) %>%
+      dplyr::summarise(ud_50_waterarea_area = sum(AreaSqKm)) %>%
+      slice(1) %>% pull(ud_50_waterarea_area)
+    waterarea_ud50_n <- waterarea_ud50 %>% st_drop_geometry(.) %>%
+      dplyr::summarise(ud_50_waterarea_n = dplyr::n()) %>%
+      slice(1) %>% pull(ud_50_waterarea_n)
+    waterarea_ud95_area <- waterarea_ud95 %>% st_drop_geometry(.) %>%
+      dplyr::summarise(ud_95_waterarea_area = sum(AreaSqKm)) %>%
+      slice(1) %>% pull(ud_95_waterarea_area)
+    waterarea_ud95_n <- waterarea_ud95 %>% st_drop_geometry(.) %>%
+      dplyr::summarise(ud_95_waterarea_n = dplyr::n()) %>%
+      slice(1) %>% pull(ud_95_waterarea_n)
+    hr_hydro_metrics_k <- tibble(
+      id = i,
+      year = j,
+      ud_50_waterbody_area = waterbody_ud50_area,
+      ud_50_waterbody_n = waterbody_ud50_n,
+      ud_95_waterbody_area = waterbody_ud95_area,
+      ud_95_waterbody_n = waterbody_ud95_n,
+      ud_50_waterarea_area = waterarea_ud50_area,
+      ud_50_waterarea_n = waterarea_ud50_n,
+      ud_95_waterarea_area = waterarea_ud95_area,
+      ud_95_waterarea_n = waterarea_ud95_n)
+    if(i == unique(baea_hr$id)[1] && j == unique(baea_hr_i$year)[1]) {
+      hr_hydro_metrics <- hr_hydro_metrics_k %>% slice(0)
+      print("Created hr_hydro_metrics")
+    }
+    hr_hydro_metrics <- bind_rows(hr_hydro_metrics, hr_hydro_metrics_k)
+  }
+}
+saveRDS(hr_hydro_metrics, "Output/Analysis/Homerange/hr_hydro_metrics.rds")
+
 
 # Data Review ------------------------------------------------------------------
 
-homerange_metrics <- readRDS(file.path("Output/Analysis/Homerange",
-  "homerange_metrics_all.rds"))
+hr_land_metrics <- readRDS(file.path("Output/Analysis/Homerange",
+  "hr_land_metrics.rds"))
+hr_hydro_metrics <- readRDS(file.path("Output/Analysis/Homerange",
+  "hr_hydro_metrics.rds"))
+
+hr_all_metrics <- left_join(hr_land_metrics, hr_hydro_metrics,
+  by = c("id", "year"))
 
 # Home Range Size
-homerange_metrics_area_sum <- homerange_metrics %>%
+hr_area_sum <- hr_all_metrics %>%
   group_by(year, id) %>%
-  summarize(ud_50_total, ud_95_total, locs = sum(locs))
+  dplyr::summarize(ud_50_total, ud_95_total, locs = sum(locs))
 
-View(homerange_metrics_area_sum)
+View(hr_area_sum)
 # Eskutassis appears to be an outlier for 50% and 95% UD
 remove_list <- c("Eskutassis")
 
+library(dplyr)
+hr_area_sum_multi_yr <- hr_area_sum %>%
+  filter(!id %in% c(remove_list)) %>%
+  group_by(id) %>%
+  filter(n() > 1)
+
+mod_50_area_locs <- glm(ud_50_total ~ locs + id, data = hr_area_sum_multi_yr)
+summary(mod_50_area_locs)
+
+mod_95_area_locs <- glm(ud_95_total ~ locs + id, data = hr_area_sum_multi_yr)
+summary(mod_95_area_locs)
+
 # Check for relationship btwn # GPS locs and UD size
 # 50% UD
-ggplot(homerange_metrics_area_sum %>% filter(!id %in% c(remove_list)),
+ggplot(hr_area_sum %>% filter(!id %in% c(remove_list)),
     aes(x = locs, y = ud_50_total, color = id, label = year)) +
   geom_point(size = 2) +
   geom_line(size = 1.5) +
@@ -377,7 +484,7 @@ ggplot(homerange_metrics_area_sum %>% filter(!id %in% c(remove_list)),
 # No consistent pattern
 
 # 95% UD
-ggplot(homerange_metrics_area_sum %>% filter(!id %in% c(remove_list)),
+ggplot(hr_area_sum %>% filter(!id %in% c(remove_list)),
     aes(x = locs, y = ud_95_total, color = id, label = year)) +
   geom_point(size = 2) +
   geom_line(size = 1.5) +
@@ -388,7 +495,7 @@ ggplot(homerange_metrics_area_sum %>% filter(!id %in% c(remove_list)),
 # Generally positive correlation
 
 # Range of 50% UD values by ID
-ggplot(homerange_metrics_area_sum %>% filter(!id %in% c(remove_list)),
+ggplot(hr_area_sum %>% filter(!id %in% c(remove_list)),
     aes(x = id, y = ud_50_total, color = id, label = year)) +
   geom_boxplot() +
   geom_point(aes(group=id), position = position_dodge(width=0.75)) +
@@ -397,7 +504,7 @@ ggplot(homerange_metrics_area_sum %>% filter(!id %in% c(remove_list)),
   ggtitle("")
 
 # Range of 95% UD values by ID
-ggplot(homerange_metrics_area_sum %>% filter(!id %in% c(remove_list)),
+ggplot(hr_area_sum %>% filter(!id %in% c(remove_list)),
     aes(x = id, y = ud_95_total, color = id, label = year)) +
   geom_boxplot() +
   geom_point(aes(group=id), position = position_dodge(width=0.75)) +
@@ -406,15 +513,19 @@ ggplot(homerange_metrics_area_sum %>% filter(!id %in% c(remove_list)),
   ggtitle("")
 
 #
-homerange_metrics_sum <- homerange_metrics %>%
+hr_all_metrics_sum <- hr_all_metrics %>%
   group_by(id) %>%
-  summarize(ud_50 = mean(ud_50_total),
+  dplyr::summarize(ud_50 = mean(ud_50_total),
             ud_95 = mean(ud_95_total),
             ud_50_developed = mean(ud_50_developed_prop),
             ud_50_forest = mean(ud_50_forest_prop),
             ud_50_open_water = mean(ud_50_open_water_prop),
             ud_50_pasture = mean(ud_50_pasture_prop),
             ud_50_shrub_herb = mean(ud_50_shrub_herb_prop),
+            ud_50_waterbody_area = mean(ud_50_waterbody_area),
+            ud_50_waterbody_n = mean(ud_50_waterbody_n),
+            ud_50_waterarea_area = mean(ud_50_waterarea_area),
+            ud_50_waterarea_n = mean(ud_50_waterarea_n),
             ud_50_wetland = mean(ud_50_wetland_prop),
             ud_95_developed = mean(ud_95_developed_prop),
             ud_95_forest = mean(ud_95_forest_prop),
@@ -422,6 +533,10 @@ homerange_metrics_sum <- homerange_metrics %>%
             ud_95_pasture = mean(ud_95_pasture_prop),
             ud_95_shrub_herb = mean(ud_95_shrub_herb_prop),
             ud_95_wetland = mean(ud_95_wetland_prop),
+            ud_95_waterbody_area = mean(ud_95_waterbody_area),
+            ud_95_waterbody_n = mean(ud_95_waterbody_n),
+            ud_95_waterarea_area = mean(ud_95_waterarea_area),
+            ud_95_waterarea_n = mean(ud_95_waterarea_n),
             locs = mean(locs),
             years = n()) %>%
   mutate(ud_50_prop_sum = ud_50_developed + ud_50_forest + ud_50_open_water +
@@ -430,45 +545,49 @@ homerange_metrics_sum <- homerange_metrics %>%
            + ud_95_pasture + + ud_95_shrub_herb + ud_95_wetland)
 
 # Variables by UD (50% and 95%)
-homerange_metrics_50 <- homerange_metrics %>%
+hr_metrics_50 <- hr_all_metrics %>%
   dplyr::select(-contains("ud_95")) %>%
   set_names(~ str_to_lower(.) %>% str_replace_all("ud_50_", "")) %>%
   melt(., id.var = "id") %>%
   mutate(ud = "50%") %>% map_if(is.factor, as.character)
-homerange_metrics_95 <- homerange_metrics %>%
+hr_metrics_95 <- hr_all_metrics %>%
   dplyr::select(-contains("ud_50")) %>%
   set_names(~ str_to_lower(.) %>% str_replace_all("ud_95_", "")) %>%
   melt(., id.var = "id") %>%
   mutate(ud = "95%") %>%
   map_if(is.factor, as.character)
 
-homerange_metrics_all <- bind_rows(homerange_metrics_50, homerange_metrics_95)
-unique(homerange_metrics_all$variable)
+hr_metrics_ud <- bind_rows(hr_metrics_50, hr_metrics_95)
+unique(hr_metrics_ud$variable)
 
 # Cover class proportion in home ranges
-ggplot(data = homerange_metrics_all %>% filter(str_detect(variable, "_prop"))) +
+ggplot(data = hr_metrics_ud %>% filter(str_detect(variable, "_prop"))) +
   geom_boxplot(aes(x = factor(0), y = value, fill = as.factor(ud))) +
   facet_wrap( ~ variable, scales = "free") +
   scale_fill_viridis_d(option = "C", direction = -1) +
   guides(fill = guide_legend(title = "Utilization\nDistribution")) +
   ggtitle("")
 
+
+saveRDS(hr_all_metrics, file.path("Output/Analysis/Homerange",
+  "hr_all_metrics.rds"))
+
 # Mapping Home Ranges ----------------------------------------------------------
 
-homerange_akde <- readRDS(file.path("Output/Analysis/Homerange",
-  "homerange_akde.rds"))
+hr_akde <- readRDS(file.path("Output/Analysis/Homerange",
+  "hr_akde.rds"))
 baea_hr <- readRDS("Data/BAEA/baea_homerange.rds")
 
 i <- "Musquash"
 j <- 2018
 
-for (i in unique(homerange_akde$id)){
-  homerange_akde_i <- homerange_akde %>% filter(id == i)
+for (i in unique(hr_akde$id)){
+  hr_akde_i <- hr_akde %>% filter(id == i)
   baea_hr_i <- baea_hr %>% filter(id == i)
-  for (j in unique(homerange_akde_i$year)){
-    homerange_akde_k <- homerange_akde_i %>% filter(year == j)
+  for (j in unique(hr_akde_i$year)){
+    hr_akde_k <- hr_akde_i %>% filter(year == j)
     baea_hr_k <- baea_hr_i %>% filter(year == j)
-    akde_k <- homerange_akde_k %>% pull(hr_akde) %>% pluck(1)
+    akde_k <- hr_akde_k %>% pull(hr_akde) %>% pluck(1)
     ud_95_sp_k <- SpatialPolygonsDataFrame.UD(akde_k, level.UD = 0.95,
       level = 0.95)
     ud_95_sf_k <- st_as_sf(ud_95_sp_k) %>% slice(2)

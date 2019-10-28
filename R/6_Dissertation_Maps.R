@@ -82,7 +82,7 @@ om_type <- paste0(esri_url, "NatGeo_World_Map", esri_tile)
 #### -------------------------- CHAPTER 2 --------------------------------- ####
 ############################################################################# ##
 
-#### ----------------------- NESTS OVERVIEW MAPS -------------------------------
+#### ----------------------- Nests Overview Maps -------------------------------
 
 maine_bb_sf <- st_as_sfc(bb(maine, relative = TRUE, height = 1.15, width = 2))
 maine_bb_ext <- CreateOSMBaseBB(maine_bb_sf, type = "om_type")
@@ -127,7 +127,7 @@ nests_overview
 tmap_save(tm = nests_overview, filename = file.path(tex_dir, "Figures/Ch2",
   "Trapping_Sites_Overview.svg"), unit = "in", dpi = 300, height = 8, width = 6)
 
-#### ---------------------- BAEA INDIVIDUAL MAPS -------------------------------
+### ------------------------- Home Range Maps ----------------------------------
 
 # Getting the ratio and background correct requires 3 components:
 # 1) Getting enough coverage of basemap by adjusting bb() 'height'/'weight' args
@@ -136,10 +136,7 @@ tmap_save(tm = nests_overview, filename = file.path(tex_dir, "Figures/Ch2",
 
 # Select id and year
 table(baea$id, baea$year) # Determine available individual/year combos
-i <- "Norway"
-j <- 2015
-
-### ------------------------- Home Range Maps ----------------------------------
+#i <- "Norway";j  <- 2015 # for testing
 
 homerange_akde <- readRDS(file.path("Output/Analysis/Homerange",
   "homerange_akde.rds"))
@@ -219,16 +216,18 @@ for (i in unique(baea_hr$id)){
         title.snap.to.legend = TRUE) +
       tm_legend(title.size = 1, text.size = .85,
         outside = TRUE, position = c("right", "bottom")) +
-      tm_scale_bar(text.size = .75, width = .2,
+      tm_scale_bar(text.size = .75,
         breaks = baea_k_x_breaks,
         position = c(.05, .01)) +
       tm_compass(type = "4star",  show.labels = 1, size = 2.5,
         position = c(.875, .875)) +
-     tm_grid(n.x = 4, n.y = 5, projection = 4326, col = "grey85", alpha = 0,
-       labels.col = "grey25", labels.format = list(format = "f", big.mark = ""),
-       labels.inside.frame = FALSE) +
+      tm_grid(n.x = 4, n.y = 5, projection = 4326, col = "black", alpha = 1,
+        ticks = TRUE, lines = FALSE, labels.col = "grey25",
+        labels.format = list(format = "f", big.mark = ""),
+        labels.inside.frame = FALSE) +
       tm_xlab("") + tm_ylab("")
 
+    #baea_k_hr_paths
     # Maine Overview Map
     baea_k_bb = gisr::CreateMapExtentBB(baea_k, asp = 1, ext = 1.15)
     maine_overview <-
@@ -247,7 +246,7 @@ for (i in unique(baea_hr$id)){
       unit = "in", dpi = 300, height = 6, width = 6)
 
     # Export to LaTeX Folder
-    tmap_save(tm = baea_i_paths, filename = file.path(tex_dir,
+    tmap_save(tm = baea_k_hr_paths, filename = file.path(tex_dir,
       "Figures/Ch2/HR_Maps", paste0(i, "_", j, ".svg")),
       insets_tm = maine_overview,
       insets_vp =  viewport(x = 0.881, y = 0.147, width = 0.2, height = 0.2),
@@ -260,7 +259,7 @@ for (i in unique(baea_hr$id)){
 #### -------------------------- CHAPTER 4 --------------------------------- ####
 ############################################################################# ##
 
-#### ------------------------- WILSON SCENARIOS MAP ----------------------------
+#### ------------------------- Wilson Scenarios Map ----------------------------
 
 pacman::p_load(units, stringr)
 
@@ -415,7 +414,7 @@ tmap_save(tm = wilson_map, filename = file.path(maps_dir, "Wilson_Buildout",
   insets_vp =  viewport(x = 0.85, y = 0.167, width = 0.25, height = 0.25),
   unit = "in", dpi = 300, height = 6, width = 6.1)
 
-#### ------------------- ELLIS TURBINE DISTANCE MAP ----------------------------
+#### ------------------- Ellis Turbine Distance Map ----------------------------
 
 pacman::p_load(units, stringr)
 
@@ -426,10 +425,6 @@ om_type <- paste0(esri_url, "NatGeo_World_Map", esri_tile)
 
 # Rasters
 base <- raster(file.path("C:/ArcGIS/Data/BlankRaster/maine_30mc.tif"))
-ellis_raster <- crop(base, as_Spatial(ellis_bb_sf))
-wt_dist <- distanceFromPoints(ellis_raster, wt_ellis)
-wt_dist[wt_dist > 2000] = NA
-wt_dist_shift <- shift(wt_dist, 50000, 0)
 
 # Filter nest data
 ellis <- nests_study %>% filter(name == "Ellis")  %>%
@@ -456,9 +451,17 @@ ellis_down <- OpenStreetMap::openmap(ellis_bb_ext[[1]], ellis_bb_ext[[2]],
 ellis_om <- RasterizeOMDownload(ellis_down)
 
 # Ellis Map Raster
+ellis_raster <- crop(base, as_Spatial(ellis_bb_sf))
+wt_dist <- distanceFromPoints(ellis_raster, wt_ellis)
+wt_dist[wt_dist > 2000] = NA
+wt_dist_shift <- shift(wt_dist, 50000, 0)
+
+ellis_ext_sf <- st_as_sfc(bb(st_buffer(ellis_map_center, 5500) %>%
+  st_transform(., crs = crs(ellis_om)), ext = .95))
+
 ellis_map <-
   tm_layout(asp = 1) +
-  tm_shape(ellis_bb_sf, is.master = TRUE) +
+  tm_shape(ellis_ext_sf) +
     tm_fill(col = NA) +
   tm_shape(ellis_om) +
     tm_rgb() +
@@ -482,14 +485,12 @@ ellis_map <-
     legend.bg.color = "white", legend.format = list(format = "f", big.mark = "")) +
   tm_compass(type = "4star",  show.labels = 1, size = 2.5,
     position = c(.85, .87)) +
-  tm_scale_bar(size = .75, width = .2, breaks = c(0, 1, 2),
-    position = c(.05, .01)) +
+  tm_scale_bar(text.size = .75, breaks = c(0, 1, 2), position = c(.05, .01)) +
   tm_grid(n.x = 4, n.y = 5, projection = 4326, col = "grey85", alpha = .75,
     labels.col = "grey25", labels.format = list(format = "f", big.mark = ""),
     labels.inside.frame = FALSE) +
   tm_xlab("") + tm_ylab("")
 ellis_map
-
 #tmaptools::palette_explorer()
 
 # ellis Overview Map
@@ -522,7 +523,7 @@ tmap_save(tm = ellis_map, filename = file.path(maps_dir, "Ellis_Turbines",
   insets_vp =  viewport(x = 0.85, y = 0.167, width = 0.25, height = 0.25),
   unit = "in", dpi = 300, height = 6, width = 6.1)
 
-# Ellis Map Polygons (Not currently currently, but may be useful)
+# Ellis Map Polygons (Not currently used, but may be useful)
 
 wt_buff_400 <- st_buffer(wt_ellis, c(400)) %>% st_union(.)
 wt_buff_600 <- st_buffer(wt_ellis, c(600)) %>% st_union(.)
@@ -566,7 +567,8 @@ ellis_map_polys <-
     title.snap.to.legend = TRUE) +
   tm_legend(legend.show = FALSE, title.size = 1, text.size = .85,
     outside = FALSE, position = c("left", "top"), frame = TRUE,
-    legend.bg.color = "white", legend.format = list(format = "f", big.mark = "")) +
+    legend.bg.color = "white", legend.format = list(format = "f",
+    big.mark = "")) +
   tm_compass(type = "4star",  show.labels = 1, size = 2.5,
     position = c(.85, .87)) +
   tm_scale_bar(size = .75, width = .2, breaks = c(0, 1, 2),
@@ -584,6 +586,9 @@ ellis_map_polys
 
 
 ### Flightpath Maps ------------------------------------------------------------
+
+id_i = "Sandy"
+year_i = 2019
 
 # Filter data, create fightpaths
 baea_i <- baea %>% filter(id == id_i) %>% filter(year == year_i) %>%
@@ -613,18 +618,17 @@ baea_i_paths <-
   tm_shape(baea_i_om) +
     tm_rgb() +
   tm_shape(baea_i_lines) +
-    tm_lines("#ffffff", lwd = 2, alpha = .5) + # brewer.pal(5, "RdGy")[3]
+    tm_lines("#FFFF33", lwd = 2, alpha = .5) + # brewer.pal(9, "Set1")[6]
   tm_shape(baea_i,
     bbox = bb(baea_i, ext = 1.15), is.master = TRUE) +
-    tm_dots(size = 0.075, col = "#404040") +   # brewer.pal(5, "RdGy")[5]
+    tm_dots(size = 0.075, col = "#984EA3") +  # brewer.pal(9, "Set1")[4]
   tm_layout(main.title = NULL, #paste0("GPS Locations: ", id_i),
     main.title.position = "center",
     main.title.size = 1.15,
     title.snap.to.legend = TRUE) +
   tm_legend(title.size = 1, text.size = .85,
     outside = TRUE, position = c("right", "bottom")) +
-  tm_scale_bar(text.size = .75, width = .2,
-    breaks = baea_i_x_breaks,
+  tm_scale_bar(text.size = .75, breaks = baea_i_x_breaks,
     position = c(.05, .01)) +
   tm_compass(type = "4star",  show.labels = 1, size = 2.5,
     position = c(.875, .875)) +
@@ -657,8 +661,8 @@ maine_i_overview <-
 maine_i_overview
 
 tmap_save(tm = baea_i_paths, filename = file.path(maps_dir, "Individuals",
-  paste0(year_i, "_", id_i, ".svg")), insets_tm = maine_i_overview,
-  insets_vp =  viewport(x = 0.855, y = 0.145, width = 0.2, height = 0.2),
+  paste0(year_i, "_", id_i, ".png")), insets_tm = maine_i_overview,
+  insets_vp =  viewport(x = 0.88, y = 0.152, width = 0.2, height = 0.2),
   unit = "in", dpi = 300, height = 6, width = 6)
 
 # Create 2d kernel density data - isopleth lines, polygons, and rasters

@@ -1,29 +1,29 @@
-serial,on_hand,deployed,end_data,failed,removed,recovered,deploy_location,bird_ID,sex,deploy_seq,notes,icon_color,icon_color_classic
-1B570,20150723,20170604,,,,,Little_River,1704,,,BRI Deployment,#E41A1C,#7E6E85
-1D6F4,20150723,20170604,,,,,East_Machias,1701,,,BRI Deployment,#9E425A,#974661
-1D658,20150723,20170604,,,,,Sprague_River,1703,,,BRI Deployment,#596A98,#4A72A6
-1B55A,20150709,20150913,20160304,,20160418,20160418,Onawa,1515,female,18,,#3B87A2,#3E8E93
-1DCE4,20150709,20150721,20180101,,20180610,20180610,Branch,1514,male,17,"GPS unit recovered in 2018 June, but mortality probably occurred in late 2017 or early 2018 based on condition of remains (only feathers, no soft tissue or bones found)",#449B75,#D16948
-45895,20140101,20140202,,20140326,,,Cherryfield,1401,unknown,3,,#4DAF4A,#E41A1C
-72179,20130715,20131109,,,,,Madagascal,1302,female,2,,#6B886D,#974661
-72187,20130715,20130922,20140304,,20140411,20140411,Folsom,1301,unknown,1,"Eagle recovered from under a tree on 20140411.  Appears to have died about 2 weeks earlier, potentially due to territorial interactions.",#896191,#4A72A6
-1B557,20150414,20150622,,,,,Crooked,1510,female,13,,#AC5782,#48A462
-1B571,20150414,20150603,20190122,,,,Musquash,1503,female,6,Transmitter no longer moves after the end_data date - may be dropped or deceased.,#D56B41,#5D995D
-1B578,20150414,20150513,20150925,,20151009,20151009,Norway,1501,male,4,"Eagle died after 20150925 3pm, probably over the next 24-48 hours.  Body recovered on 20151009.",#FF7F00,#E41A1C
-1CBA5,20150414,20150620,20180101,,20180610,20180610,Wilson,1509,male,12,"GPS unit recovered in 2018 June - found unit on beach, straps were intact, but no carcass. Bird probably died in/over ocean and then GPS came loose from remains.",#FFB214,#A35390
-1D4C9,20150414,20150603,,,,,Eskutassis,1504,female,7,,#FFE528,#FF7F00
-1DFAB,20150414,20150519,20151005,,20151006,20151009,Phillips,1502,female,5,Eagle hit by a car on Route 1A shortly after 3pm on 201501005.  Eagle taken to Avian Haven where the GPS transmitter was removed the following day.,#EDDD30,#FFB716
-1DFAB,,20170604,,,,,Cape_Walsh,1702,,,BRI Deployment,,
-1E07F,20150414,20150608,,,,,Ellis,1506,female,9,,#C9992C,#FFF02D
-27ABC,20150414,20150708,,,,,Webb,1511,female,14,,#A65628,#E1C62F
-27AD4,20150414,20150618,,,,,Sandy,1508,female,11,,#C66764,#B97B2A
-27ADE,20150414,20150619,20160221,,20160508,20160508,Sheepscot,1507,female,10,,#E678A0,#B75F49
-27AF6,20150414,20150717,20160313,,20160417,20160417,Davis,1512,unknown,15,"Actually trapped at Onawa, but probably from Davis. Recovered GPS unit from carcass at last location.",#E485B7,#DB728C
-27B02,20150414,20150604,,,,,Three,1505,female,8,,#BE8FA8,#EC83BA
-154DB,20150414,20150720,,,,,Hebron,1513,female,16,,#999999,#C28EA9
-1B57D,20150414,,,,,,,,,,Returned 2015-07-07,,
-1CF56,20150414,,,,,,,,,,Returned 2015-07-07,,
-50958,20140101,,,,,,,,,,Returned 2015-07-07,,
-51055,20140101,,,,,,,,,,Returned 2015-07-07,,
-72187,20140412,,,,,,,,,,Returned 2015-07-07,,
-73102,20140101,,,,,,,,,,Returned 2015-07-07,,
+serial,on_hand,deployed,end_data,failed,removed,recovered,deploy_location,bird_ID,sex,deploy_seq,notes,trap_site,county,icon_color,icon_color_classic
+1B570,20150723,20170604,,,,,Little_River,1704,,,BRI Deployment,Little_River,,#E41A1C,#7E6E85
+1D6F4,20150723,20170604,,,,,East_Machias,1701,,,BRI Deployment,East_Machias,,#9E425A,#974661
+1D658,20150723,20170604,,,,,Sprague_River,1703,,,BRI Deployment,Sprague_River,,#596A98,#4A72A6
+1B55A,20150709,20150913,20160304,,20160418,20160418,Onawa,1515,female,18,,Lake Onawa,Piscataquis,#3B87A2,#3E8E93
+1DCE4,20150709,20150721,20180101,,20180610,20180610,Branch,1514,male,17,"GPS unit recovered in 2018 June, but mortality probably occurred in late 2017 or early 2018 based on condition of remains (only feathers, no soft tissue or bones found)",Branch Lake,Hancock,#449B75,#D16948
+45895,20140101,20140202,,20140326,,,Cherryfield,1401,unknown,3,,,,#4DAF4A,#E41A1C
+72179,20130715,20131109,,,,,Madagascal,1302,female,2,,Madagascal Pond,Penobscot,#6B886D,#974661
+72187,20130715,20130922,20140304,,20140411,20140411,Folsom,1301,unknown,1,"Eagle recovered from under a tree on 20140411.  Appears to have died about 2 weeks earlier, potentially due to territorial interactions.",Folsom Pond,Penobscot,#896191,#4A72A6
+1B557,20150414,20150622,,,,,Crooked,1510,female,13,,Mattanawcook Pond,Penobscot,#AC5782,#48A462
+1B571,20150414,20150603,20190122,,,,Musquash,1503,female,6,Transmitter no longer moves after the end_data date - may be dropped or deceased.,East Musquash Lake,Washington,#D56B41,#5D995D
+1B578,20150414,20150513,20150925,,20151009,20151009,Norway,1501,male,4,"Eagle died after 20150925 3pm, probably over the next 24-48 hours.  Body recovered on 20151009.",Norway Lake,Oxford,#FF7F00,#E41A1C
+1CBA5,20150414,20150620,20180101,,20180610,20180610,Wilson,1509,male,12,"GPS unit recovered in 2018 June - found unit on beach, straps were intact, but no carcass. Bird probably died in/over ocean and then GPS came loose from remains.",Upper Wilson Pond,Piscataquis,#FFB214,#A35390
+1D4C9,20150414,20150603,,,,,Eskutassis,1504,female,7,,Eskutassis Pond,Penobscot,#FFE528,#FF7F00
+1DFAB,20150414,20150519,20151005,,20151006,20151009,Phillips,1502,female,5,Eagle hit by a car on Route 1A shortly after 3pm on 201501005.  Eagle taken to Avian Haven where the GPS transmitter was removed the following day.,Phillips Lake,Hancock,#EDDD30,#FFB716
+1DFAB,,20170604,,,,,Cape_Walsh,1702,,,BRI Deployment,Cape_Walsh,,,
+1E07F,20150414,20150608,,,,,Ellis,1506,female,9,,Ellis Pond,Oxford,#C9992C,#FFF02D
+27ABC,20150414,20150708,,,,,Webb,1511,female,14,,Webb Pond,Hancock,#A65628,#E1C62F
+27AD4,20150414,20150618,,,,,Sandy,1508,female,11,,Sandy Pond,Waldo,#C66764,#B97B2A
+27ADE,20150414,20150619,20160221,,20160508,20160508,Sheepscot,1507,female,10,,Sheepscot Pond,Waldo,#E678A0,#B75F49
+27AF6,20150414,20150717,20160313,,20160417,20160417,Davis,1512,unknown,15,"Actually trapped at Onawa, but probably from Davis. Recovered GPS unit from carcass at last location.",Lake Onawa,Piscataquis,#E485B7,#DB728C
+27B02,20150414,20150604,,,,,Three,1505,female,8,,Number Three Pond,Penobscot,#BE8FA8,#EC83BA
+154DB,20150414,20150720,,,,,Hebron,1513,female,16,,Lake Hebron,Piscataquis,#999999,#C28EA9
+1B57D,20150414,,,,,,,,,,Returned 2015-07-07,,,,
+1CF56,20150414,,,,,,,,,,Returned 2015-07-07,,,,
+50958,20140101,,,,,,,,,,Returned 2015-07-07,,,,
+51055,20140101,,,,,,,,,,Returned 2015-07-07,,,,
+72187,20140412,,,,,,,,,,Returned 2015-07-07,,,,
+73102,20140101,,,,,,,,,,Returned 2015-07-07,,,,

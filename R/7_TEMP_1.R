@@ -1,107 +1,258 @@
+############################# MAPS SETUP #######################################
 
-Longitude: -68.556534
-Latitude: 44.586117
+# Load packages
+pacman::p_load(gisr, baear, cartography, dplyr, grid, leaflet, magick, mapview,
+  OpenStreetMap, plotly, prettymapr, purrr, raster, rosm, rsvg, sf, tmap,
+  tmaptools, viridis, webshot)
+
+pacman::p_load(ctmm, devtools, dplyr, fitdistrplus, ggplot2, ggthemes,
+  lubridate, mapview, move, raster, sf, tmaptools, units, zoo)
+library(baear)
+library(gisr)
+library(ibmr)
+
+options(stringsAsFactors = FALSE)
+theme_update(plot.title = element_text(hjust = 0.5))
+
+# Coordinate systems
+wgs84 <- CRS("+init=epsg:4326") # WGS84 Lat/Long
+wgs84n19 <- CRS("+init=epsg:32619") # WGS84 UTM 19N
+
+# Rasters
+base <- raster(file.path("C:/ArcGIS/Data/BlankRaster/maine_30mc.tif"))
+
+# Directories
+baea_dir <- "C:/Users/blake/OneDrive/Work/R/Projects/baea_ibm/Data/BAEA"
+nests_dir <- file.path("C:/Users/blake/OneDrive/Work/R/Projects/baea_ibm",
+  "Data/Nests/Nests_rds")
+turbine_dir <- file.path("C:/ArcGIS/Data/R_Input/BAEA")
+tex_dir <- "C:/Users/Blake/OneDrive/Work/LaTeX/BMassey_Dissertation"
+
+wind_dir <- file.path("C:/Users/blake/OneDrive/Work/R/Projects/baea_ibm",
+  "Data/Wind")
+maps_dir <- "C:/Users/blake/OneDrive/Work/R/Projects/baea_ibm/Products/Maps"
+report_maps_dir <- file.path("C:/Users/blake/Documents/PhD Program/Reports",
+  "BAEA Project - 2018/Maps")
+
+# Nests
+nests_study_org <- readRDS(file.path(nests_dir, "nests_study.rds"))
+nests_study <- st_as_sf(x = nests_study_org, coords = c("long", "lat"),
+  crs = "+proj=longlat +datum=WGS84") %>% filter(!name %in% c("Davis", "Upper"))
+
+# Bald Eagle Data
+baea_org <- readRDS(file.path(baea_dir, "baea.rds"))
+baea <- st_as_sf(x = baea_org, coords = c("long_utm", "lat_utm"),
+  crs = 32619) #  crs = "+proj=longlat +datum=WGS84")
+
+# Maine Outline
+maine <- read_sf(file.path("C:/ArcGIS/Data/BlankPolygon/MaineOutline.shp")) %>%
+  st_transform(., crs = 4326) %>%
+  mutate(state = "Maine")  %>%
+  dplyr::select(state)
+
+# Wind
+wind_class <- read_sf(file.path(wind_dir, "Maine_Wind_High_Resolution",
+  "maine_50mwind.shp")) %>%
+  st_transform(crs = 32619)
+
+# Turbines
+turbines <- read_sf(file.path(turbine_dir, "wind_turbines.shp")) %>%
+  st_transform(crs = 32619)
+
+tmap_mode("plot")
+
+## Maine Overview Map ------------------------------------------------------- ##
+
+# Mapbox Baselayers
+mapbox_url <- "https://api.mapbox.com/styles/v1/mapbox/"
+mapbox_tile <- "/tiles/256/{z}/{x}/{y}"
+mapbox_key <- paste0("?access_token=pk.eyJ1IjoiYmxha2VtYXNzZXkiLCJhIjoi",
+  "Y2pseTYxYW56MDE4eDNwcXZxdmNtNmJ1eiJ9.cguQx1N8bIpciBnc2h3v_w")
+om_type <- paste0(mapbox_url, "streets-v10", mapbox_tile, mapbox_key)
+om_type <- paste0(mapbox_url, "outdoors-v10", mapbox_tile, mapbox_key)
+om_type <- paste0(mapbox_url, "light-v9", mapbox_tile, mapbox_key)
+
+# ESRI Baselayers
+esri_url <- "https://server.arcgisonline.com/ArcGIS/rest/services/"
+esri_tile <- "/MapServer/tile/{z}/{y}/{x}"
+om_type <- paste0(esri_url, "NatGeo_World_Map", esri_tile)
+
+wgs84n19 <- CRS("+init=epsg:32619") # WGS84 UTM 19N
+
+#### ----------- Nest and Conspecific Distance Maps ----------------------------
+
+## Import Base
+base <- raster(file.path("C:/ArcGIS/Data/BlankRaster/maine_30mc.tif"))
+nests_active <- readRDS(file="Data/Nests/Nests_rds/nests_active.RDS")
+baea_terr <- readRDS("Data/BAEA/baea_terr.rds")
+#baea_dist_org <- readRDS("Data/BAEA/baea_dist.rds")
+con_dist_nest <- raster("Output/Analysis/Territorial/ConDistNest_All.tif")
+
+# # Fitting with con_nest > 75
+# baea_dist <- baea_dist_org %>%
+#   filter(!is.na(con_nest)) %>%
+#   filter(con_nest > 0) %>%
+#   dplyr::select(id, con_nest, con_nest_km, long_utm, lat_utm, lat, long) %>%
+#   group_by(id) %>%
+#   sample_n(2000, replace = TRUE) %>%
+#   ungroup()
+
+nests_2016 <- nests_active %>%
+  filter(active_2016 == TRUE) %>%
+  transmute(long = long_utm, lat = lat_utm)
+
+nests <- baea_terr %>% group_by(id) %>% slice(1) %>%
+    dplyr::select(nest_long_utm, nest_lat_utm)  %>%
+    transmute(long = nest_long_utm, lat = nest_lat_utm)
+
+con_dist_nest_gg <- ConvertRasterForGGPlot(con_dist_nest)
 
 
+# Get osm baselayer for ellis
+con_dist_nest_bb_sf <- st_as_sfc(bb(con_dist_nest, relative = TRUE, height = 1,
+  width = 1))
+con_dist_nest_bb_ext <- CreateOSMBaseBB(con_dist_nest_bb_sf, type = "om_type")
+con_dist_nest_down <- OpenStreetMap::openmap(con_dist_nest_bb_ext[[1]],
+  con_dist_nest_bb_ext[[2]], zoom = 7, minNumTiles = 21, type = om_type)  # may need to add/adjust 'zoom'
+con_dist_nest_om <- RasterizeOMDownload(con_dist_nest_down)
+
+# Ellis Map Raster
+
+con_dist_nest_ext_sf <- st_as_sfc(bb(st_buffer(con_dist_nest_bb_sf, 5500) %>%
+  st_transform(., crs = crs(con_dist_nest_om)), ext = .95))
+
+con_dist_nest_map <-
+  tm_layout(asp = 1) +
+  tm_shape(con_dist_nest_ext_sf) +
+    tm_fill(col = NA) +
+  tm_shape(con_dist_nest_om) +
+    tm_rgb() +
+#  tm_shape(con_dist_nest) +
+#    tm_raster("ConDistNest_All", palette = "-plasma", alpha = .6, style = "cont",
+#      legend.show = FALSE)  #+
+  tm_shape(con_dist_nest) +
+    tm_raster("ConDistNest_All", palette = "-plasma", alpha = 1, style = "cont",
+ #     breaks = c(0, 500, 1000, 1500, 2000),
+      title = "Conspecific and Nest Distance (m)", legend.show = TRUE)
+con_dist_nest_map
 
 
-predictors <- seq(-.25, 1.25, by = .01)
-intercept <- in_intercept
-beta1 <- in_beta1
-predictors_logit <- intercept + beta1*(predictors)
-df <- data.frame(predictors, probs = plogis(predictors_logit))
-(y_mid_int <- (-(1*intercept/beta1)))
-rect_df <- data.frame(xmin = c(-.25, 1), ymin=c(0,0), xmax= c(0,1.25),
-  ymax = c(1,1))
-ggplot(df) + geom_line(aes(predictors, probs), color = "blue") +
-  geom_segment(aes(x = y_mid_int, y = 0, xend = y_mid_int, yend = 1),
-    color = "red") +
-  geom_rect(data = rect_df, alpha = .5, aes(xmin=xmin, ymin=ymin, xmax=xmax,
-    ymax=ymax)) +
-  annotate("text", x = y_mid_int + .03, y = .03, label = signif(y_mid_int, 2),
-    color = "red") +
-  ylim(0,1) + labs(x = "Predictor", y = "Probability") + theme_no_legend +
-  ggtitle(paste0("Logistic Regression (", "intercept = ", intercept,
-    ", beta1 = ", beta1, ")")) +
-  theme(plot.title = element_text(hjust = 0.5, vjust = 0))
+summary(con_dist_nest)
 
+ggplot(con_dist_nest_gg, aes(x, y)) +
+  geom_tile(aes(fill = value), interpolate=TRUE) +
+  coord_fixed(ratio = 1) +
+  scale_fill_distiller(breaks = seq(0,40000, by=5000), name="Meters",
+    palette = "Blues", direction=-1) +
+  geom_point(data = nests_2016, aes(long, lat), shape=24, alpha=.9,
+    color="red", fill= "black", size=2, stroke=2) +
+  geom_point(data = nests, aes(long, lat), shape=24, alpha=.9,
+    color="blue", fill= "floralwhite", size=2, stroke=2) +
+  geom_point(data = baea_dist, aes(long_utm, lat_utm), shape=4, alpha=.9,
+    color="yellow", size=1, stroke=1.5) +
+  geom_point(data = nests, aes(long, lat), shape=24, alpha=.9,
+    color="blue", fill= "floralwhite", size=2, stroke=2) +
+  theme_legend +
+  ggtitle(paste("Stationary Locations")) + xlab("Longitude") +
+  ylab("Latitude")
 
+SaveGGPlot("Stationary Locations.png", image_output, bg = "white")
 
-## This temp file is for creating a script to get covariate values for a datalayer at
-## various bandwidths then to fit models for each of them.
+for (i in unique(baea$id)){
+  con_dist_i <- raster(file.path("C:/Work/R/Workspace",
+    "2016_Nests_Rasters/2016",paste0("ConDist_", i, ".tif")))
 
-# Incoming variables
-covar_name
-covar_mat
-covar_ras
-temp_ras
-ua_data
-cell_nums
-cell_size
-temp_ras <- raster(covar_ras)
+  con_dist_nest_i <- raster(file.path("C:/Work/R/Workspace",
+    "2016_Nests_Rasters/2016",paste0("ConDistNest_", i, ".tif")))
+  home_dist_i <- raster(file.path("C:/Work/R/Workspace/2016_Nests_Rasters",
+    "2016", paste0("HomeDist_", i ,".tif")))
+  con_nest_i <- overlay(home_dist_i, con_dist_nest_i,
+    fun=function(x,y){round(x+y)})
+  nest_i <-  baea %>% filter(id == i) %>% slice(1) %>%
+    dplyr::select(nest_long_utm, nest_lat_utm)  %>%
+    transmute(long = nest_long_utm, lat = nest_lat_utm)
 
-bandwidths <- c(seq(0, 270, by=30), seq(300, 1350, by=30),
-  seq(1500, 3000, by=300))  # radius (meters)
+  nests_2016_i <- nests_2016 %>%
+    filter(long >= xmin(con_dist_nest_i) & long <= xmax(con_dist_nest_i)) %>%
+    filter(lat >= ymin(con_dist_nest_i) & lat <= ymax(con_dist_nest_i))
 
-covariate_cols <- paste0(rep(covar_name, each=length(bandwidths)),
-    rep(bandwidths, times=1))
-ua_data[, covariate_cols] <- NA
+  home_dist_i_gg <- ConvertRasterForGGPlot(home_dist_i)
+  ggplot(home_dist_i_gg, aes(x, y)) +
+    coord_fixed(ratio = 1) +
+    geom_raster(aes(fill = value), interpolate=TRUE) + theme_legend +
+    scale_x_continuous(expand=c(0, 0)) + scale_y_continuous(expand=c(0, 0)) +
+    scale_fill_distiller(breaks = seq(0,40000, by=5000), name="Meters",
+      palette = "Blues", direction=-1) +
+    ggtitle(paste(i, "- Home Distance")) +
+    xlab("Longitude") + ylab("Latitude") +
+    geom_point(data = nests_2016_i, aes(long, lat), shape=24, alpha=.9,
+      color="red", fill= "black", size=2, stroke=2) +
+    geom_point(data = nest_i, aes(long, lat), shape=24, alpha=.9,
+      color="blue", fill= "white", size=2, stroke=2)
+  SaveGGPlot(paste0(i, " - Home Distance.png"),
+    file.path(image_output), bg = NA)
 
-for(m in seq_along(bandwidths)){
-  sigma <- bandwidths[m]/xres(covar_ras)
-  col_name <- paste0(covar_name, bandwidths[m])
-  print(paste0("Starting:", col_name))
-  if(bandwidths[m] == 0){
-    ua_data[, col_name] <- covar_ras[cell_nums]
-  } else {
-    values(temp_ras) <- gauss2dsmooth(covar_mat, lambda=sigma,
-      nx=nrow(temp_ras), ny=ncol(temp_ras))
-    ua_data[, col_name] <- temp_ras[cell_nums]
-    temp_ras[] <- NA
-  }
+  con_dist_nest_i_gg <- ConvertRasterForGGPlot(con_dist_nest_i)
+  ggplot(con_dist_nest_i_gg, aes(x, y)) +
+    coord_fixed(ratio = 1) +
+    geom_raster(aes(fill = value)) + theme_legend +
+    scale_x_continuous(expand=c(0, 0)) + scale_y_continuous(expand=c(0, 0)) +
+    scale_fill_gradient2(name="Meters", low="white", mid="grey", high="tan4") +
+    ggtitle(paste(i, "- Conspecific Distance")) +
+    xlab("Longitude") + ylab("Latitude")  +
+    geom_point(data = nests_2016_i, aes(long, lat), shape=24, alpha=.9,
+      color="red", fill= "black", size=2, stroke=2) +
+    geom_point(data = nest_i, aes(long, lat), shape=24, alpha=.9,
+      color="blue", fill= "white", size=2, stroke=2)
+  SaveGGPlot(paste0(i, " - Conspecific Distance.png"),
+    file.path(image_output), bg = NA)
+
+  con_dist_i_gg <- ConvertRasterForGGPlot(con_dist_i)
+  ggplot(con_dist_i_gg, aes(x, y)) +
+    coord_fixed(ratio = 1) +
+    geom_raster(aes(fill = value)) + theme_legend +
+    scale_x_continuous(expand=c(0, 0)) + scale_y_continuous(expand=c(0, 0)) +
+    scale_fill_gradient2(name="Meters", high="white", mid="grey", low="tan4",
+      midpoint=round((range(con_dist_i_gg$value)[2] -
+          range(con_dist_i_gg$value)[1])/2)) +
+    ggtitle(paste(i, "- Conspecific (actual) Distance")) +
+    xlab("Longitude") + ylab("Latitude")  +
+    geom_point(data = nests_2016_i, aes(long, lat), shape=24, alpha=.9,
+      color="red", fill= "black", size=2, stroke=2) +
+    geom_point(data = nest_i, aes(long, lat), shape=24, alpha=.9,
+      color="blue", fill= "white", size=2, stroke=2)
+  SaveGGPlot(paste0(i, " - Conspecific (actual) Distance.png"),
+    file.path(image_output), bg = NA)
+
+  con_nest_i_gg <- ConvertRasterForGGPlot(con_nest_i)
+  ggplot(con_nest_i_gg, aes(x, y)) +
+    coord_fixed(ratio = 1) +
+    geom_raster(aes(fill = value)) + theme_legend +
+    scale_x_continuous(expand=c(0, 0)) + scale_y_continuous(expand=c(0, 0)) +
+    scale_fill_gradientn(name = "Meters", colours = terrain.colors(10)) +
+    ggtitle(paste(i, "- Con/Nest Distance")) +
+    xlab("Longitude") + ylab("Latitude")  +
+    geom_point(data = nests_2016_i, aes(long, lat), shape=24, alpha=.9,
+      color="red", fill= "black", size=2, stroke=2) +
+    geom_point(data = nest_i, aes(long, lat), shape=24, alpha=.9,
+      color="blue", fill= "white", size=2, stroke=2) +
+  SaveGGPlot(paste0(i, " - Con_Nest Distance.png"), file.path(image_output),
+    bg = NA)
+
+  baea_dist_i <- baea_dist %>% filter(id == i)
+  ggplot(con_nest_i_gg, aes(x, y)) +
+    coord_fixed(ratio = 1) +
+    geom_raster(aes(fill = value)) + theme_legend +
+    scale_x_continuous(expand=c(0, 0)) + scale_y_continuous(expand=c(0, 0)) +
+    scale_fill_gradientn(name = "Meters", colours = terrain.colors(10)) +
+    ggtitle(paste(i, "- Con/Nest Distance")) +
+    xlab("Longitude") + ylab("Latitude")  +
+    geom_point(data = nests_2016_i, aes(long, lat), shape=24, alpha=.9,
+      color="red", fill= "black", size=2, stroke=2) +
+    geom_point(data = nest_i, aes(long, lat), shape=24, alpha=.9,
+      color="blue", fill= "white", size=2, stroke=2) +
+    geom_point(data = baea_dist_i, aes(long_utm, lat_utm), shape=4, alpha=.9,
+      color="black", size=2, stroke = 1.2)
+  SaveGGPlot(paste0(i, " - Con_Nest Distance with GPS Locations.png"),
+    file.path(image_output), bg = NA)
 }
-
-all_models <- data.frame(covar_type = covar_name,
-  bw = bandwidths, aic = NA, coef = NA, opt_bw = NA)
-opt_models <- cbind(data.frame(covar_type = unique(covar_name)), bw = NA)
-
-colnames_i <- str_subset(colnames(ua_data), covar_name)
-bandwidths_i <- unique(str_replace_all(colnames_i, "[:^digit:]", ""))
-covar_models_list <- vector("list", length(bandwidths_i))
-names(covar_models_list) <- as.character(bandwidths_i)
-for (j in seq_along(bandwidths_i)){
-  covar_bw_name <- paste0(covar_name, bandwidths_i[j])
-  model_formula <- as.formula(paste("case ~ ", covar_bw_name))
-  covar_model <- glm(model_formula, family=binomial, data = ua_data)
-  covar_models_list[[j]] <- covar_model
-  row_num = which(all_models$covar_type == covar_name &
-      all_models$bw == bandwidths[j])
-  print(row_num)
-  covar_mod_aic <- AIC(covar_model) #$aic
-  covar_mod_coef <- as.numeric(coef(covar_model)[1])
-  all_models[row_num, "aic"] <- ifelse(is.null(covar_mod_aic), NA, covar_mod_aic)
-  all_models[row_num, "coef"] <- ifelse(is.null(covar_mod_coef), NA, covar_mod_coef)
-}
-#lapply(covar_models_list, summary)
-bandwidths_x <- seq(0, 3000, by=300)
-aic_table <- aictab(covar_models_list, second.ord = FALSE) %>% arrange(AIC)
-aic_table$covar_type <- covar_name
-aic_table$opt_bw <- as.numeric(as.character(aic_table[1,1]))
-opt_bw <- as.numeric(as.character(aic_table[1,1]))
-all_models[all_models$covar_type == covar_name, "opt_bw"] <- opt_bw
-opt_models[opt_models$covar_type == covar_name, "bw"] <- opt_bw
-g <- ggplot(aic_table, aes(x = as.numeric(as.character(Modnames)), y = AIC)) +
-  #geom_line(color="red") +
-  geom_point() + xlab("Bandwidth") +
-  ggtitle(covar_name) +
-  theme_no_legend
-if (nrow(aic_table) > 1){
-  g <- g +
-    scale_x_continuous(breaks = as.numeric(bandwidths_x)) +
-    geom_vline(xintercept = opt_bw, color="blue", linetype='dashed') +
-    geom_line(color="red") +
-    annotate("text",
-      x = opt_bw + (diff(range(as.numeric(aic_table$Modnames)))*.025),
-      y = max(aic_table$AIC), label = as.character(opt_bw), color = "blue")
-}
-g

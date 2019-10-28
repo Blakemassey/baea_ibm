@@ -1,16 +1,8 @@
 ## This script is for importing GIS datalayers and converting them to the
 ## proper coordinate reference system (NAD83 UTM N19), extent, and resolution.
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
-suppressPackageStartupMessages(library(dplyr))
-suppressPackageStartupMessages(library(fasterize))
-suppressPackageStartupMessages(library(foreign))
-suppressPackageStartupMessages(library(mapview))
-suppressPackageStartupMessages(library(plyr))
-suppressPackageStartupMessages(library(plotKML))
-suppressPackageStartupMessages(library(raster))
-suppressPackageStartupMessages(library(rgdal))
-suppressPackageStartupMessages(library(sf))
-suppressPackageStartupMessages(library(sp))
+pacman::p_load(dplyr, fasterize, foreign, mapview, plyr, plotKML, raster, rgdal,
+sf, sp)
 
 ## ------------------------- DSL LANDCOVER LAYER -------------------------- ####
 

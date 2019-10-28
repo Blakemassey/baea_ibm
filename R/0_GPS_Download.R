@@ -33,7 +33,7 @@ PlotLocationSunriseSunset(df = deployed, by = "id", individual = "", start = "",
   wrap = TRUE)
 
 ## Update Individual By Year KLM files -----------------------------------------
-UpdateIndByYearKMLs(df = deployed_all, update_year = 2018, update_gdrive =FALSE)
+UpdateIndByYearKMLs(df = deployed_all, update_year = 2019, update_gdrive =FALSE)
 
 ## Download ALL Deployed Data and Write a new "deployed.csv" File --------------
 #DownloadCTT(units="deployed", download="all")

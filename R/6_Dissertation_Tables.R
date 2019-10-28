@@ -1,58 +1,137 @@
 library(pacman)
-p_load(DT, dplyr, ggplot2, readr, stringr, xtable)
+p_load(DT, lubridate, tidyverse, ggplot2, readr, xtable)
+suppressMessages(extrafont::loadfonts(device="win"))
 options(stringsAsFactors = FALSE)
+
+pkg_dir <- "C:/Users/Blake/OneDrive/Work/R/Projects/multiscale_optim"
+tex_dir <- "C:/Users/Blake/OneDrive/Work/LaTeX/BMassey_Dissertation"
+
+BoldText <- function(x) {paste('{\\textbf{',x,'}}', sep ='')}
+
+# Theme (for LaTeX font)
+theme_latex <- theme(text = element_text(family = "Latin Modern Roman")) +
+  theme(axis.text = element_text(size = 10)) +
+  theme(axis.title = element_text(size = 12)) +
+  theme(plot.title = element_text(size = 14))
+
 
 ############################################################################# ##
 #### -------------------------- CHAPTER 2 --------------------------------- ####
 ############################################################################# ##
 
-bold <- function(x) {paste('{\\textbf{',x,'}}', sep ='')}
+## GPS Deployment and Territoriality -------------------------------------
 
-# HOMERANGE METRICS ------------------------------------------------------------
-homerange_metrics_org <- readRDS(file.path("Output/Analysis/Homerange",
-  "homerange_metrics.rds")) #%>% filter(!id %in% c("Eskutassis", "Sheepscot"))
-
-unique(homerange_metrics_org$id)
-
-homerange_metrics <- homerange_metrics_org %>%
+baea_hr_org <- readRDS("Data/BAEA/baea_homerange.rds")
+baea_hr <- table(baea_hr_org$id, baea_hr_org$year) %>%
+  as.data.frame.matrix(.)%>%
+  rownames_to_column(.) %>%
   as_tibble(.) %>%
-  mutate(yr = as.integer(year)) %>%
-  dplyr::select(id, yr, locs, ud_95_total, ud_50_total) %>%
-  rename('Eagle ID' = id) %>%
-  rename(Year = yr) %>%
-  rename('GPS Points\\newline(\\#)' = locs) %>%
-  rename('95\\% UD Area\\newline(km\\textsuperscript{2})' = ud_95_total) %>%
-  rename('50\\% UD Area\\newline(km\\textsuperscript{2})' = ud_50_total) %>%
-  map_if(is.factor, as.character) %>%
-  as_tibble(.)
+  rename("id" = "rowname") %>%
+  na_if(0) %>%
+  mutate(row=row_number()) %>%
+  pivot_longer(., cols = `2015`:`2019`, names_to = "years",
+    values_drop_na = TRUE) %>%
+  group_by(id) %>%
+  summarize(terr_years = paste(years, collapse = ", ")) %>%
+  mutate(terr_years = str_replace_all(terr_years,"2015, 2016, 2017, 2018, 2019",
+    "2015 -- 2019")) %>%
+  mutate(terr_years = str_replace_all(terr_years, "2015, 2016, 2017, 2018",
+    "2015 -- 2018")) %>%
+  mutate(terr_years = str_replace_all(terr_years, "2015, 2016, 2017",
+    "2015 -- 2017"))
 
-bold <- function(x) {paste('{\\textbf{',x,'}}', sep ='')}
+
+gps_deploys_org <- read_csv("Data/GPS/GPS_Deployments.csv")
+gps_deploys <- gps_deploys_org %>%
+  filter(!is.na(deploy_seq) & !is.na(trap_site)) %>%
+  arrange(deploy_seq) %>%
+  select(serial, deployed, sex, deploy_location, trap_site, county) %>%
+  mutate(id = deploy_location) %>%
+  mutate(deployed = lubridate::ymd(deployed))
+
+gps_deploys
+
+deployments <- gps_deploys %>% left_join(., baea_hr, by = "id") %>%
+  transmute(`Bird ID` = id,
+            `Trap Site` = trap_site,
+            `County` = county,
+            `Trap Date` = format(deployed, format="%Y-%m-%d"),
+            `Sex` = str_to_title(sex),
+            `Territorial Years`= terr_years)
 
 # Check for proper handling of symbols
-print(xtable(homerange_metrics), sanitize.text.function = identity)
+print(xtable(deployments), sanitize.text.function = identity)
 
 # Covert to an xtable and adjust alignment
-homerange_metrics_xtable <- xtable(homerange_metrics)
-ncol(homerange_metrics_xtable)
-align(homerange_metrics_xtable)  <- c("L{0}", "L{.5}", "C{.25}", "C{.5}",
-  "C{.75}", "C{.75}")
+deployments_xtable <- xtable(deployments)
+ncol(deployments_xtable)
+align(deployments_xtable)  <- c("L{0}", "L{.42}", "C{.835}", "C{.415}",
+                                "C{.45}", "C{.38}", "C{.5}")
+str_replace_all(align(deployments_xtable), "[^[//.||0-9]]", "") %>%
+  as.numeric(.) %>% sum()
 # translates to relative column widths (first value, rownames, is ignored)
 # should sum to 3 for the 3 columns
 
 # For LaTeX Folder
-print(homerange_metrics_xtable,
+print(deployments_xtable,
   floating = FALSE, width = "\\textwidth",
   tabular.environment = "tabularx",
   booktabs = TRUE, # thick top/bottom line, Premable add "\usepackage{booktabs}"
   include.rownames=FALSE,
   size="\\fontsize{11pt}{12pt}\\selectfont",
-  sanitize.colnames.function=bold,
+  sanitize.colnames.function=BoldText,
   file = file.path("C:/Users/blake/OneDrive/Work/LaTeX/BMassey_Dissertation",
-                   "Tables/Homerange_Metrics.tex"))
+                   "Tables/Ch2/Deployments.tex"))
 
+## Homerange Metrics -----------------------------------------------------------
 
+hr_metrics_org <- readRDS(file.path("Output/Analysis/Homerange",
+  "hr_all_metrics.rds")) #%>% filter(!id %in% c("Eskutassis", "Sheepscot"))
+unique(hr_metrics_org$id)
+colnames(hr_metrics_org)
 
-# SSF ANALYSIS LANDSCAPE COVARIATES --------------------------------------------
+hr_metrics <- hr_metrics_org %>%
+  as_tibble(.) %>%
+  mutate(yr = as.integer(year)) %>%
+  transmute('Eagle ID' = id,
+    Year = yr,
+    'GPS Points\\newline(n)' = locs,
+    '95\\% UD Area\\newline(km\\textsuperscript{2})' = ud_95_total,
+    '50\\% UD Area\\newline(km\\textsuperscript{2})' = ud_50_total,
+    '50\\% UD Waterbody Area\\newline(km\\textsuperscript{2})' =
+      ud_50_waterbody_area,
+    '95\\% UD Waterbody Area\\newline(km\\textsuperscript{2})' =
+      ud_95_waterbody_area) %>%
+  map_if(is.factor, as.character) %>%
+  as_tibble(.)
+
+# Check for proper handling of symbols
+print(xtable(hr_metrics), sanitize.text.function = identity)
+
+# Covert to an xtable and adjust alignment
+hr_metrics_xtable <- xtable(hr_metrics)
+ncol(hr_metrics_xtable)
+align(hr_metrics_xtable)  <- c("L{0}", "L{.35}", "C{.35}", "C{.3}",
+  "C{.5}", "C{.5}", "C{.5}", "C{.5}")
+
+# translates to relative column widths (first value, rownames, is ignored)
+# should sum to 3 for the 3 columns
+str_replace_all(align(hr_metrics_xtable), "[^[//.||0-9]]", " ") %>%
+  as.numeric(.) %>% sum()
+
+# For LaTeX Folder
+print(hr_metrics_xtable,
+  floating = FALSE, width = "\\textwidth",
+  tabular.environment = "tabularx",
+  booktabs = TRUE, # thick top/bottom line, Premable add "\usepackage{booktabs}"
+  include.rownames=FALSE,
+  size="\\fontsize{11pt}{12pt}\\selectfont",
+  sanitize.colnames.function=BoldText,
+  file = file.path("C:/Users/blake/OneDrive/Work/LaTeX/BMassey_Dissertation",
+                   "Tables/Ch2/Homerange_Metrics.tex"))
+
+## SSF Analysis Covariates -----------------------------------------------------
+
 ssf_land_covar_org <- read_csv("Data/Assets/ssf_landscape_covariates.csv")
 
 ssf_land_covar <- ssf_land_covar_org %>%
@@ -79,7 +158,7 @@ print(ssf_land_covar_xtable,
   booktabs = TRUE, # thick top/bottom line, Premable add "\usepackage{booktabs}"
   include.rownames=FALSE,
   size="\\fontsize{11pt}{12pt}\\selectfont",
-  sanitize.colnames.function=bold,
+  sanitize.colnames.function=BoldText,
   file = "Products/Tables/SSF_Landscape_Covariates.tex")
 
 # For LaTeX Folder
@@ -89,21 +168,47 @@ print(ssf_land_covar_xtable,
   booktabs = TRUE, # thick top/bottom line, Premable add "\usepackage{booktabs}"
   include.rownames=FALSE,
   size="\\fontsize{11pt}{12pt}\\selectfont",
-  sanitize.colnames.function=bold,
+  sanitize.colnames.function=BoldText,
   file = file.path("C:/Users/blake/OneDrive/Work/LaTeX/BMassey_Dissertation",
-                   "Tables/SSF_Landscape_Covariates.tex"))
+                   "Tables/Ch2/SSF_Landscape_Covariates.tex"))
 
+## Con_dist Distribution Fits --------------------------------------------------
 
-# HOMERANGE METRICS ------------------------------------------------------------
+fits_baea_dist_org <- readRDS("Output/Analysis/Territorial/fits_baea_dist.rds")
+fits_baea_dist_df <- SummarizeFitDist(fits_baea_dist_org) %>%
+  select(Distribution, LogLik, AIC, BIC, Parameter, Estimate, SD) %>%
+  mutate(Distribution = str_replace(Distribution, "Halfnorm", "Half Normal"))
 
-homerange_metrics <- readRDS("Output/Analysis/Homerange/homerange_metrics.rds")
-colnames(homerange_metrics)
+print(xtable(fits_baea_dist_df, digits = c(0, 0, 0, 0, 0, 0, 3, 4)),
+  latex.environments = "", include.rownames = F)
 
-ggplot(homerange_metrics) +
-  geom_boxplot(aes(y = ud_50_total))
+fits_baea_dist_xtable <- xtable(fits_baea_dist_df,
+  digits = c(0, 0, 0, 0, 0, 0, 3, 4), only.contents = TRUE, floating = FALSE)
 
+#& exponential & halfnorm & gamma &  & pareto &  & weibull &
 
+align(fits_baea_dist_xtable) <- c("L{0}",
+"L{.65}", "R{.35}", "R{.35}", "R{.35}", "R{.5}", "R{.4}", "R{.4}")
 
+str_replace_all(align(fits_baea_dist_xtable), "[^[//.||0-9]]", "") %>%
+  as.numeric(.) %>% sum()
+# translates to relative column widths (first value, rownames, is ignored)
+# should sum to 4 for the 4 columns
+# "L" indicates left-aligned, ragged-right, no hypenation (check LaTeX preamble)
+# "H" indicates left-aligned, ragged-right, hypenation (check LaTeX preamble)
 
+# For LaTeX Folder
+print(fits_baea_dist_xtable,
+#      add.to.row=addtorow,
+  floating = FALSE, width = "\\textwidth",
+  tabular.environment = "tabularx",
+  booktabs = TRUE, # thick top/bottom line, Premable add "\usepackage{booktabs}"
+  include.rownames=FALSE,
+  size="\\fontsize{11pt}{12pt}\\selectfont",
+  sanitize.colnames.function=BoldText,
+  file = file.path("C:/Users/blake/OneDrive/Work/LaTeX/BMassey_Dissertation",
+                   "Tables/Ch2/BAEA_Dist_Fits.tex"))
 
-
+# ---------------------------------------------------------------------------- #
+################################ OLD CODE ######################################
+# ---------------------------------------------------------------------------- #
