@@ -3,36 +3,24 @@
 #------------------------------------------------------------------------------#
 
 # Load libraries, scripts, and input parameters
-suppressPackageStartupMessages(library(devtools))
-suppressPackageStartupMessages(library(dplyr))
-suppressPackageStartupMessages(library(fitdistrplus))
-suppressPackageStartupMessages(library(ggplot2))
-suppressPackageStartupMessages(library(ggthemes))
-suppressPackageStartupMessages(library(lubridate))
-suppressPackageStartupMessages(library(raster))
-suppressPackageStartupMessages(library(zoo))
+pacman::p_load(devtools, dplyr, fitdistrplus, ggplot2, ggthemes, lubridate,
+  raster, zoo)
 options(stringsAsFactors=FALSE)
 theme_update(plot.title = element_text(hjust = 0.5))
 
-library(baear)
-library(gisr)
-library(ibmr)
-devtools::reload("C:/Work/R/Packages/baear")
+pacman::p_load(baear, gisr, ibmr)
+#devtools::reload("C:/Users/blake/OneDrive/Work/R/Packages/gisr")
 
 wgs84 <- CRS("+init=epsg:4326") # WGS84 Lat/Long
 wgs84n19 <- CRS("+init=epsg:32619") # WGS84 UTM 19N
 
 ## Import Baea, Nests, and Base ------------------------------------------------
-baea <- readRDS(file="Data/BAEA/baea.rds")
+baea_hr <- readRDS("Data/BAEA/baea_homerange.rds")
 
 # Identify Nest, Perch, Flight, Cruise, and Roost Behavior ---------------------
 
-# Remove non-territorial birds
-baea_terr <- baea %>% filter(!id %in% c("Cherryfield", "Davis", "Madagascal",
-  "Webb"))
-
 # Table of duration and start/end dates of birds' location data
-baea_dates <- baea_terr %>%
+baea_dates <- baea_hr %>%
   group_by(id) %>%
   summarize(start_date = first(date), last_date = last(date), locs = n()) %>%
   mutate(date_period = as.period(interval(start_date, last_date),
@@ -42,7 +30,7 @@ baea_dates
 
 
 # Filter location by criteria and add behaviors
-baea_nest <- FilterByNestCriteria(baea_terr, min_daily_nest_dist = 250,
+baea_nest <- FilterByNestCriteria(baea_hr, min_daily_nest_dist = 250,
   seasons = c("spring","summer"))
 baea_nest <- AddNestBehavior(baea_nest, distance_threshold = 75)
 baea_roost <- FilterByRoostCriteria(baea_nest,
@@ -67,7 +55,7 @@ baea_flights <- CreateFlightPathSegments(baea_behavior) # %>% filter(id == "")
 table(baea_behavior$id)
 table(baea_behavior$behavior)
 baea_behavior %>% group_by(id) %>% summarize(sex = first(sex))
-saveRDS(baea_behavior, file="Data/Baea/baea_behavior.rds")
+saveRDS(baea_behavior, file = "Data/Baea/baea_behavior.rds")
 
 # Export kml of flight segments
 #ExportKMLTelemetryBAEA(baea_flights, behavior= "behavior",
@@ -83,12 +71,8 @@ table(data.frame(unclass(rle(baea_behavior$bh_cruise))) %>%
 table(data.frame(unclass(rle(baea_behavior$bh_flight))) %>%
     filter(values == "Flight"))
 
-title_all = "Daily Behavior Distributions (all data)"
-PlotBehaviorProportionLine(baea_behavior, title = title_all)
-SaveGGPlot("Products/Graphs/Behavior/Proportion_Line.svg", bg="transparent")
-PlotBehaviorProportionBar(baea_behavior, title = title_all)
 PlotBehaviorProportionBar(baea_behavior, title = "")
-SaveGGPlot("Products/Graphs/Behavior/Proportion_Bar.svg", bg="transparent")
+SaveGGPlot("Products/Graphs/Behavior/Proportion_Bar.png", bg = "transparent")
 
 
 #------------------------------------------------------------------------------#
@@ -158,7 +142,7 @@ SaveGGPlot("Products/Graphs/Behavior/Proportion_Bar.svg", bg="transparent")
 # by_colors <- CreateColorsByAny(by="id", df=baea, output=TRUE)
 # study_years <- c(2013:2017)
 #
-# ################### PLOT 3-DAY RUNNING MEAN NEST DISTANCE ####################
+# ################### PLOT 3-DAY RUNNING MEAN NEST DISTANCE ################## #
 #
 # # Plot 3-day running mean nest distance for all eagles
 # ggplot(data = baea_terr_sum) +
@@ -230,7 +214,7 @@ SaveGGPlot("Products/Graphs/Behavior/Proportion_Bar.svg", bg="transparent")
 #   plot(g)
 # }
 #
-# ####################### PLOT DAILY MIN NEST DISTANCE ###########################
+# ####################### PLOT DAILY MIN NEST DISTANCE ####################### #
 #
 # # Plot daily minimum nest distance for all eagles
 # ggplot(data = baea_terr_sum)  +
@@ -420,8 +404,6 @@ SaveGGPlot("Products/Graphs/Behavior/Proportion_Bar.svg", bg="transparent")
 #   ungroup()
 #
 #
-# ####
-#
 # min_speed = 5
 # min_step_length = 50
 # max_step_time = 20
@@ -454,4 +436,3 @@ SaveGGPlot("Products/Graphs/Behavior/Proportion_Bar.svg", bg="transparent")
 #       bh_cruise_seq = sequence(rle(bh_cruise_tf)$lengths) * bh_cruise_tf) %>%
 #     dplyr::select(-bh_cruise_tf)
 #
-# ####

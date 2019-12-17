@@ -82,7 +82,7 @@ om_type <- paste0(esri_url, "NatGeo_World_Map", esri_tile)
 #### -------------------------- CHAPTER 2 --------------------------------- ####
 ############################################################################# ##
 
-#### ----------------------- Nests Overview Maps -------------------------------
+#### ----------------------- Nests Overview Map --------------------------------
 
 maine_bb_sf <- st_as_sfc(bb(maine, relative = TRUE, height = 1.15, width = 2))
 maine_bb_ext <- CreateOSMBaseBB(maine_bb_sf, type = "om_type")
@@ -254,6 +254,83 @@ for (i in unique(baea_hr$id)){
   }
 }
 
+#### ----------- Con and Home Nest Distance Map --------------------------------
+
+## Import Base
+base <- raster(file.path("C:/ArcGIS/Data/BlankRaster/maine_30mc.tif"))
+nests_active <- readRDS(file="Data/Nests/Nests_rds/nests_active.RDS")
+baea_terr <- readRDS("Data/BAEA/baea_terr.rds")
+baea_dist <- readRDS("Data/BAEA/baea_dist.rds")
+con_nest <- raster("Output/Analysis/Territorial/ConNest_All.tif")
+con_nest_km <- con_nest/1000
+
+nests_2016_sf <- nests_active %>%
+  filter(active_2016 == TRUE) %>%
+  transmute(long = long_utm, lat = lat_utm, nest_site) %>%
+  st_as_sf(x = ., coords = c("long", "lat"),
+  crs = wgs84n19)
+
+nests_home_sf <- baea_terr %>% group_by(id) %>% slice(1) %>%
+  dplyr::select(nest_long_utm, nest_lat_utm, nest_site)  %>%
+  transmute(long = nest_long_utm, lat = nest_lat_utm, nest_site = nest_site) %>%
+  st_as_sf(x = ., coords = c("long", "lat"),
+  crs = wgs84n19) #%>% filter(!name %in% c("Davis", "Upper"))
+
+nests_home_buff <- st_buffer(nests_home_sf, 30000)
+
+con_nests_list <- st_contains(nests_home_buff, nests_2016_sf)
+con_nests_sf <- nests_2016_sf %>% dplyr::slice(unlist(con_nests_list)) %>%
+  filter(!nest_site %in% nests_home_sf$nest_site)
+
+# Get osm baselayer
+
+con_nest_bb_sf <- st_as_sfc(bb(con_nest, relative = TRUE, height = 2.5,
+  width = 1.25)) # Gets the extent to download - should be larger than final map
+con_nest_bb_ext <- CreateOSMBaseBB(con_nest_bb_sf, type = "om_type")
+con_nest_down <- OpenStreetMap::openmap(con_nest_bb_ext[[1]], # adjust 'zoom'?
+  con_nest_bb_ext[[2]], zoom = 8, minNumTiles = 21, type = om_type)
+con_nest_om <- RasterizeOMDownload(con_nest_down)
+
+# Ellis Map Raster
+
+nests_home_ext_sf <- st_as_sfc(bb(nests_home_sf %>%
+  st_transform(., crs = crs(con_nest_om)), ext = 1.25))
+  # sets the extent of the map - should be smaller than *_om raster
+
+con_nest_map <-
+  tm_layout(asp = 1) +
+  tm_shape(nests_home_ext_sf, is.master = TRUE) +
+    tm_fill(col = NA) +
+  tm_shape(con_nest_om) +
+    tm_rgb() +
+ tm_shape(con_nest_km) +
+  tm_raster("ConNest_All", palette = "-plasma", alpha = .8, style = "cont",
+    title = "Conspecific and\n Home Nest Site\nDistance Metric (km)", legend.show = TRUE) +
+  tm_shape(con_nests_sf) +
+    tm_symbols(col = "grey20", shape = 4,  border.lwd = 2,  size = .2) +
+    #tm_symbols(col = "yellow", border.lwd = 2,  size = .25) +
+  tm_shape(nests_home_sf) +
+    tm_symbols(col = "white", border.lwd = 2,  size = .25) +
+    #tm_bubbles(col = "white", border.lwd = 2,  size = .2) +
+  tm_layout(main.title = NULL, #paste0("GPS Locations: ", id_i),
+    main.title.position = "center",
+    main.title.size = 1.15,
+    title.snap.to.legend = TRUE) +
+  tm_legend(title.size = 1, text.size = .85,
+    outside = FALSE, position = c("right", "bottom"), frame = TRUE,
+    legend.bg.color = "white", legend.format = list(format = "f",
+    big.mark = "")) +
+  tm_compass(type = "4star", show.labels = 1, size = 3,
+    position = c(.87, .87)) +
+  tm_scale_bar(text.size = .75, breaks = c(0, 50, 100), position = c(.4, .01)) +
+  tm_grid(n.x = 4, n.y = 5, projection = 4326, col = "grey85", alpha = 0,
+    labels.col = "grey25", labels.format = list(format = "f", big.mark = ""),
+    labels.inside.frame = FALSE) +
+  tm_xlab("") + tm_ylab("")
+con_nest_map
+
+tmap_save(tm = con_nest_map, filename = file.path(tex_dir, "Figures/Ch2",
+  "Con_Nest_Distance_Map.svg"), unit = "in", dpi = 300, height = 6, width = 6.1)
 
 ############################################################################# ##
 #### -------------------------- CHAPTER 4 --------------------------------- ####
@@ -482,7 +559,8 @@ ellis_map <-
     title.snap.to.legend = TRUE) +
   tm_legend(title.size = 1, text.size = .85,
     outside = FALSE, position = c("left", "top"), frame = TRUE,
-    legend.bg.color = "white", legend.format = list(format = "f", big.mark = "")) +
+    legend.bg.color = "white", legend.format = list(format = "f",
+    big.mark = "")) +
   tm_compass(type = "4star",  show.labels = 1, size = 2.5,
     position = c(.85, .87)) +
   tm_scale_bar(text.size = .75, breaks = c(0, 1, 2), position = c(.05, .01)) +

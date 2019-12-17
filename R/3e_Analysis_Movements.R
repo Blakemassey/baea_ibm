@@ -2,33 +2,18 @@
 # Script for analyzing baea movement patterns, fitting parameters, and plotting
 # step, turn angle, and redististribution kernels
 #------------------------------------------------------------------------------#
-suppressPackageStartupMessages(library(CircStats))
-suppressPackageStartupMessages(library(circular))
-suppressPackageStartupMessages(library(devtools))
-suppressPackageStartupMessages(library(dplyr))
-suppressPackageStartupMessages(library(fitdistrplus))
-suppressPackageStartupMessages(library(ggplot2))
-suppressPackageStartupMessages(library(ggthemes))
-suppressPackageStartupMessages(library(gridExtra))
-suppressPackageStartupMessages(library(lubridate))
-suppressPackageStartupMessages(library(movMF))
-suppressPackageStartupMessages(library(raster))
-suppressPackageStartupMessages(library(scales))
-suppressPackageStartupMessages(library(stringr))
-suppressPackageStartupMessages(library(zoo))
+pacman::p_load(CircStats, circular, devtools, dplyr, fitdistrplus, ggplot2,
+  ggthemes, gridExtra, lubridate, movMF, raster, scales, stringr, zoo)
+pacman::p_load(baear, gisr, ibmr)
 options(stringsAsFactors = FALSE)
 theme_update(plot.title = element_text(hjust = 0.5))
-library(baear)
-library(gisr)
-library(ibmr)
 wgs84 <- CRS("+init=epsg:4326") # WGS84 Lat/Long
 wgs84n19 <- CRS("+init=epsg:32619") # WGS84 UTM 19N
 
 ############################  IMPORT FILES  ####################################
 
 ## Import Baea behavior --------------------------------------------------------
-baea_behavior <- readRDS(file="Data/Baea/baea_behavior.rds")
-#baea_behavior_rs <- readRDS(file="Data/Baea/baea_behavior_rs.rds")
+baea_behavior_all <- readRDS(file="Data/Baea/baea_behavior.rds")
 
 ######################## ANALYZE MOVEMENTS  ####################################
 

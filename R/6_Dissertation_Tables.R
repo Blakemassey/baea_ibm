@@ -172,11 +172,11 @@ print(ssf_land_covar_xtable,
   file = file.path("C:/Users/blake/OneDrive/Work/LaTeX/BMassey_Dissertation",
                    "Tables/Ch2/SSF_Landscape_Covariates.tex"))
 
-## Con_dist Distribution Fits --------------------------------------------------
+## ConNest Distribution Fits ---------------------------------------------------
 
 fits_baea_dist_org <- readRDS("Output/Analysis/Territorial/fits_baea_dist.rds")
 fits_baea_dist_df <- SummarizeFitDist(fits_baea_dist_org) %>%
-  select(Distribution, LogLik, AIC, BIC, Parameter, Estimate, SD) %>%
+  dplyr::select(Distribution, LogLik, AIC, BIC, Parameter, Estimate, SD) %>%
   mutate(Distribution = str_replace(Distribution, "Halfnorm", "Half Normal"))
 
 print(xtable(fits_baea_dist_df, digits = c(0, 0, 0, 0, 0, 0, 3, 4)),

@@ -1,17 +1,10 @@
 ## BAEA Data -------------------------------------------------------------------
 
-suppressPackageStartupMessages(library(CircStats))
-suppressPackageStartupMessages(library(circular))
-suppressPackageStartupMessages(library(fitdistrplus))
-suppressPackageStartupMessages(library(ggplot2))
-suppressPackageStartupMessages(library(ggthemes))
-suppressPackageStartupMessages(library(momentuHMM))
-suppressPackageStartupMessages(library(padr))
+pacman::p_load(CircStats, circular, fitdistrplus, ggplot2, ggthemes, momentuHMM,
+  lubridate, padr, tidyverse)
 theme_update(plot.title = element_text(hjust = 0.5))
 
-library(baear)
-library(gisr)
-library(ibmr)
+pacman::p_load(baear, gisr, ibmr)
 
 baea_behavior_org <- readRDS(file="Data/Baea/baea_behavior.rds")
 
@@ -166,7 +159,7 @@ baea_hmm_start <- fitHMM(
   stateNames = state_names,
   estAngleMean = list(angle=FALSE))
 
-saveRDS(baea_hmm_start, file = "Data/Models/baea_hmm_start")
+saveRDS(baea_hmm_start, file = "Output/Analysis/Transitions/baea_hmm_start.rds")
 
 Par0_baea_hmm_start <- getPar0(baea_hmm_start, formula = formula)
 
@@ -185,9 +178,10 @@ baea_hmm_full <- fitHMM(
   estAngleMean = list(angle=FALSE),
   verbose = 2)
 toc()
+seconds_to_period(10794.17) # Took ~3 hours on 2019-11-07
 
-saveRDS(baea_hmm_full, file = "Data/Models/baea_hmm_full")
-baea_hmm_full <- readRDS(file = "Data/Models/baea_hmm_full.rds")
+saveRDS(baea_hmm_full, file = "Output/Analysis/Transitions/baea_hmm_full.rds")
+baea_hmm_full <- readRDS(file = "Output/Analysis/Transitions/baea_hmm_full.rds")
 
 plot(baea_hmm_full, plotCI = TRUE)
 names(baea_hmm_full)
@@ -243,102 +237,101 @@ library(shiny)
 library(cosinor)
 cosinor_analyzer(vitamind)
 
-saveRDS(baea_hmm_full, file = "Data/Models/baea_hmm_full")
-baea_hmm_full <- readRDS(file = "Data/Models/baea_hmm_full")
-
-
-baea_hmm_full <- readRDS(file = "Data/Models/baea_hmm_full.rds")
+saveRDS(baea_hmm_full, file = "Output/Analysis/Transitions/baea_hmm_full.rds")
+baea_hmm_full <- readRDS(file = "Output/Analysis/Transitions/baea_hmm_full.rds")
 plot(baea_hmm_full)
 
-
+# For plotting of transitions in dissertation
+df_trans <- ExtractTransitionProbabilities(x = baea_hmm_full)
+saveRDS(df_trans, file = "Output/Analysis/Transitions/df_trans.rds")
 
 #------------------------------------------------------------------------------#
 ################################ OLD CODE ######################################
 #------------------------------------------------------------------------------#
-
-hist(baea_behavior_prep$step)
-
-stepPar0 <- c(5, 2000, 5, 500) # (mu_1,mu_2,sd_1,sd_2)
-# initial angle distribution natural scale parameters
-anglePar0 <- c(0,0,1,8) # (mean_1,mean_2,concentration_1,concentration_2)
-
-baea_hmm2 <- fitHMM(
-  data=baea_behavior_prep,
-  nbStates=2,
-  dist = list(step = "gamma", angle = "vm"),
-  Par0=list(step=c(5, 2000, 5, 500), angle=c(1, 8)),
-  # knownStates = as.numeric(baea_behavior_prep$behavior),
-  stateNames = c("stationary", "exploratory"),
-  estAngleMean = list(angle=FALSE))
-
-
-plot(baea_hmm2)
-
-baea_hmm2
-
-baea_hmm <- fitHMM(
-  data=baea_behavior_prep,
-  nbStates=n_states,
-  dist=list(step=step_dist, angle=angle_dist),
-  Par0=list(step=step_par, angle=angle_par),
- # knownStates = as.numeric(baea_behavior_prep$behavior),
-  stateNames = state_names,
-  retryFits = 5)
-
-plot(baea_hmm, plotCI=TRUE)
-
-rename_all(mtcars, toupper)
-
-fit_weibull <- function(x)
-{
-    xbar <- mean(x)
-    varx <- var(x)
-    f <- function(b){return(gamma(1+2/b)/gamma(1+1/b)^2 - 1 - varx/xbar^2)}
-    bhat <- uniroot(f,c(0.02,50))$root
-    ahat <- xbar/gamma(1+1/bhat)
-    return(c(ahat,bhat))
-}
-# using method of moments (see function at top of script)
-  # weibull_pars_i <- fit_weibull(baea_behavior_weibull_i$step_length)
-  # weibull_pars_row <- which(weibull_pars$behavior == i)
-  # weibull_pars[weibull_pars_row, "weibull_shape"] <- weibull_pars_i[1]
-  # weibull_pars[weibull_pars_row, "weibull_scale"] <- weibull_pars_i[2]
-
-# WORKED
-baea_hmm5 <- fitHMM(
-  data = baea_behavior_prep,
-  nbStates = n_states,
-  dist = list(step=step_dist, angle=angle_dist),
-  Par0 = list(step=step_par, angle=angle_par),
-  beta0 = beta_0,
-  knownStates = as.numeric(baea_behavior_prep$behavior),
-  stateNames = state_names,
-  estAngleMean = list(angle=FALSE))
-# WORKED
-
-saveRDS(baea_hmm5, file = "Data/Models/baea_hmm5")
-baea_hmm5 <- readRDS("Data/Models/baea_hmm5")
-
-library(momentuHMM)
-
-baea_hmm5
-plot(baea_hmm5)
-P <- momentuHMM:::allProbs(baea_hmm5,nbStates=5)
-P
-
-
-# Testing Exponential Plotting
-library(ggplot2)
-x = seq(-3,2, by = .01)
-y2 = 2^x
-ye = exp(1)^x
-y4 = 4^x
-y10 = 10^x
-
-df <- data.frame(x,y2,ye,y4)
-ggplot(df) +
-  geom_line(aes(x,y2), color = "red") +
-  geom_line(aes(x,ye), color = "blue") +
-  geom_line(aes(x,y4), color = "green") +
-  geom_line(aes(x,y10), color = "yellow") +
-  coord_fixed(ratio = 1, xlim = c(-3,2), ylim = c(-1, 4))
+#
+# hist(baea_behavior_prep$step)
+#
+# stepPar0 <- c(5, 2000, 5, 500) # (mu_1,mu_2,sd_1,sd_2)
+# # initial angle distribution natural scale parameters
+# anglePar0 <- c(0,0,1,8) # (mean_1,mean_2,concentration_1,concentration_2)
+#
+# baea_hmm2 <- fitHMM(
+#   data=baea_behavior_prep,
+#   nbStates=2,
+#   dist = list(step = "gamma", angle = "vm"),
+#   Par0=list(step=c(5, 2000, 5, 500), angle=c(1, 8)),
+#   # knownStates = as.numeric(baea_behavior_prep$behavior),
+#   stateNames = c("stationary", "exploratory"),
+#   estAngleMean = list(angle=FALSE))
+#
+#
+# plot(baea_hmm2)
+#
+# baea_hmm2
+#
+# baea_hmm <- fitHMM(
+#   data=baea_behavior_prep,
+#   nbStates=n_states,
+#   dist=list(step=step_dist, angle=angle_dist),
+#   Par0=list(step=step_par, angle=angle_par),
+#  # knownStates = as.numeric(baea_behavior_prep$behavior),
+#   stateNames = state_names,
+#   retryFits = 5)
+#
+# plot(baea_hmm, plotCI=TRUE)
+#
+# rename_all(mtcars, toupper)
+#
+# fit_weibull <- function(x)
+# {
+#     xbar <- mean(x)
+#     varx <- var(x)
+#     f <- function(b){return(gamma(1+2/b)/gamma(1+1/b)^2 - 1 - varx/xbar^2)}
+#     bhat <- uniroot(f,c(0.02,50))$root
+#     ahat <- xbar/gamma(1+1/bhat)
+#     return(c(ahat,bhat))
+# }
+# # using method of moments (see function at top of script)
+#   # weibull_pars_i <- fit_weibull(baea_behavior_weibull_i$step_length)
+#   # weibull_pars_row <- which(weibull_pars$behavior == i)
+#   # weibull_pars[weibull_pars_row, "weibull_shape"] <- weibull_pars_i[1]
+#   # weibull_pars[weibull_pars_row, "weibull_scale"] <- weibull_pars_i[2]
+#
+# # WORKED
+# baea_hmm5 <- fitHMM(
+#   data = baea_behavior_prep,
+#   nbStates = n_states,
+#   dist = list(step=step_dist, angle=angle_dist),
+#   Par0 = list(step=step_par, angle=angle_par),
+#   beta0 = beta_0,
+#   knownStates = as.numeric(baea_behavior_prep$behavior),
+#   stateNames = state_names,
+#   estAngleMean = list(angle=FALSE))
+# # WORKED
+#
+# saveRDS(baea_hmm5, file = "Data/Models/baea_hmm5")
+# baea_hmm5 <- readRDS("Data/Models/baea_hmm5")
+#
+# library(momentuHMM)
+#
+# baea_hmm5
+# plot(baea_hmm5)
+# P <- momentuHMM:::allProbs(baea_hmm5,nbStates=5)
+# P
+#
+#
+# # Testing Exponential Plotting
+# library(ggplot2)
+# x = seq(-3,2, by = .01)
+# y2 = 2^x
+# ye = exp(1)^x
+# y4 = 4^x
+# y10 = 10^x
+#
+# df <- data.frame(x,y2,ye,y4)
+# ggplot(df) +
+#   geom_line(aes(x,y2), color = "red") +
+#   geom_line(aes(x,ye), color = "blue") +
+#   geom_line(aes(x,y4), color = "green") +
+#   geom_line(aes(x,y10), color = "yellow") +
+#   coord_fixed(ratio = 1, xlim = c(-3,2), ylim = c(-1, 4))
