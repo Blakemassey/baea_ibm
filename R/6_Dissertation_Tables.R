@@ -199,7 +199,6 @@ str_replace_all(align(fits_baea_dist_xtable), "[^[//.||0-9]]", "") %>%
 
 # For LaTeX Folder
 print(fits_baea_dist_xtable,
-#      add.to.row=addtorow,
   floating = FALSE, width = "\\textwidth",
   tabular.environment = "tabularx",
   booktabs = TRUE, # thick top/bottom line, Premable add "\usepackage{booktabs}"
@@ -208,6 +207,67 @@ print(fits_baea_dist_xtable,
   sanitize.colnames.function=BoldText,
   file = file.path("C:/Users/blake/OneDrive/Work/LaTeX/BMassey_Dissertation",
                    "Tables/Ch2/BAEA_Dist_Fits.tex"))
+
+## Movement Parameter Fits -----------------------------------------------------
+
+fits_move_pars_org <- readRDS("Output/Analysis/Movements/move_pars.rds")
+fits_move_pars_df  <- fits_move_pars_org %>%
+  dplyr::select(behavior_behavior, min_step:mvm_prop) %>%
+  mutate(behavior_behavior = str_replace_all(behavior_behavior, "->",
+    "$\\\\rightarrow$"))
+
+print(xtable(fits_move_pars_df, digits = c(0, 0, 0, 0, 2, 0, 2, 2, 2, 2, 2)),
+  sanitize.text.function=identity, latex.environments = "", include.rownames =F)
+
+fits_move_pars_xtable <- xtable(fits_move_pars_df,
+  digits = c(0, 0, 0, 0, 2, 0, 2, 2, 2, 2, 2), only.contents = TRUE,
+  floating = FALSE)
+
+# test the column width sum (should be 10, the number of columns)
+test <- "L{2.55}C{1.3}C{1.35}R{.5}R{.9}R{.555}R{.555}R{.92}R{.92}R{.45}"
+str_replace_all(str_split(test, "\\{", simplify = TRUE), "[^[//.||0-9]]", "")%>%
+  str_subset(., "[0-9]") %>% as.numeric(.) %>% sum()
+
+align(fits_move_pars_xtable) <- c("L{0}",
+  "L{2.55}", "C{1.3}", "C{1.35}", "R{.5}", "R{.9}", "R{.555}", "R{.555}",
+  "R{.92}", "R{.92}", "R{.45}")
+
+str_replace_all(align(fits_move_pars_xtable), "[^[//.||0-9]]", "") %>%
+  str_subset(., "[0-9]") %>% as.numeric(.) %>% sum()
+# translates to relative column widths (first value, rownames, is ignored)
+# should sum to 10 for the 10 columns
+# "L" indicates left-aligned, ragged-right, no hypenation (check LaTeX preamble)
+# "H" indicates left-aligned, ragged-right, hypenation (check LaTeX preamble)
+
+addtorow <- list()
+addtorow$pos <- list(0)
+addtorow$command <- c(paste0(
+  "\\multirow{2}{=}{\\centering \\textbf{\\hfil Movement\\newline Step Type}} ",
+  "& \\multicolumn{2}{c}{\\textbf{Step Length}} ",
+  "& \\multicolumn{2}{c}{\\textbf{Weibull}} ",
+  "& \\multicolumn{5}{c}{\\textbf{Mixed Von Mises}} \\\\ ",
+  "\\cmidrule(lr){2-3} \\cmidrule(lr){4-5} \\cmidrule(lr){6-10} ",
+  "& {Min (m)} & {Max (m)} & {$\\kappa$} ",
+  "& \\multicolumn{1}{c}{$\\lambda$} ",
+  "& \\multicolumn{1}{c}{$\\mu\\textsubscript{1}$} ",
+  "& \\multicolumn{1}{c}{$\\mu\\textsubscript{2}$} ",
+  "& \\multicolumn{1}{c}{$\\kappa\\textsubscript{1}$} ",
+  "& \\multicolumn{1}{c}{$\\kappa\\textsubscript{2}$} & {Mix} \\\\"))
+
+# For LaTeX Folder
+print(fits_move_pars_xtable,
+  add.to.row = addtorow,
+  floating = FALSE, width = "\\textwidth",
+  tabular.environment = "tabularx",
+  booktabs = TRUE, # thick top/bottom line, Premable add "\usepackage{booktabs}"
+  include.rownames = FALSE,
+  include.colnames = FALSE,
+  size="\\fontsize{11pt}{12pt}\\selectfont",
+  sanitize.colnames.function=BoldText,
+  sanitize.text.function=identity,
+  file = file.path("C:/Users/blake/OneDrive/Work/LaTeX/BMassey_Dissertation",
+                   "Tables/Ch2/Movement_Pars.tex"))
+
 
 # ---------------------------------------------------------------------------- #
 ################################ OLD CODE ######################################
