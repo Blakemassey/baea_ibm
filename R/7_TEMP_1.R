@@ -10,6 +10,11 @@ theme_update(plot.title = element_text(hjust = 0.5))
 wgs84 <- CRS("+init=epsg:4326") # WGS84 Lat/Long
 wgs84n19 <- CRS("+init=epsg:32619") # WGS84 UTM 19N
 
+<<<<<<< HEAD
+=======
+
+
+>>>>>>> 0b3c14239e2784f9b48db671fcabdaf51805bd13
 ################################ PLOTTING  #####################################
 
 ggplot(baea_movements_perch_perch, aes(step_length)) +
@@ -28,6 +33,10 @@ ggplot(baea_movements_perch_perch, aes(step_length)) +
 SaveGGPlot(filename = "Perch_Perch_StepLengths.png",
   path="Products/Graphs/Step_Length")
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> 0b3c14239e2784f9b48db671fcabdaf51805bd13
 ### ALL DATA -------------------------------------------------------------------
 # Plotting (Weibull) -----------------------------------------------------------
 
