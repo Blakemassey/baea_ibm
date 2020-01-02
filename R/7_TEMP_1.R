@@ -3,40 +3,60 @@
 # step, turn angle, and redististribution kernels
 #------------------------------------------------------------------------------#
 pacman::p_load(CircStats, circular, devtools, dplyr, fitdistrplus, ggplot2,
-  ggthemes, gridExtra, lubridate, movMF, raster, scales, stringr, zoo)
+  ggthemes, gridExtra, patchwork, latex2exp, lubridate, magick, movMF, raster,
+  reshape2, scales, tidyverse, stringr, zoo)
 pacman::p_load(baear, gisr, ibmr)
 options(stringsAsFactors = FALSE)
+suppressMessages(extrafont::loadfonts(device="win"))
 theme_update(plot.title = element_text(hjust = 0.5))
 wgs84 <- CRS("+init=epsg:4326") # WGS84 Lat/Long
 wgs84n19 <- CRS("+init=epsg:32619") # WGS84 UTM 19N
 
-<<<<<<< HEAD
-=======
+# Load packages, helpers, and functions
+pacman::p_load(tidyverse,  ggplot2, gridExtra, patchwork)
 
+pkg_dir <- "C:/Users/Blake/OneDrive/Work/R/Projects/multiscale_optim"
+tex_dir <- "C:/Users/Blake/OneDrive/Work/LaTeX/BMassey_Dissertation"
 
->>>>>>> 0b3c14239e2784f9b48db671fcabdaf51805bd13
+# Theme (for LaTeX font)
+theme_latex <- theme(text = element_text(family = "Latin Modern Roman")) +
+  theme(axis.text = element_text(size = 10)) +
+  theme(axis.title = element_text(size = 12)) +
+  theme(plot.title = element_text(size = 14))
+
+theme_blank <- theme(legend.position = "none",
+  text = element_text(family="Latin Modern Roman"),
+  plot.title = element_text(size=14),
+  panel.grid = element_blank(), axis.title = element_blank(),
+  axis.text = element_blank(), axis.ticks = element_blank(),
+  panel.background = element_rect(fill = "transparent", colour = NA),
+  plot.background = element_rect(fill = "transparent", colour = NA))
+
+baea_behavior_perch_perch <- readRDS("Data/BAEA/baea_behavior_perch_perch.rds")
+baea_movements <- readRDS("Data/BAEA/baea_movements.rds")
+baea_movements_wb <- readRDS("Data/BAEA/baea_movements_wb.rds")
+baea_movements_vm <- readRDS("Data/BAEA/baea_movements_vm.rds")
+move_pars <- readRDS("Output/Analysis/Movements/move_pars.rds")
+
 ################################ PLOTTING  #####################################
 
-ggplot(baea_movements_perch_perch, aes(step_length)) +
-  geom_histogram(aes(y = ..density..), binwidth = 42.5, boundary = 0,
-    fill = "blue", color = "white") +
-  xlab("Step Length (m)") + ylab("Density") +
-  xlim(0, 5000) +
-  theme(axis.text=element_text(colour="black")) +
-  theme(axis.title.x = element_text(size = 16, angle = 0, vjust = 0, hjust=0.5)) +
-  theme(axis.title.y = element_text(size = 16, angle = 90, vjust = 0.5, hjust=0.5)) +
-  theme(axis.text = element_text(size = 14, colour = "black")) +
-  theme(panel.grid = element_blank()) +
-  theme(panel.background = element_rect(fill = NA, size=2, color = "grey90")) +
-  scale_y_continuous(labels = comma) +  ggtitle("Perch -> Perch") +
-  theme(title = element_text(size = 20))
-SaveGGPlot(filename = "Perch_Perch_StepLengths.png",
-  path="Products/Graphs/Step_Length")
+# ggplot(baea_behavior_perch_perch, aes(step_length)) +
+#   geom_histogram(aes(y = ..density..), binwidth = 42.5, boundary = 0,
+#     fill = "blue", color = "white") +
+#   xlab("Step Length (m)") + ylab("Density") +
+#   xlim(0, 5000) +
+#   theme_latex +
+#   theme(axis.text=element_text(colour="black")) +
+#   theme(axis.title.x = element_text(size = 16, angle = 0, vjust = 0, hjust=0.5)) +
+#   theme(axis.title.y = element_text(size = 16, angle = 90, vjust = 0.5, hjust=0.5)) +
+#   theme(axis.text = element_text(size = 14, colour = "black")) +
+#   theme(panel.grid = element_blank()) +
+#   theme(panel.background = element_rect(fill = NA, size=2, color = "grey90")) +
+#   scale_y_continuous(labels = comma) +  ggtitle("Perch -> Perch") +
+#   theme(title = element_text(size = 20))
+# SaveGGPlot(filename = "Perch_Perch_StepLengths.png",
+#   path="Products/Graphs/Step_Length")
 
-<<<<<<< HEAD
-=======
-
->>>>>>> 0b3c14239e2784f9b48db671fcabdaf51805bd13
 ### ALL DATA -------------------------------------------------------------------
 # Plotting (Weibull) -----------------------------------------------------------
 
@@ -50,19 +70,174 @@ for (i in 1:nrow(move_pars)){
   weibull_dens <- rbind(weibull_dens, data.frame(grp, pred, dens))
 }
 
-# All plots on one figure
-ggplot(data=baea_movements_wb %>% mutate(grp = behavior_behavior),
+MetersToKilometers <- function(x){
+  x_out <- x/1000
+  return(x_out)
+}
+Multiplier100 <- function(x){
+  x_100 <- x*100
+  x_100 <- str_pad(x_100, 5, side = "right", pad = 0)
+  x_100 <- if_else(x_100 == "00000", "0", x_100)
+  return(x_100)
+}
+
+palette_explorer()
+line_color <- inferno(5, direction = 1)[4]
+
+ind_list <- lapply(sort(unique(baea_movements_wb$behavior_behavior)),
+    function(i){
+  grp_i = str_replace_all(i, "->", "$\\\\rightarrow$")
+  ggplot(baea_movements_wb[baea_movements_wb$behavior_behavior == i,],
     aes(x = step_length)) +
-  geom_histogram(aes(y = ..density.., weight=weights), binwidth = 30,
+  geom_histogram(aes(y = ..density.., weight=weights), binwidth = 500, #binwidth = 30,
+    size = .1, boundary = 0, color = "black", fill = "grey80") +
+  geom_line(data = weibull_dens[weibull_dens$grp == i, ], aes(x = pred,
+    y = dens), size = .8, color = line_color) +
+  xlab(NULL) + ylab(NULL) + ggtitle(TeX(grp_i)) +
+  theme_minimal() + theme_latex +
+  scale_y_continuous(labels = Multiplier100)  +
+  scale_x_continuous(labels = MetersToKilometers)  +
+  theme(plot.margin = margin(0, 6, 3, 6, "pt")) +
+  theme(axis.text = element_text(size = 7)) +
+  theme(axis.text.x = element_text(angle = 0, vjust = .5, hjust = 0.5)) +
+  theme(plot.title = element_text(size = 8, vjust = -2))
+  # Old code for annotations of Weibull parameters
+  #annotate("text", Inf, Inf, hjust = 1.1, vjust = 1.1, size = 5,
+    #label = paste0("Weibull Distribution\n", "shape = ",
+    #  signif(move_pars[move_pars$behavior_behavior == i, "weibull_shape"],
+    #    3), "\n", "scale = ",
+    #  signif(move_pars[move_pars$behavior_behavior == i, "weibull_scale"],
+    #    3)))  +
+})
+#theme_get()
+
+layout <- '
+ABC#
+DEXG
+HIJK
+LMNO
+#PQ#
+'
+
+movements_step_length_plots <- wrap_plots(A = ind_list[[1]],
+  B = ind_list[[2]],
+  C = ind_list[[3]],
+  D = ind_list[[4]],
+  E = ind_list[[5]],
+  X = ind_list[[6]],
+  G = ind_list[[7]],
+  H = ind_list[[8]],
+  I = ind_list[[9]],
+  J = ind_list[[10]],
+  K = ind_list[[11]],
+  L = ind_list[[12]],
+  M = ind_list[[13]],
+  N = ind_list[[14]],
+  O = ind_list[[15]],
+  P = ind_list[[16]],
+  Q = ind_list[[17]],
+  design = layout)
+movements_step_length_plots
+
+# Save Temp (No Label) File
+movements_step_length_no_label_fig_file = file.path("Output/Analysis/Movements",
+  "Movements_Step_Length_NO_LABEL.png")
+ggsave(filename = basename(movements_step_length_no_label_fig_file),
+  plot =  movements_step_length_plots,
+  path = dirname(movements_step_length_no_label_fig_file), scale = 1, width = 6,
+  height = 5.9, units = "in", dpi = 300)
+
+# Create Tex Strings
+tex_head <- tibble(
+  tex_str = c("Probability", "Step Length (km)"),
+  tex_name = c("lab_density", "lab_step_length"))
+tex_df <- bind_rows(
+  bind_rows(tex_head) %>% mutate(title_size = 11))
+
+# Create Tex Text Plots
+for (i in seq_len(nrow(tex_df))){
+  tex_str_i <- tex_df %>% slice(i) %>% pull(tex_str)
+  tex_name_i <- tex_df %>% slice(i) %>% pull(tex_name)
+  title_size_i <- tex_df %>% slice(i) %>% pull(title_size)
+  gg_tex <- ggplot() + theme_blank + labs(title = latex2exp::TeX(tex_str_i)) +
+    theme(plot.title = element_text(size = title_size_i))
+  ggsave(file = "Output/Analysis/Movements/TEMP.png", plot = gg_tex,
+         width = 5, height = .75)
+  tex_i <- image_trim(image_read("Output/Analysis/Movements/TEMP.png"))
+  file.remove("Output/Analysis/Movements/TEMP.png")
+  assign(paste0("tex_", tex_name_i), tex_i)
+}
+rm(i, tex_df, tex_name_i, tex_str_i, tex_i, tex_head)
+
+# Image background
+backgrd <- image_blank(1800, 1800, color = "white")
+
+# Create Final Plot and Export to Dissertation
+movements_step_length_fig <- image_read(movements_step_length_no_label_fig_file)
+movements_step_length_labels_fig <- backgrd %>%
+  image_composite(., movements_step_length_fig, offset = "+20+00") %>%
+  image_composite(., image_rotate(tex_lab_density, 270), offset = "+20+700") %>%
+  image_composite(., tex_lab_step_length, offset = "+800+1745")
+movements_step_length_fig_file = file.path(tex_dir, "Figures/Ch2",
+  "Movements_Step_Length.png")
+image_write(movements_step_length_labels_fig,
+  path = movements_step_length_fig_file, format=".png")
+file.remove(movements_step_length_no_label_fig_file)
+
+
+## WHERE  Temp_2 script should go.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# All plots on one figure
+
+str_replace_all(weibull_dens$grp, "->", "")
+
+pointSize = 2; textSize = 5; spaceLegend = 1
+ggplot(data = baea_movements_wb %>% mutate(grp = behavior_behavior),
+    aes(x = step_length)) +
+  geom_histogram(aes(y = ..density.., weight = weights), binwidth = 30,
     boundary = 0) +
+  geom_line(data = weibull_dens, aes(x = pred, y = dens), size = 1,
+    colour = "blue") +
   xlab("Step Length (m)") + ylab("Density") +
   theme(axis.text=element_text(colour="black")) +
+  scale_fill_viridis_d(option = "C", direction = -1) +
+  guides(fill = guide_legend(title = "Utilization\nDistribution")) +
+  ggtitle("") + guides(NA) + theme_latex + theme(legend.position = "none") +
+  theme_minimal() +
+  #facet_grid(rows = vars(behavior), cols = vars(behavior_next),
+  #  labeller = as_labeller(vars(grp))) +
+  facet_wrap(~ grp, scales = "free") +
+  #  labeller = as_labeller(appender, default = label_parsed)) +
+  # facet_wrap(~ grp_arrow, , scales = "free",
+  #   labeller = as_labeller(appender, default = label_parsed)) +
+  theme_latex +
+    theme(axis.text = element_text(size = 7)) +
+    theme(axis.title = element_text(size = 9)) +
+    theme(plot.title = element_text(size = 11)) +
+    theme(panel.grid.major.x = element_blank())
+
   theme(axis.title.x = element_text(angle = 0, vjust = 0, hjust=0.5)) +
   theme(axis.title.y = element_text(angle = 90, vjust = 0.5, hjust=0.5)) +
   theme(axis.text = element_text(size = 8, colour = "black")) +
   theme(panel.grid = element_blank()) +
   theme(panel.background = element_rect(fill = NA, color = "grey80")) +
-  facet_wrap(~grp, scales = "free") +
   theme(strip.background = element_rect(fill="white", color=NULL),
     strip.text.x = element_text(size=10, colour="black",
       margin = margin(1,0,1,0, "pt"))) +
@@ -70,6 +245,8 @@ ggplot(data=baea_movements_wb %>% mutate(grp = behavior_behavior),
     colour = "blue") +
   theme(panel.border = element_rect(colour = "black", fill=NA, size=.5)) +
   scale_y_continuous(labels = comma)
+
+
 SaveGGPlot(filename = "Step Lengths with Fitted Weibull.png",
   path="Output/Plots/Step_Length")
 
@@ -98,8 +275,9 @@ ind_list <- lapply(sort(unique(baea_movements_wb$behavior_behavior)),
   theme(panel.border = element_rect(colour = "black", fill=NA, size=1)) +
   scale_y_continuous(labels = comma)  +
   theme(plot.margin = margin(15, 15, 15, 15, "pt"))
-  SaveGGPlot(filename = paste(str_replace(i, ">", ""), ".png"),
-    path="Output/Plots/Step_Length/Individual")
+
+#SaveGGPlot(filename = paste(str_replace(i, ">", ""), ".png"),
+#    path="Output/Plots/Step_Length/Individual")
   })
 
 # Plotting (von Mises) ---------------------------------------------------------

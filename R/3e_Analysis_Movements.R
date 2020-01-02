@@ -56,6 +56,7 @@ baea_movements <- baea_behavior_transitions %>%
     alt, agl, dx, dy, step_length, behavior, behavior_next, behavior_behavior,
     turn_angle)
 
+saveRDS(baea_behavior_perch_perch, "Data/BAEA/baea_behavior_perch_perch.rds")
 saveRDS(baea_movements, file = "Data/BAEA/baea_movements.rds")
 
 # All Data parameters (with weights) -------------------------------------------
@@ -80,6 +81,8 @@ weibull_weights <- baea_movements %>%
 baea_movements_wb <- baea_movements %>%
   left_join(., weibull_weights, by=c("id", "behavior_behavior")) %>%
   filter(!is.na(weights))
+
+saveRDS(baea_movements_wb, file = "Data/BAEA/baea_movements_wb.rds")
 
 for (i in unique(baea_movements_wb$behavior_behavior)){
   baea_movements_wb_i <- baea_movements_wb %>%
@@ -164,10 +167,10 @@ move_pars <- full_join(weibull_pars, von_mises_pars, by=c("behavior",
 perch_to_perch <- which(move_pars[,"behavior_behavior"] == "Perch -> Perch")
 move_pars[perch_to_perch, "bern_p"] <- perch_perch_Bern # needed move prob
 
+saveRDS(baea_movements_wb, file = "Data/BAEA/baea_movements_wb.rds")
+saveRDS(baea_movements_vm, file = "Data/BAEA/baea_movements_vm.rds")
 write.csv(move_pars, file="Products/Tables/move_pars.csv") # for Powerpoint
 saveRDS(move_pars, file="Output/Analysis/Movements/move_pars.rds")
-
-
 
 ################################ PLOTTING  #####################################
 
