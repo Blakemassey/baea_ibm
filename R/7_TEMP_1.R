@@ -40,76 +40,55 @@ move_pars <- readRDS("Output/Analysis/Movements/move_pars.rds")
 
 ################################ PLOTTING  #####################################
 
-# ggplot(baea_behavior_perch_perch, aes(step_length)) +
-#   geom_histogram(aes(y = ..density..), binwidth = 42.5, boundary = 0,
-#     fill = "blue", color = "white") +
-#   xlab("Step Length (m)") + ylab("Density") +
-#   xlim(0, 5000) +
-#   theme_latex +
-#   theme(axis.text=element_text(colour="black")) +
-#   theme(axis.title.x = element_text(size = 16, angle = 0, vjust = 0, hjust=0.5)) +
-#   theme(axis.title.y = element_text(size = 16, angle = 90, vjust = 0.5, hjust=0.5)) +
-#   theme(axis.text = element_text(size = 14, colour = "black")) +
-#   theme(panel.grid = element_blank()) +
-#   theme(panel.background = element_rect(fill = NA, size=2, color = "grey90")) +
-#   scale_y_continuous(labels = comma) +  ggtitle("Perch -> Perch") +
-#   theme(title = element_text(size = 20))
-# SaveGGPlot(filename = "Perch_Perch_StepLengths.png",
-#   path="Products/Graphs/Step_Length")
+# Plotting Move Kernel -------------------------------------------------------
 
-### ALL DATA -------------------------------------------------------------------
-# Plotting (Weibull) -----------------------------------------------------------
-
-vec_length <- 100
-weibull_dens <- data.frame(grp=factor(), pred=numeric(), dens=numeric())
+move_dens <- data.frame(grp = character(), x = numeric(), y = numeric(),
+  dens = numeric())
 for (i in 1:nrow(move_pars)){
-  pars_i <- move_pars[i,]
-  grp = rep(pars_i$behavior_behavior, vec_length)
-  pred = seq(pars_i$min_step, pars_i$max_step, length = vec_length)
-  dens = dweibull(pred, shape=pars_i$weibull_shape, scale=pars_i$weibull_scale)
-  weibull_dens <- rbind(weibull_dens, data.frame(grp, pred, dens))
+  move_pars_i <- move_pars[i, ]
+  ignore_von_mises <- ifelse(move_pars_i$behavior[1] %in% c("Cruise", "Flight"),
+    FALSE, TRUE)
+  kernel_i <- CreateMoveKernelWeibullVonMises(
+      max_r = NULL,
+      cellsize = 30,
+      mu1 = move_pars_i$mvm_mu1[1],
+      mu2 = move_pars_i$mvm_mu2[1],
+      kappa1 = move_pars_i$mvm_kappa1[1],
+      kappa2 = move_pars_i$mvm_kappa2[1],
+      mix = move_pars_i$mvm_prop[1],
+      shape = move_pars_i$weibull_shape[1],
+      scale = move_pars_i$weibull_scale[1],
+      ignore_von_mises = ignore_von_mises)
+  r <- (30*((nrow(kernel_i)-1)/2))+(30/2)
+  kernel_raster <- raster::raster(kernel_i, xmn=-r, xmx=r, ymn=-r, ymx=r)
+  print(freq(kernel_raster))
+  df <- data.frame(raster::rasterToPoints(kernel_raster)) #Cells with NA are not converted.
+  names(df)[3] <- "dens"
+  df$behavior_behavior <- move_pars_i$behavior_behavior
+  move_dens <- rbind(move_dens, df)
 }
 
-MetersToKilometers <- function(x){
-  x_out <- x/1000
-  return(x_out)
-}
-Multiplier100 <- function(x){
-  x_100 <- x*100
-  x_100 <- str_pad(x_100, 5, side = "right", pad = 0)
-  x_100 <- if_else(x_100 == "00000", "0", x_100)
-  return(x_100)
-}
-
-palette_explorer()
-line_color <- inferno(5, direction = 1)[4]
-
-ind_list <- lapply(sort(unique(baea_movements_wb$behavior_behavior)),
-    function(i){
+# All plots on one figure
+ind_list = lapply(sort(unique(move_dens$behavior_behavior)), function(i){
   grp_i = str_replace_all(i, "->", "$\\\\rightarrow$")
-  ggplot(baea_movements_wb[baea_movements_wb$behavior_behavior == i,],
-    aes(x = step_length)) +
-  geom_histogram(aes(y = ..density.., weight=weights), binwidth = 500, #binwidth = 30,
-    size = .1, boundary = 0, color = "black", fill = "grey80") +
-  geom_line(data = weibull_dens[weibull_dens$grp == i, ], aes(x = pred,
-    y = dens), size = .8, color = line_color) +
-  xlab(NULL) + ylab(NULL) + ggtitle(TeX(grp_i)) +
-  theme_minimal() + theme_latex +
-  scale_y_continuous(labels = Multiplier100)  +
-  scale_x_continuous(labels = MetersToKilometers)  +
-  theme(plot.margin = margin(0, 6, 3, 6, "pt")) +
-  theme(axis.text = element_text(size = 7)) +
-  theme(axis.text.x = element_text(angle = 0, vjust = .5, hjust = 0.5)) +
-  theme(plot.title = element_text(size = 8, vjust = -2))
-  # Old code for annotations of Weibull parameters
-  #annotate("text", Inf, Inf, hjust = 1.1, vjust = 1.1, size = 5,
-    #label = paste0("Weibull Distribution\n", "shape = ",
-    #  signif(move_pars[move_pars$behavior_behavior == i, "weibull_shape"],
-    #    3), "\n", "scale = ",
-    #  signif(move_pars[move_pars$behavior_behavior == i, "weibull_scale"],
-    #    3)))  +
+  ggplot(move_dens[move_dens$behavior_behavior == i, ], aes(x = x, y = y)) +
+    geom_raster(aes(fill = dens)) +
+    coord_fixed(ratio = 1) +
+    scale_fill_viridis_c(name = "Probability", option = "C", direction = -1,
+      labels = scales::scientific) +
+    scale_x_continuous(expand = c(0.005, 0.005), labels = MetersToKilometers) +
+    scale_y_continuous(expand = c(0.005, 0.005), labels = MetersToKilometers) +
+    theme_minimal() +
+    theme_latex +
+    theme(plot.margin = margin(3, 6, 3, 6, "pt")) +
+    theme(axis.text = element_text(size = 7)) +
+    theme(axis.text.x = element_text(angle = 0, vjust = .5, hjust = 0.5)) +
+    theme(legend.text = element_text(size = 7)) +
+    theme(legend.title = element_text(size = 8)) +
+    theme(plot.title = element_text(size = 9, vjust = -1, hjust = 0.5)) +
+    guides(fill = guide_colourbar(barwidth = .5, barheight = 3)) +
+    ggtitle(TeX(grp_i)) + labs(x = NULL, y = NULL)
 })
-#theme_get()
 
 layout <- '
 ABC#
@@ -118,8 +97,7 @@ HIJK
 LMNO
 #PQ#
 '
-
-movements_step_length_plots <- wrap_plots(A = ind_list[[1]],
+movements_kernel_plots <- wrap_plots(A = ind_list[[1]],
   B = ind_list[[2]],
   C = ind_list[[3]],
   D = ind_list[[4]],
@@ -137,20 +115,20 @@ movements_step_length_plots <- wrap_plots(A = ind_list[[1]],
   P = ind_list[[16]],
   Q = ind_list[[17]],
   design = layout)
-movements_step_length_plots
+movements_kernel_plots
 
 # Save Temp (No Label) File
-movements_step_length_no_label_fig_file = file.path("Output/Analysis/Movements",
-  "Movements_Step_Length_NO_LABEL.png")
-ggsave(filename = basename(movements_step_length_no_label_fig_file),
-  plot =  movements_step_length_plots,
-  path = dirname(movements_step_length_no_label_fig_file), scale = 1, width = 6,
-  height = 5.9, units = "in", dpi = 300)
+movements_kernel_no_label_fig_file = file.path("Output/Analysis/Movements",
+  "Movements_Kernel_NO_LABEL.png")
+ggsave(filename = basename(movements_kernel_no_label_fig_file),
+  plot =  movements_kernel_plots,
+  path = dirname(movements_kernel_no_label_fig_file), scale = 1, width = 10,
+  height = 7.5, units = "in", dpi = 300)
 
 # Create Tex Strings
 tex_head <- tibble(
-  tex_str = c("Probability", "Step Length (km)"),
-  tex_name = c("lab_density", "lab_step_length"))
+  tex_str = c("Distance (km)", "Distance (km)"),
+  tex_name = c("lab_density", "lab_kernel"))
 tex_df <- bind_rows(
   bind_rows(tex_head) %>% mutate(title_size = 11))
 
@@ -170,344 +148,21 @@ for (i in seq_len(nrow(tex_df))){
 rm(i, tex_df, tex_name_i, tex_str_i, tex_i, tex_head)
 
 # Image background
-backgrd <- image_blank(1800, 1800, color = "white")
+backgrd <- image_blank(2700, 2300, color = "white")
 
 # Create Final Plot and Export to Dissertation
-movements_step_length_fig <- image_read(movements_step_length_no_label_fig_file)
-movements_step_length_labels_fig <- backgrd %>%
-  image_composite(., movements_step_length_fig, offset = "+20+00") %>%
-  image_composite(., image_rotate(tex_lab_density, 270), offset = "+20+700") %>%
-  image_composite(., tex_lab_step_length, offset = "+800+1745")
-movements_step_length_fig_file = file.path(tex_dir, "Figures/Ch2",
-  "Movements_Step_Length.png")
-image_write(movements_step_length_labels_fig,
-  path = movements_step_length_fig_file, format=".png")
-file.remove(movements_step_length_no_label_fig_file)
-
-
-## WHERE  Temp_2 script should go.
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# All plots on one figure
-
-str_replace_all(weibull_dens$grp, "->", "")
-
-pointSize = 2; textSize = 5; spaceLegend = 1
-ggplot(data = baea_movements_wb %>% mutate(grp = behavior_behavior),
-    aes(x = step_length)) +
-  geom_histogram(aes(y = ..density.., weight = weights), binwidth = 30,
-    boundary = 0) +
-  geom_line(data = weibull_dens, aes(x = pred, y = dens), size = 1,
-    colour = "blue") +
-  xlab("Step Length (m)") + ylab("Density") +
-  theme(axis.text=element_text(colour="black")) +
-  scale_fill_viridis_d(option = "C", direction = -1) +
-  guides(fill = guide_legend(title = "Utilization\nDistribution")) +
-  ggtitle("") + guides(NA) + theme_latex + theme(legend.position = "none") +
-  theme_minimal() +
-  #facet_grid(rows = vars(behavior), cols = vars(behavior_next),
-  #  labeller = as_labeller(vars(grp))) +
-  facet_wrap(~ grp, scales = "free") +
-  #  labeller = as_labeller(appender, default = label_parsed)) +
-  # facet_wrap(~ grp_arrow, , scales = "free",
-  #   labeller = as_labeller(appender, default = label_parsed)) +
-  theme_latex +
-    theme(axis.text = element_text(size = 7)) +
-    theme(axis.title = element_text(size = 9)) +
-    theme(plot.title = element_text(size = 11)) +
-    theme(panel.grid.major.x = element_blank())
-
-  theme(axis.title.x = element_text(angle = 0, vjust = 0, hjust=0.5)) +
-  theme(axis.title.y = element_text(angle = 90, vjust = 0.5, hjust=0.5)) +
-  theme(axis.text = element_text(size = 8, colour = "black")) +
-  theme(panel.grid = element_blank()) +
-  theme(panel.background = element_rect(fill = NA, color = "grey80")) +
-  theme(strip.background = element_rect(fill="white", color=NULL),
-    strip.text.x = element_text(size=10, colour="black",
-      margin = margin(1,0,1,0, "pt"))) +
-  geom_line(data = weibull_dens, aes(x = pred, y = dens), size = 1,
-    colour = "blue") +
-  theme(panel.border = element_rect(colour = "black", fill=NA, size=.5)) +
-  scale_y_continuous(labels = comma)
-
-
-SaveGGPlot(filename = "Step Lengths with Fitted Weibull.png",
-  path="Output/Plots/Step_Length")
-
-# Individual plots
-ind_list <- lapply(sort(unique(baea_movements_wb$behavior_behavior)),
-    function(i){
-  ggplot(baea_movements_wb[baea_movements_wb$behavior_behavior == i,],
-    aes(x = step_length)) +
-  geom_histogram(aes(y = ..density.., weight=weights), binwidth = 30,
-    boundary = 0) +
-  geom_line(data = weibull_dens[weibull_dens$grp == i, ], aes(x = pred,
-    y = dens), size = 2, colour = "blue") +
-  annotate("text", Inf, Inf, hjust = 1.1, vjust = 1.1, size = 5,
-    label = paste0("Weibull Distribution\n", "shape = ",
-      signif(move_pars[move_pars$behavior_behavior == i, "weibull_shape"],
-        3), "\n", "scale = ",
-      signif(move_pars[move_pars$behavior_behavior == i, "weibull_scale"],
-        3)))  +
-  xlab("Step Length (m)") + ylab("Density") +  ggtitle(paste(i, "(all)")) +
-  theme(title = element_text(size = 16)) +
-  theme(axis.text = element_text(size = 12, colour = "black")) +
-  theme(axis.title.x = element_text(angle = 0, hjust=0.5)) +
-  theme(axis.title.y = element_text(angle = 90, hjust=0.5)) +
-  theme(panel.grid = element_blank()) +
-  theme(panel.background = element_rect(fill = NA, color = "grey80")) +
-  theme(panel.border = element_rect(colour = "black", fill=NA, size=1)) +
-  scale_y_continuous(labels = comma)  +
-  theme(plot.margin = margin(15, 15, 15, 15, "pt"))
-
-#SaveGGPlot(filename = paste(str_replace(i, ">", ""), ".png"),
-#    path="Output/Plots/Step_Length/Individual")
-  })
-
-# Plotting (von Mises) ---------------------------------------------------------
-
-bin_width = (2*pi)/24
-breaks <- seq(0, (2*pi), by=((2*pi)/12))
-labels <- c(0, "", "", expression(pi / 2), "", "",
-   expression(pi), "", "", expression(1.5*pi), "", "",
-   expression(2*pi))
-minor_breaks <- seq(0, 2*pi, by=bin_width)
-minor_labels <- c(0, "", "", expression(pi / 4), "", "", expression(pi / 2),
-  "", "", expression(3/4*pi), "", "", expression(pi),
-  "", "", expression(5/4*pi), "", "", expression(1.5*pi),
-  "", "", expression(7/4*pi), "", "")
-limits <- c(0, 2*pi)
-vec_length <- 100
-von_mises_dens <- data.frame(grp=factor(), pred=numeric(), dens=numeric())
-
-for (i in 1:nrow(move_pars)){
-  pars_i <- move_pars[i,]
-  grp = rep(pars_i$behavior_behavior, vec_length)
-  pred = seq(limits[1], limits[2], length = vec_length)
-  dens = dmixedvm(pred, mu1 = pars_i$mvm_mu1, mu2 = pars_i$mvm_mu2,
-    kappa1 = pars_i$mvm_kappa1, kappa2 = pars_i$mvm_kappa2,
-    p = pars_i$mvm_prop)
-  von_mises_dens <- rbind(von_mises_dens, data.frame(grp, pred, dens))
-}
-
-# Cartesian Coordinates --------------------------------------------------------
-# All plots on one figure
-
-p_list = lapply(sort(unique(baea_movements_vm$behavior_behavior)), function(i){
-    ggplot(data =
-      baea_movements_vm[baea_movements_vm$behavior_behavior ==i,],
-      aes(x=turn_angle)) +
-    geom_histogram(aes(y = ..density.., weight=weights), fill = "grey20",
-      color = "black", boundary = 0, binwidth = bin_width) +
-    geom_line(data = von_mises_dens[von_mises_dens$grp == i, ],
-      aes(x = pred, y = dens), size = 1, colour = "red") +
-    scale_x_continuous(limits = limits, labels = labels,
-      breaks = breaks, minor_breaks = minor_breaks, expand = c(0,0)) +
-    facet_grid(. ~ behavior_behavior) +
-    theme(strip.background = element_rect(fill="white", color=NULL),
-      strip.text.x = element_text(size=10, colour="black",
-      margin = margin(1, 0, 1, 0, "pt"))) +
-    theme(legend.position="none") +
-    theme(axis.text.x = element_text(colour="grey20", size=8, vjust=.5, angle=0,
-      margin=margin(1, 1, 0, 1, "pt"))) +
-    theme(axis.text.y = element_text(colour="grey20", size=8)) +
-    theme(panel.grid.major = element_blank())  +
-    theme(panel.grid.minor = element_blank())  +
-    theme(panel.background = element_rect(fill = NA, color = "black")) +
-    theme(plot.margin = margin(1, 5, 1, 5, "pt")) +
-    ggtitle(NULL) +
-    labs(x=NULL, y=NULL)
-})
-do.call(grid.arrange, c(p_list, ncol=5, nrow=4, left = "Density",
-  bottom="Direction"))
-SavePlot(filename = "Turn Angles with Fitted von Mises - Cartesian.png",
-  path="Output/Plots/Turn_Angle")
-
-# Individual plots
-ind_list <- lapply(sort(unique(baea_movements_vm$behavior_behavior)),
-  function(i){
-    ggplot(baea_movements_vm[baea_movements_vm$behavior_behavior == i, ],
-    aes(x=turn_angle)) +
-    geom_histogram(aes(y = ..density.., weight=weights), fill = "grey20",
-      color = "black", boundary = 0, binwidth = bin_width) +
-    geom_line(data = von_mises_dens[von_mises_dens$grp == i, ],
-      aes(x = pred, y = dens), size = 1, colour = "red") +
-    xlab("Turn Angle (radians)") + ylab("Density") + ggtitle(paste(i))+
-    annotate("text", Inf, Inf, hjust = 1, vjust = 1, size = 5,
-      label = paste0("von Mises Distribution\n",
-      "mu1 (radians) = ", signif(move_pars[move_pars$behavior_behavior == i,
-        "mvm_mu1"], 3), "\n",
-      "mu2 (radians) = ", signif(move_pars[move_pars$behavior_behavior == i,
-        "mvm_mu2"], 3), "\n",
-      "kappa1 = ", signif(move_pars[move_pars$behavior_behavior == i,
-        "mvm_kappa1"], 3), "\n",
-      "kappa2 = ", signif(move_pars[move_pars$behavior_behavior == i,
-        "mvm_kappa2"], 3))) +
-    scale_x_continuous(limits = limits, labels = labels,
-      breaks = breaks, minor_breaks = minor_breaks, expand = c(0,0)) +
-    theme(legend.position="none") +
-    theme(title = element_text(size = 16)) +
-    theme(axis.text.x = element_text(colour = "grey20", size = 12, vjust = .5,
-      angle = 0, margin=margin(1, 1, 0, 1, "pt"))) +
-    theme(axis.text.y = element_text(colour = "grey20", size = 12)) +
-    theme(panel.grid.major = element_blank())  +
-    theme(panel.grid.minor = element_blank())  +
-    theme(panel.background = element_rect(fill = NA, color = "black")) +
-    theme(plot.margin = margin(15, 15, 15, 15, "pt"))
-  SaveGGPlot(filename = paste(str_replace(i, ">", ""), "(all).png"),
-    path="Output/Plots/Turn_Angle/Individual/Cartesian")
-})
-
-# Polar Coordinates ------------------------------------------------------------
-# All plots on one figure
-p_list = lapply(sort(unique(baea_movements_vm$behavior_behavior)), function(i){
-  ggplot(baea_movements_vm[baea_movements_vm$behavior_behavior == i, ],
-      aes(x = turn_angle)) +
-    geom_histogram(aes(y = ..density.., weight=weights), fill = "grey20",
-      color = "black", boundary = 0, binwidth = bin_width) +
-    geom_line(data = von_mises_dens[von_mises_dens$grp == i, ],
-      aes(x = pred, y = dens), size = 1, colour = "red") +
-    coord_polar(start = (1.5*pi), direction = -1) +
-    scale_y_continuous(labels = NULL) +
-    scale_x_continuous(limits = limits, labels = minor_labels,
-      breaks = minor_breaks[-25], minor_breaks = minor_breaks, expand = c(0,0))+
-    theme(axis.ticks = element_blank()) +
-    facet_grid(. ~ behavior_behavior) +
-    theme(strip.background = element_rect(fill = "white", color = NULL),
-      strip.text.x = element_text(size = 10, colour = "black",
-      margin = margin(1, 0, 1, 0, "pt"))) +
-    theme(legend.position="none") +
-    theme(axis.text.x = element_text(colour = "grey20", size = 7))+
-    theme(panel.grid.major = element_line(colour = "grey90"))  +
-    theme(panel.grid.minor = element_line(colour = "grey90"))  +
-    theme(panel.background = element_rect(fill = NA, color = "black")) +
-    theme(plot.margin = margin(1, 1, 1, 1, "pt")) +
-    ggtitle(NULL) +
-    labs(x = NULL, y = NULL)
-})
-do.call(grid.arrange, c(p_list, ncol=5, nrow=4, left = "Density",
-  bottom="Direction"))
-SavePlot(filename = "Turn Angles with Fitted von Mises - Polar.png",
-  path="Output/Plots/Turn_Angle")
-
-# Individual plots
-ind_list = lapply(sort(unique(baea_movements_vm$behavior_behavior)),
-  function(i){
-  ggplot(baea_movements_vm[baea_movements_vm$behavior_behavior == i, ],
-    aes(x = turn_angle)) +
-    geom_histogram(aes(y = ..density.., weight=weights), fill = "grey20",
-      color = "black", boundary = 0, binwidth = bin_width) +
-    geom_line(data = von_mises_dens[von_mises_dens$grp == i, ],
-      aes(x = pred, y = dens), size = 1, colour = "red") +
-    labs(x = "Direction", y = "Density") + ggtitle(paste(i, "(all)"))+
-    coord_polar(start = (1.5*pi), direction = -1)  +
-    scale_y_continuous(labels = NULL) +
-    scale_x_continuous(limits = limits, labels = minor_labels,
-      breaks = minor_breaks[-25], minor_breaks = minor_breaks, expand = c(0,0))+
-    theme(title = element_text(size = 16)) +
-    theme(axis.ticks = element_blank()) +
-    theme(legend.position="none") +
-    theme(axis.text.x = element_text(colour = "grey20", size = 12))+
-    theme(panel.grid.major = element_line(colour = "grey90"))  +
-    theme(panel.grid.minor = element_line(colour = "grey90"))  +
-    theme(panel.background = element_rect(fill = NA, color = "black")) +
-    theme(plot.margin = margin(15, 15, 15, 15, "pt"))
-  SaveGGPlot(filename = paste(str_replace(i, ">", ""), ".png"),
-    path="Output/Plots/Turn_Angle/Individual/Polar")
-})
-
-# Plotting Move Kernel -------------------------------------------------------
-
-move_dens <- data.frame(grp=character(), x=numeric(), y=numeric(),
-  dens=numeric())
-for (i in 1:nrow(move_pars)){
-  move_pars_i <- move_pars[i, ]
-  ignore_von_mises <- ifelse(move_pars_i$behavior[1] %in% c("Cruise",
-    "Flight"), FALSE, TRUE)
-  kernel_i <- CreateMoveKernelWeibullVonMises(
-      max_r = NULL,
-      cellsize = 30,
-      mu1 = move_pars_i$mvm_mu1[1],
-      mu2 = move_pars_i$mvm_mu2[1],
-      kappa1 = move_pars_i$mvm_kappa1[1],
-      kappa2 = move_pars_i$mvm_kappa2[1],
-      mix = move_pars_i$mvm_prop[1],
-      shape = move_pars_i$weibull_shape[1],
-      scale = move_pars_i$weibull_scale[1],
-      ignore_von_mises = ignore_von_mises)
-  r <- (30*((nrow(kernel_i)-1)/2))+(30/2)
-  kernel_raster <- raster::raster(kernel_i, xmn=-r, xmx=r, ymn=-r, ymx=r)
-  df <- data.frame(raster::rasterToPoints(kernel_raster))
-  names(df)[3] <- "dens"
-  df$behavior_behavior <- move_pars_i$behavior_behavior
-  move_dens <- rbind(move_dens, df)
-}
-
-# All plots on one figure
-p_list = lapply(sort(unique(move_dens$behavior_behavior)), function(i){
-  ggplot(move_dens[move_dens$behavior_behavior == i, ], aes(x = x, y = y)) +
-    geom_raster(aes(fill = dens)) +
-    coord_fixed(ratio = 1) +
-    scale_fill_gradientn(colours = RColorBrewer::brewer.pal(9, "Oranges")) +
-    theme(legend.position = "none") +
-    scale_x_continuous(expand = c(0.005, 0.005)) +
-    scale_y_continuous(expand = c(0.005, 0.005)) +
-    facet_grid(. ~ behavior_behavior) +
-    theme(strip.background = element_rect(fill="white", color=NULL),
-      strip.text.x = element_text(size=10, colour="black",
-      margin = margin(0,0,1,0, "pt"))) +
-    theme(legend.position="none") +
-    theme(axis.text = element_text(colour="grey20", size=7)) +
-    theme(axis.text.x = element_text(angle=30)) +
-    theme(panel.grid.major = element_blank())  +
-    theme(panel.grid.minor = element_blank())  +
-    theme(panel.background = element_rect(fill = NA, color = "black")) +
-    theme(plot.margin = margin(1, 1, 1, 1, "pt")) +
-    ggtitle(NULL) + labs(x=NULL, y=NULL)
-})
-do.call(grid.arrange, c(p_list, ncol=5, nrow=4, left="Y", bottom="X"))
-SavePlot(filename = "Move Kernels with Fitted Distributions.png",
-  path="Output/Plots/Move_Kernels")
-
-# Individual plots
-ind_list = lapply(sort(unique(move_dens$behavior_behavior)), function(i){
-  ggplot(move_dens[move_dens$behavior_behavior == i,], aes(x = x, y = y)) +
-    geom_raster(aes(fill = dens)) +
-    labs(x = "X", y = "Y", title = paste(i)) +
-    coord_fixed(ratio = 1) +
-    scale_fill_gradientn(colours = RColorBrewer::brewer.pal(9, "Oranges")) +
-    labs(fill = "Probability") +
-    scale_x_continuous(expand = c(0.005, 0.005)) +
-    scale_y_continuous(expand = c(0.005, 0.005)) +
-    theme(title = element_text(size = 16)) +
-    theme(axis.text = element_text(colour = "grey20", size = 12)) +
-    theme(axis.title.y = element_text(angle=0, vjust=0.5)) +
-    theme(panel.grid.major = element_blank())  +
-    theme(panel.grid.minor = element_blank())  +
-    theme(panel.background = element_rect(fill = NA, color = "black")) +
-    theme(plot.margin = margin(15, 15, 15, 15, "pt"))
-  SaveGGPlot(filename = paste(str_replace(i, ">", ""), ".png"),
-    path = "Output/Plots/Move_Kernels/Individual")
-})
-
-table(baea_movements$behavior_behavior)
-
+movements_kernel_fig <- image_read(movements_kernel_no_label_fig_file) %>%
+  image_chop(., "90x0")
+movements_kernel_labels_fig <- backgrd %>%
+  image_composite(., movements_kernel_fig, offset = "+00+00") %>%
+  image_composite(., image_rotate(tex_lab_density, 270), offset = "+25+900") %>%
+  image_composite(., tex_lab_kernel, offset = "+1300+2240")
+movements_kernel_labels_fig
+movements_kernel_fig_file = file.path(tex_dir, "Figures/Ch2",
+  "Movements_Kernel.png")
+image_write(movements_kernel_labels_fig,
+  path = movements_kernel_fig_file, format=".png")
+file.remove(movements_kernel_no_label_fig_file)
 
 #------------------------------------------------------------------------------#
 ################################## OLD CODE ####################################

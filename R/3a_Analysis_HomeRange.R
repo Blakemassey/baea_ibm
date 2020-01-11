@@ -70,7 +70,7 @@ table(baea_terr$id, baea_terr$year) # Determine available individual/year combos
 hr <- tibble(id = character(), yr = integer(), sd = character(),
   ed = character())
 
-## Determine territorial periods -----------------------------------------------
+## Determine Territorial Periods -----------------------------------------------
 
 # i <- "Branch"
 # j <- 2015

@@ -4,7 +4,7 @@
 pacman::p_load(dplyr, fasterize, foreign, mapview, plyr, plotKML, raster, rgdal,
 sf, sp)
 
-## ------------------------- DSL LANDCOVER LAYER -------------------------- ####
+## ------------------------- DSL LANDCOVER LAYER -------------------  ##########
 
 ## Input Files
 # Rasters
@@ -133,7 +133,7 @@ gplot(raster_30mc, maxpixel = 500000) +
 # of the map and it an can mess up the relationship between the mapped values
 # and the legend's name and hex values
 
-## ----------------------- LANDCOVER LAYERS ------------------------------- ####
+######## ------------------ LANDCOVER LAYERS -------------------- ##############
 
 ## Input Files
 landcover_input <-"C:/ArcGIS/Data/R_Input/BAEA/lc_30mc.tif"
@@ -348,7 +348,7 @@ writeRaster(wind_turbines_30mc, wt_rast_output, progress = "text",
 writeRaster(wind_turbine_dist_30mc, wt_dist_output, progress = "text",
   datatype = 'INT2U', overwrite = TRUE)
 
-## ---------------------- TOPOGRAPHIC LAYERS ------------------------------ ####
+######## ---------------------- TOPOGRAPHIC LAYERS ----------------- ###########
 
 suppressPackageStartupMessages(library(raster))
 suppressPackageStartupMessages(library(spatialEco))

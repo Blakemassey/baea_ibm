@@ -305,7 +305,8 @@ con_nest_map <-
     tm_rgb() +
  tm_shape(con_nest_km) +
   tm_raster("ConNest_All", palette = "-plasma", alpha = .8, style = "cont",
-    title = "Conspecific and\n Home Nest Site\nDistance Metric (km)", legend.show = TRUE) +
+    title = "Conspecific and\n Home Nest Site\nDistance Metric (km)",
+    legend.show = TRUE) +
   tm_shape(con_nests_sf) +
     tm_symbols(col = "grey20", shape = 4,  border.lwd = 2,  size = .2) +
     #tm_symbols(col = "yellow", border.lwd = 2,  size = .25) +

@@ -10,11 +10,8 @@ options(stringsAsFactors = FALSE)
 theme_update(plot.title = element_text(hjust = 0.5))
 package_dir <- "C:/Users/blake/OneDrive/Work/R/Packages"
 
-library(baear)
-devtools::reload(file.path(package_dir, "baear"))
-library(gisr)  # devtools::reload(file.path(package_dir, "gisr"))
-library(ibmr)  # devtools::reload(file.path(package_dir, "ibmr"))
-
+pacman::p_load(baear, gisr, ibmr)
+#devtools::reload(file.path(package_dir, "baear"))
 
 # GIS arguments
 wgs84 <- CRS("+init=epsg:4326") # WGS84 Lat/Long

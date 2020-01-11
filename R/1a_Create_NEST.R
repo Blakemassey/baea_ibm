@@ -23,7 +23,7 @@ csv_output_dir = "Data/Nests/Nests_csv"
 kml_output_dir = "Data/Nests/Nests_kml"
 rds_output_dir = "Data/Nests/Nests_rds"
 
-############################ IFW NESTS - ALL ###################################
+############################ IFW Nests - All ###################################
 
 # Import latest tabular data from IFW which is missing some spatial locations
 # but has attribute columns that are not in the spatial data.
@@ -99,7 +99,7 @@ saveRDS(nests_ifw_data, file = file.path(rds_output_dir, "nests_ifw_all.rds"))
 ExportKMLPoints(nests_ifw_data, id = "nest_site", file = "Nests IFW All.kml",
   output_dir = kml_output_dir)
 
-######################### NESTS ACTIVE 2013 ####################################
+######################### Nests Active 2013 ####################################
 
 # Filter to only nests active in 2013 (some of which are no longer intact)
 nests_2013 <- readOGR(dsn = "C:/ArcGIS/Data/BAEA/Nests/IFW_Nests",
@@ -124,7 +124,7 @@ saveRDS(nests_2013_data, file = file.path(rds_output_dir,
 ExportKMLPoints(nests_2013_data, id = "nest_site",
   file = "Nests IFW Active 2103.kml", output_dir = kml_output_dir)
 
-############################ NESTS INTACT ######################################
+############################ Nests Intact ######################################
 
 nests_intact_all <- nests_ifw_data %>% filter(intact_at_last_obs == "Yes")
 
@@ -138,7 +138,7 @@ saveRDS(nests_intact_all, file = file.path(rds_output_dir,
 ExportKMLPoints(nests_intact_all, id = "nest_site",
   file = "Nests Intact All.kml", output_dir = kml_output_dir)
 
-################ NESTS INTACT LAST USED (FOR EACH NEST AREA) ###################
+################ Nests Intact Last Used (For Each Nest Area) ###################
 
 nests_intact_last <- as.data.frame(nests_intact_all %>%
   group_by(nest_area) %>%
@@ -154,7 +154,7 @@ saveRDS(nests_intact_last, file = file.path(rds_output_dir,
 ExportKMLPoints(nests_intact_last, id = "nest_site",
   file = "Nests Intact Last.kml", output_dir = kml_output_dir)
 
-############################# STUDY NESTS ######################################
+############################# Study Nests ######################################
 
 nests_study_csv <- read.csv("Data/Nests/Original_Data/Study_20170325.csv")
     # Updated MusquashE and Sheepscot on 20160223
@@ -192,7 +192,7 @@ ExportKMLPoints(nests_study_data, id = "name", point_col_var = "name",
   point_metadata = "Data/Nests/Nests_Color_Metadata.csv",
   file = "Nests Study.kml", output_dir = kml_output_dir)
 
-###################### NESTS -- STUDY AND ALL INTACT ###########################
+###################### Nests - Study and All Intact ############################
 
 nests_study_intact <- nests_intact_all %>%
   mutate(name = "") %>%
@@ -213,7 +213,7 @@ saveRDS(nests_study_intact, file = file.path(rds_output_dir,
 ExportKMLPoints(nests_study_intact, id = "nest_site",
   file = "Nests Study Intact.kml", output_dir = kml_output_dir)
 
-############ NESTS STUDY AND INTACT LAST USED (FOR EACH NEST AREA) #############
+############ Nests Study and Intact Last Used (For Each Nest Area) #############
 
 nests_study_intact_last <- as.data.frame(nests_intact_last %>%
                            mutate(name = "") %>%
@@ -236,13 +236,13 @@ saveRDS(nests_study_intact_last, file = file.path(rds_output_dir,
 ExportKMLPoints(nests_study_intact_last, id = "nest_site",
   file = "Nests Study Intact Last.kml", output_dir = kml_output_dir)
 
-################ CREATE FEATURE CLASSES FROM ALL CSV FILES #####################
+################ Create Feature Classes From All .csv Files ####################
 
 # This script converts all of the exported .csv files in feature classes
 script <- "C:/Work/Python/Scripts/gispy/Create_Nest_Features_From_CSVs.py"
 system(paste0("python ", script))
 
-#############  MANAGE ACTIVE YEARS IN NESTS_STUDY_INTACT_ACTIVE  ###############
+#############  Manage Active Years In Nests_Study_Intact_Active  ###############
 
 wgs84n19 <- CRS("+init=epsg:32619") # WGS84 UTM 19N
 
@@ -304,8 +304,7 @@ saveRDS(nests_active_spdf, file = file.path(rds_output_dir,
 script <- "C:/Work/Python/Scripts/BAEA_GIS/Update_Nests_Study_Intact_Active.py"
 system(paste0("python ", script))
 
-
-###################  EXPORT FILES IN VARIOUS FORMATS  ##########################
+###################  Export Files In Various Formats  ##########################
 
 library(sp)
 library(raster)
@@ -321,13 +320,13 @@ writeRaster(ifw_nests_30mc, filename = file.path("C:/ArcGIS/Data/BAEA",
 #------------------------------------------------------------------------------#
 ################################ OLD CODE ######################################
 #------------------------------------------------------------------------------#
-
-## Test ConvertNestIdToNum and ConcertNestNumToId ------------------------------
-test_nests<- data.frame(nest_id = c("001A", "052B", "681A", "620S01", "681R02",
-  "681S01", "1013R01", "1013R01"), stringsAsFactors = FALSE)
-test_nests <- ConvertNestIdToNum(test_nests)
-test_nests$nest_id1 <- test_nests$nest_id
-test_nests$nest_id <- NULL
-test_nests <- ConvertNestNumToId(test_nests)
-test_nests
-identical(test_nests$nest_id1, test_nests$nest_id)
+#
+# Test ConvertNestIdToNum and ConcertNestNumToId --------------------------- ##
+# test_nests<- data.frame(nest_id = c("001A", "052B", "681A", "620S01", "681R02",
+#   "681S01", "1013R01", "1013R01"), stringsAsFactors = FALSE)
+# test_nests <- ConvertNestIdToNum(test_nests)
+# test_nests$nest_id1 <- test_nests$nest_id
+# test_nests$nest_id <- NULL
+# test_nests <- ConvertNestNumToId(test_nests)
+# test_nests
+# identical(test_nests$nest_id1, test_nests$nest_id)

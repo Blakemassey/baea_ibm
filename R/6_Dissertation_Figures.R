@@ -3,8 +3,8 @@
 ############################################################################# ##
 
 # Load packages, helpers, and functions
-pacman::p_load(latex2exp, tidyverse, reshape2, ggplot2, gridExtra, magick,
-  patchwork, viridis)
+pacman::p_load(CircStats, ggplot2, gridExtra, magick, latex2exp, patchwork,
+  reshape2, tidyverse, viridis)
 suppressMessages(extrafont::loadfonts(device="win"))
 pacman::p_load(baear, gisr, ibmr)
 
@@ -493,6 +493,8 @@ file.remove(file.path(tex_dir, "Figures/Ch2",
   "Trans_Probs_Date_NO_LABEL.png"))
 
 # Movement Step Lengths --------------------------------------------------------
+baea_movements_wb <- readRDS("Data/BAEA/baea_movements_wb.rds")
+move_pars <- readRDS("Output/Analysis/Movements/move_pars.rds")
 
 vec_length <- 100
 weibull_dens <- data.frame(grp=factor(), pred=numeric(), dens=numeric())
@@ -515,8 +517,11 @@ Multiplier100 <- function(x){
   return(x_100)
 }
 
-palette_explorer()
-line_color <- inferno(5, direction = 1)[4]
+#fill_color <- RColorBrewer::brewer.pal(3, "Set1")[2] #"grey80"
+#line_color <- RColorBrewer::brewer.pal(3, "Set1")[1]
+fill_color <- viridis(5)[2] #"grey80"
+line_color <- inferno(5)[4]
+#tmaptools::palette_explorer()
 
 ind_list <- lapply(sort(unique(baea_movements_wb$behavior_behavior)),
     function(i){
@@ -524,7 +529,7 @@ ind_list <- lapply(sort(unique(baea_movements_wb$behavior_behavior)),
   ggplot(baea_movements_wb[baea_movements_wb$behavior_behavior == i,],
     aes(x = step_length)) +
   geom_histogram(aes(y = ..density.., weight=weights), binwidth = 500,
-    size = .1, boundary = 0, color = "black", fill = "grey80") +
+    size = .1, boundary = 0, color = "black", fill = fill_color) +
   geom_line(data = weibull_dens[weibull_dens$grp == i, ], aes(x = pred,
     y = dens), size = .8, color = line_color) +
   xlab(NULL) + ylab(NULL) + ggtitle(TeX(grp_i)) +
@@ -534,7 +539,7 @@ ind_list <- lapply(sort(unique(baea_movements_wb$behavior_behavior)),
   theme(plot.margin = margin(0, 6, 3, 6, "pt")) +
   theme(axis.text = element_text(size = 7)) +
   theme(axis.text.x = element_text(angle = 0, vjust = .5, hjust = 0.5)) +
-  theme(plot.title = element_text(size = 8, vjust = -2))
+  theme(plot.title = element_text(size = 8, vjust = -2, hjust = 0.5))
   # Old code for annotations of Weibull parameters:
   # annotate("text", Inf, Inf, hjust = 1.1, vjust = 1.1, size = 5,
   # label = paste0("Weibull Distribution\n", "shape = ",
@@ -579,7 +584,7 @@ movements_step_length_no_label_fig_file = file.path("Output/Analysis/Movements",
 ggsave(filename = basename(movements_step_length_no_label_fig_file),
   plot =  movements_step_length_plots,
   path = dirname(movements_step_length_no_label_fig_file), scale = 1, width = 6,
-  height = 5.9, units = "in", dpi = 300)
+  height = 6, units = "in", dpi = 300)
 
 # Create Tex Strings
 tex_head <- tibble(
@@ -612,6 +617,7 @@ movements_step_length_labels_fig <- backgrd %>%
   image_composite(., movements_step_length_fig, offset = "+20+00") %>%
   image_composite(., image_rotate(tex_lab_density, 270), offset = "+20+700") %>%
   image_composite(., tex_lab_step_length, offset = "+800+1745")
+movements_step_length_labels_fig
 movements_step_length_fig_file = file.path(tex_dir, "Figures/Ch2",
   "Movements_Step_Length.png")
 image_write(movements_step_length_labels_fig,
@@ -619,6 +625,9 @@ image_write(movements_step_length_labels_fig,
 file.remove(movements_step_length_no_label_fig_file)
 
 # Movement Directions ----------------------------------------------------------
+baea_movements_vm <- readRDS("Data/BAEA/baea_movements_vm.rds")
+move_pars <- readRDS("Output/Analysis/Movements/move_pars.rds")
+
 bin_width = (2*pi)/24
 breaks <- seq(0, (2*pi), by=((2*pi)/12))
 labels <- c(0, "", "", expression(pi / 2), "", "",
@@ -643,31 +652,38 @@ for (i in 1:nrow(move_pars)){
   von_mises_dens <- rbind(von_mises_dens, data.frame(grp, pred, dens))
 }
 
+baea_movements_vm_sub <- baea_movements_vm %>%
+  filter(!behavior %in% c("Perch", "Nest", "Roost"))
+
+fill_color <- viridis(5)[2] #"grey80"
+line_color <- inferno(5)[4]
+#tmaptools::palette_explorer()
+
 # Individual Step-Type Plots Using Polar Coordinates
-ind_list = lapply(sort(unique(baea_movements_vm$behavior_behavior)),
+ind_list = lapply(sort(unique(baea_movements_vm_sub$behavior_behavior)),
   function(i){
     grp_i = str_replace_all(i, "->", "$\\\\rightarrow$")
     ggplot(baea_movements_vm[baea_movements_vm$behavior_behavior == i, ],
       aes(x = turn_angle)) +
-    geom_histogram(aes(y = ..density.., weight=weights), fill = "grey20",
-      color = "black", boundary = 0, binwidth = (2*pi)/24) +
+    geom_histogram(aes(y = ..density.., weight=weights), fill = fill_color,
+      color = "black", boundary = 0, size = .1, binwidth = (2*pi)/24) +
     geom_line(data = von_mises_dens[von_mises_dens$grp == i, ],
-      aes(x = pred, y = dens), size = 1, colour = "red") +
+      aes(x = pred, y = dens), size = .8, colour = line_color) +
     coord_polar(start = (1.5*pi), direction = -1) +
     scale_y_continuous(labels = NULL) +
     scale_x_continuous(limits = limits, labels = minor_labels,
       breaks = minor_breaks[-25], minor_breaks = minor_breaks, expand = c(0,0))+
     theme(axis.ticks = element_blank()) +
-    facet_grid(. ~ behavior_behavior) +
+    #facet_grid(. ~ behavior_behavior) +
     theme_minimal() + theme_latex +
     theme(plot.margin = margin(0, 6, 3, 6, "pt")) +
     theme(axis.text = element_text(size = 7)) +
     theme(axis.text.x = element_text(angle = 0, vjust = .5, hjust = 0.5)) +
-    theme(plot.title = element_text(size = 8, vjust = -2)) +
+    theme(plot.title = element_text(size = 8, vjust = -2, hjust = 0.5)) +
     theme(legend.position="none") +
     theme(panel.grid.major = element_line(colour = "grey90"))  +
     theme(panel.grid.minor = element_line(colour = "grey90"))  +
-    ggtitle(NULL) +
+    ggtitle(TeX(grp_i)) +
     labs(x = NULL, y = NULL)
 })
 
@@ -678,20 +694,13 @@ layout <- c(
   patchwork::area(t = 2, l = 1),
   patchwork::area(t = 2, l = 2),
   patchwork::area(t = 2, l = 3),
-  patchwork::area(t = 2, l = 4),
-  patchwork::area(t = 3, l = 1),
-  patchwork::area(t = 3, l = 2),
-  patchwork::area(t = 3, l = 3),
-  patchwork::area(t = 3, l = 4),
-  patchwork::area(t = 4, l = 2),
-  patchwork::area(t = 4, l = 3)
+  patchwork::area(t = 2, l = 4)
 )
 #plot(layout)
 
 movements_direction_plots <- ind_list[[1]] + ind_list[[2]] + ind_list[[3]] +
-  ind_list[[4]] + ind_list[[5]] + ind_list[[6]] + ind_list[[7]] + ind_list[[8]]+
-  ind_list[[9]] + ind_list[[10]] + ind_list[[11]] + ind_list[[12]] +
-  ind_list[[13]] + plot_layout(design = layout)
+  ind_list[[4]] + ind_list[[5]] + ind_list[[6]] + ind_list[[7]] +
+  plot_layout(design = layout)
 
 # Save Temp (No Label) File
 movements_direction_no_lab_fig_file = file.path("Output/Analysis/Movements",
@@ -699,11 +708,11 @@ movements_direction_no_lab_fig_file = file.path("Output/Analysis/Movements",
 ggsave(filename = basename(movements_direction_no_lab_fig_file),
   plot =  movements_direction_plots,
   path = dirname(movements_direction_no_lab_fig_file), scale = 1, width = 6,
-  height = 5.9,units = "in", dpi = 300)
+  height = 3.5, units = "in", dpi = 300)
 
 # Create Tex Strings
 tex_head <- tibble(
-  tex_str = c("Probability", "Direction (radians)"),
+  tex_str = c("Probability (polar coordinates)", "Direction (radians)"),
   tex_name = c("lab_density", "lab_direction"))
 tex_df <- bind_rows(
   bind_rows(tex_head) %>% mutate(title_size = 11))
@@ -724,19 +733,132 @@ for (i in seq_len(nrow(tex_df))){
 rm(i, tex_df, tex_name_i, tex_str_i, tex_i)
 
 # Image background
-backgrd <- image_blank(1800, 1800, color = "white")
+backgrd <- image_blank(1800, 1100, color = "white")
 
 # Create Final Plot and Export to Dissertation
 movements_direction_fig <- image_read(movements_direction_no_lab_fig_file)
 movements_direction_labels_fig <- backgrd %>%
   image_composite(., movements_direction_fig, offset = "+20+00") %>%
-  image_composite(., image_rotate(tex_lab_density, 270), offset = "+20+700") %>%
-  image_composite(., tex_lab_direction, offset = "+800+1745")
+  image_composite(., image_rotate(tex_lab_density, 270), offset = "+20+250") %>%
+  image_composite(., tex_lab_direction, offset = "+720+1030")
+movements_direction_labels_fig
 movements_direction_fig_file = file.path(tex_dir, "Figures/Ch2",
   "Movements_Direction.png")
 image_write(movements_direction_labels_fig,
   path = movements_direction_fig_file, format=".png")
 file.remove(file.path(movements_direction_no_lab_fig_file))
+
+# Movement Kernels -------------------------------------------------------------
+
+move_dens <- data.frame(grp = character(), x = numeric(), y = numeric(),
+  dens = numeric())
+for (i in 1:nrow(move_pars)){
+  move_pars_i <- move_pars[i, ]
+  ignore_von_mises <- ifelse(move_pars_i$behavior[1] %in% c("Cruise", "Flight"),
+    FALSE, TRUE)
+  kernel_i <- CreateMoveKernelWeibullVonMises(
+      max_r = NULL,
+      cellsize = 30,
+      mu1 = move_pars_i$mvm_mu1[1],
+      mu2 = move_pars_i$mvm_mu2[1],
+      kappa1 = move_pars_i$mvm_kappa1[1],
+      kappa2 = move_pars_i$mvm_kappa2[1],
+      mix = move_pars_i$mvm_prop[1],
+      shape = move_pars_i$weibull_shape[1],
+      scale = move_pars_i$weibull_scale[1],
+      ignore_von_mises = ignore_von_mises)
+  r <- (30*((nrow(kernel_i)-1)/2))+(30/2)
+  kernel_raster <- raster::raster(kernel_i, xmn=-r, xmx=r, ymn=-r, ymx=r)
+  print(freq(kernel_raster))
+  df <- data.frame(raster::rasterToPoints(kernel_raster)) # NA cells removed.
+  names(df)[3] <- "dens"
+  df$behavior_behavior <- move_pars_i$behavior_behavior
+  move_dens <- rbind(move_dens, df)
+}
+
+# All plots on one figure
+ind_list = lapply(sort(unique(move_dens$behavior_behavior)), function(i){
+  grp_i = str_replace_all(i, "->", "$\\\\rightarrow$")
+  ggplot(move_dens[move_dens$behavior_behavior == i, ], aes(x = x, y = y)) +
+    geom_raster(aes(fill = dens)) +
+    coord_fixed(ratio = 1) +
+    scale_fill_viridis_c(name = "Probability", option = "C", direction = -1,
+      labels = scales::scientific) +
+    scale_x_continuous(expand = c(0.005, 0.005), labels = MetersToKilometers) +
+    scale_y_continuous(expand = c(0.005, 0.005), labels = MetersToKilometers) +
+    theme_minimal() +
+    theme_latex +
+    theme(plot.margin = margin(3, 6, 3, 6, "pt")) +
+    theme(axis.text = element_text(size = 7)) +
+    theme(axis.text.x = element_text(angle = 0, vjust = .5, hjust = 0.5)) +
+    theme(legend.text = element_text(size = 7)) +
+    theme(legend.title = element_text(size = 8)) +
+    theme(plot.title = element_text(size = 9, vjust = -1, hjust = 0.5)) +
+    guides(fill = guide_colourbar(barwidth = .5, barheight = 3)) +
+    ggtitle(TeX(grp_i)) + labs(x = NULL, y = NULL)
+})
+
+layout <- '
+ABC#
+DEXG
+HIJK
+LMNO
+#PQ#
+'
+movements_kernel_plots <- wrap_plots(A = ind_list[[1]],
+  B = ind_list[[2]], C = ind_list[[3]], D = ind_list[[4]], E = ind_list[[5]],
+  X = ind_list[[6]], G = ind_list[[7]], H = ind_list[[8]], I = ind_list[[9]],
+  J = ind_list[[10]], K = ind_list[[11]], L = ind_list[[12]], M =ind_list[[13]],
+  N = ind_list[[14]], O = ind_list[[15]], P = ind_list[[16]], Q =ind_list[[17]],
+  design = layout)
+
+# Save Temp (No Label) File
+movements_kernel_no_label_fig_file = file.path("Output/Analysis/Movements",
+  "Movements_Kernel_NO_LABEL.png")
+ggsave(filename = basename(movements_kernel_no_label_fig_file),
+  plot =  movements_kernel_plots,
+  path = dirname(movements_kernel_no_label_fig_file), scale = 1, width = 10,
+  height = 7.5, units = "in", dpi = 300)
+
+# Create Tex Strings
+tex_head <- tibble(
+  tex_str = c("Distance (km)", "Distance (km)"),
+  tex_name = c("lab_density", "lab_kernel"))
+tex_df <- bind_rows(
+  bind_rows(tex_head) %>% mutate(title_size = 11))
+
+# Create Tex Text Plots
+for (i in seq_len(nrow(tex_df))){
+  tex_str_i <- tex_df %>% slice(i) %>% pull(tex_str)
+  tex_name_i <- tex_df %>% slice(i) %>% pull(tex_name)
+  title_size_i <- tex_df %>% slice(i) %>% pull(title_size)
+  gg_tex <- ggplot() + theme_blank + labs(title = latex2exp::TeX(tex_str_i)) +
+    theme(plot.title = element_text(size = title_size_i))
+  ggsave(file = "Output/Analysis/Movements/TEMP.png", plot = gg_tex,
+         width = 5, height = .75)
+  tex_i <- image_trim(image_read("Output/Analysis/Movements/TEMP.png"))
+  file.remove("Output/Analysis/Movements/TEMP.png")
+  assign(paste0("tex_", tex_name_i), tex_i)
+}
+rm(i, tex_df, tex_name_i, tex_str_i, tex_i, tex_head)
+
+# Image background
+backgrd <- image_blank(2700, 2300, color = "white")
+
+# Create Final Plot and Export to Dissertation
+movements_kernel_fig <- image_read(movements_kernel_no_label_fig_file) %>%
+  image_chop(., "90x0")
+movements_kernel_labels_fig <- backgrd %>%
+  image_composite(., movements_kernel_fig, offset = "+00+00") %>%
+  image_composite(., image_rotate(tex_lab_density, 270), offset = "+25+900") %>%
+  image_composite(., tex_lab_kernel, offset = "+1300+2240")
+movements_kernel_labels_fig
+movements_kernel_fig_file = file.path(tex_dir, "Figures/Ch2",
+  "Movements_Kernel.png")
+image_write(movements_kernel_labels_fig,
+  path = movements_kernel_fig_file, format=".png")
+file.remove(movements_kernel_no_label_fig_file)
+
 
 ############################################################################# ##
 #### -------------------------- CHAPTER 3 --------------------------------- ####

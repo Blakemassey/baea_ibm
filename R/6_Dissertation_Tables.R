@@ -211,10 +211,23 @@ print(fits_baea_dist_xtable,
 ## Movement Parameter Fits -----------------------------------------------------
 
 fits_move_pars_org <- readRDS("Output/Analysis/Movements/move_pars.rds")
+
 fits_move_pars_df  <- fits_move_pars_org %>%
-  dplyr::select(behavior_behavior, min_step:mvm_prop) %>%
+  dplyr::select(behavior, behavior_behavior, min_step:mvm_prop) %>%
   mutate(behavior_behavior = str_replace_all(behavior_behavior, "->",
-    "$\\\\rightarrow$"))
+    "$\\\\rightarrow$")) %>%
+  mutate(mvm_mu1 = ifelse(behavior %in% c("Nest", "Perch", "Roost"), NA,
+    mvm_mu1)) %>%
+  mutate(mvm_mu2 = ifelse(behavior %in% c("Nest", "Perch", "Roost"), NA,
+    mvm_mu2)) %>%
+  mutate(mvm_kappa1 = ifelse(behavior %in% c("Nest", "Perch", "Roost"), NA,
+    mvm_kappa1)) %>%
+  mutate(mvm_kappa2 = ifelse(behavior %in% c("Nest", "Perch", "Roost"), NA,
+    mvm_kappa2)) %>%
+  mutate(mvm_prop = ifelse(behavior %in% c("Nest", "Perch", "Roost"), NA,
+    mvm_prop)) %>%
+  select(-behavior)
+
 
 print(xtable(fits_move_pars_df, digits = c(0, 0, 0, 0, 2, 0, 2, 2, 2, 2, 2)),
   sanitize.text.function=identity, latex.environments = "", include.rownames =F)
