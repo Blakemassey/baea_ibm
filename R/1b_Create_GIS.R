@@ -219,8 +219,18 @@ developed_30mc <- raster(developed_output)
 develop_fun <- function(x) {x[x>=1] <- 1; x[x==0] <- NA; return(x)}
 developed_30mc_calc <- calc(developed_30mc, develop_fun)
 mapview(developed_30mc_calc)
-# Calcuation done in ArcGIS - cannot allocate vector length of sufficent size
-# developed_dist_30mc <- distance(developed_30mc_calc, doEdge = TRUE)
+
+## Output Files
+develop_dist_output <- "C:/ArcGIS/Data/R_Input/BAEA/develop_dist_30mc.tif"
+
+# tic()
+# develop_dist_30mc <- distance(develop_dist_30mc, doEdge = TRUE)
+# toc()
+# Ended up doing above calcuation in ArcGIS - cannot allocate vector length of
+# sufficent size
+
+writeRaster(hydro_30mc, develop_dist_output, progress = "text",
+  datatype = 'INT2U', overwrite = TRUE)
 
 ## ---------------------------- HYDRO LAYERS ------------------------------ ####
 
@@ -293,17 +303,19 @@ writeRaster(hydro_30mc, hydro_output, progress = "text", datatype = 'INT2U',
   overwrite = TRUE)
 
 ## Distance to Water ----
-# Calcuation done in ArcGIS - cannot allocate vector length of sufficent size
 
 ## Output Files
-develop_dist_output <- "C:/ArcGIS/Data/R_Input/BAEA/develop_dist_30mc.tif"
+hydro_dist_output <- "C:/ArcGIS/Data/R_Input/BAEA/hydro_dist_30mc.tif"
 
 # tic()
-# develop_dist_30mc <- distance(develop_dist_30mc, doEdge = TRUE)
+# hydro_dist_30mc <- distance(develop_dist_30mc, doEdge = TRUE)
 # toc()
+# Ended up doing above calcuation in ArcGIS - cannot allocate vector length of
+# sufficent size
 
-writeRaster(hydro_30mc, develop_dist_output, progress = "text",
+writeRaster(hydro_dist_30mc, hydro_dist_output, progress = "text",
   datatype = 'INT2U', overwrite = TRUE)
+
 
 ## ----------------------------- WIND LAYERS ------------------------------ ####
 
@@ -311,7 +323,23 @@ writeRaster(hydro_30mc, develop_dist_output, progress = "text",
 
 # Input
 wind_class <- st_read(file.path("C:/ArcGIS/Data/Wind",
-  "/Maine_Wind_High_Resolution/maine_50mwind.shp"))
+  "/Maine_Wind_High_Resolution/maine_50mwind.shp")) %>%
+  st_transform(wgs84n19)
+
+# Output File
+wind_class_output <- "C:/ArcGIS/Data/R_Input/BAEA/windclass_30mc.tif"
+
+wind_class_30mc <- fasterize(wind_class, base, field ="WPC")
+#wind_class_30mc <- raster(wind_class, template = base)
+writeRaster(wind_class_30mc, wind_class_output, progress = "text",
+  datatype = 'INT2U', overwrite = TRUE)
+
+wind_class_30mc2 <- crop(wind_class_30mc,
+  extent(c(xmin(wind_class_30mc) + 120000,
+           xmax(wind_class_30mc) - 120000,
+           ymin(wind_class_30mc) + 220000,
+           ymax(wind_class_30mc) - 220000)))
+mapview(wind_class_30mc2)
 
 ## Wind Turbines ----
 
@@ -373,6 +401,7 @@ elev <- raster(elev_file)
 # Reproject 'layer_clip' to 'base' crs
 elev_reproject <- projectRaster(elev, crs=wgs84n19, progress="text",
   method='ngb', filename = elev_output)
+elev_ <- raster(elev_output)
 
 # Crop to extent of 'base' layer
 elev_30mc <- crop(elev_reproject, ext)
@@ -417,6 +446,7 @@ eastness_30mc <- calc(aspect_30mc, east_fun)
 north_fun <- function(x) {cos_x <- cos(x); return(cos_x)}
 northness_30mc <- calc(aspect_30mc, north_fun)
 
+eastness_30mc <- raster(eastness_output)
 eastness_30mc2 <- crop(eastness_30mc,
   extent(c(xmin(eastness_30mc) + 120000,
            xmax(eastness_30mc) - 120000,
@@ -433,11 +463,13 @@ mapview(northness_30mc2)
 
 ## Write raster of layer_30mc
 writeRaster(eastness_30mc, eastness_output, progress = "text",
-  datatype = 'INT2U', overwrite = TRUE)
-writeRaster(eastness_30mc, northness_output, progress = "text",
-  datatype = 'INT2U', overwrite = TRUE)
+  datatype = 'FLT4S', overwrite = TRUE)
+writeRaster(northness_30mc, northness_output, progress = "text",
+  datatype = 'FLT4S', overwrite = TRUE)
 
 ## Roughness, TPI, TRI ----
+# These files are NOT used directly in the analysis - they are only used for
+# visualization purposes. The metrics are calculated during in ModelFit_SSF.R
 
 # Roughness: difference between the maximum and the minimum value of a cell
 #  and its surrounding cells.

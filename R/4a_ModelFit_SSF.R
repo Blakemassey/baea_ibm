@@ -1,38 +1,9 @@
 ############################# ModelFit_SSF #####################################
-########################### LOAD PACKAGES AND DATA  ############################
-# Load libraries, scripts, and input parameters
-suppressPackageStartupMessages(library(AICcmodavg))
-suppressPackageStartupMessages(library(plyr))
-suppressPackageStartupMessages(library(dplyr))
-suppressPackageStartupMessages(library(ggplot2))
-suppressPackageStartupMessages(library(ggthemes))
-suppressPackageStartupMessages(library(optimx))
-suppressPackageStartupMessages(library(raster))
-suppressPackageStartupMessages(library(reproducible))
-suppressPackageStartupMessages(library(rgdal))
-suppressPackageStartupMessages(library(smoothie))
-#suppressPackageStartupMessages(library(spatialfil))
-suppressPackageStartupMessages(library(stringr))
-suppressPackageStartupMessages(library(survival))
-suppressPackageStartupMessages(library(tictoc))
-library(baear)
-library(gisr)
-library(ibmr)
+# Load libraries, scripts, and input parameters --------------------------------
+pacman::p_load(AICcmodavg, plyr, dplyr, ggplot2, ggthemes, optimx, raster,
+  reproducible, rgdal, smoothie, stringr, survival, tictoc) #spatialfil
+pacman::p_load(baear, gisr, ibmr)
 options(stringsAsFactors=FALSE)
-theme_update(plot.title = element_text(hjust = 0.5))
-xy_theme <- theme(panel.background = element_rect(fill = "grey90",
-  colour = "black", size = 0.5, linetype = "solid"),
-  panel.grid.major = element_line(size = 0.5, linetype = 'solid',
-    colour = "white"),
-  panel.grid.minor = element_line(size = 0.25, linetype = 'solid',
-    colour = "white"))
-id_colors <- CreateColorsByAny(by="id", output=TRUE)
-theme_legend <- theme(plot.title=element_text(size=24, face="bold", vjust=1.5))+
-  theme(axis.title=element_text(size=20, face="bold")) +
-  theme(axis.text=element_text(colour="black")) +
-  theme(axis.text.x=element_text(size=16, angle=50, vjust=0.5)) +
-  theme(axis.text.y=element_text(size=16, vjust=0.5))
-theme_no_legend <- theme_legend + theme(legend.position="none")
 
 tic_msg <- function(tic, msg) {
   if (is.null(msg) || is.na(msg) || length(msg) == 0){
@@ -51,34 +22,45 @@ toc_msg <- function(tic, toc, msg, info) {
 }
 
 # Landscape file locations
-      base_file <- "C:/ArcGIS/Data/BlankRaster/maine_30mc.tif"
- developed_file <- "C:/ArcGIS/Data/R_Input/BAEA/developed_30mc.tif"
-    forest_file <- "C:/ArcGIS/Data/R_Input/BAEA/forest_30mc.tif"
-open_water_file <- "C:/ArcGIS/Data/R_Input/BAEA/open_water_30mc.tif"
-   pasture_file <- "C:/ArcGIS/Data/R_Input/BAEA/pasture_30mc.tif"
-shrub_herb_file <- "C:/ArcGIS/Data/R_Input/BAEA/shrub_herb_30mc.tif"
-   wetland_file <- "C:/ArcGIS/Data/R_Input/BAEA/wetland_30mc.tif"
-      elev_file <- "C:/ArcGIS/Data/R_Input/BAEA/elev_30mc.tif"
-hydro_dist_file <- "C:/ArcGIS/Data/R_Input/BAEA/hydro_dist_30mc.tif"
+        base_file <- "C:/ArcGIS/Data/BlankRaster/maine_30mc.tif"
+   developed_file <- "C:/ArcGIS/Data/R_Input/BAEA/developed_30mc.tif"
+      forest_file <- "C:/ArcGIS/Data/R_Input/BAEA/forest_30mc.tif"
+  open_water_file <- "C:/ArcGIS/Data/R_Input/BAEA/open_water_30mc.tif"
+     pasture_file <- "C:/ArcGIS/Data/R_Input/BAEA/pasture_30mc.tif"
+  shrub_herb_file <- "C:/ArcGIS/Data/R_Input/BAEA/shrub_herb_30mc.tif"
+     wetland_file <- "C:/ArcGIS/Data/R_Input/BAEA/wetland_30mc.tif"
+        elev_file <- "C:/ArcGIS/Data/R_Input/BAEA/elev_30mc.tif"
+       hydro_file <- "C:/ArcGIS/Data/R_Input/BAEA/hydro_30mc.tif"
+  hydro_dist_file <- "C:/ArcGIS/Data/R_Input/BAEA/hydro_dist_30mc.tif"
+develop_dist_file <- "C:/ArcGIS/Data/R_Input/BAEA/develop_dist_30mc.tif"
+     wt_dist_file <- "C:/ArcGIS/Data/R_Input/BAEA/wt_dist_30mc.tif"
+
+       slope_file <- "C:/ArcGIS/Data/R_Input/BAEA/slope_30mc.tif"
+      aspect_file <- "C:/ArcGIS/Data/R_Input/BAEA/aspect_30mc.tif"
+    eastness_file <- "C:/ArcGIS/Data/R_Input/BAEA/eastness_30mc.tif"
+   northness_file <- "C:/ArcGIS/Data/R_Input/BAEA/northness_30mc.tif"
+#rough_dir <- "C:/ArcGIS/Data/Elevation/Terrain_Metrics/Roughness"
+#tpi_dir <-"C:/ArcGIS/Data/Elevation/Terrain_Metrics/Topographic_Postition_Index"
+#tri_dir <- "C:/ArcGIS/Data/Elevation/Terrain_Metrics/Terrain_Ruggedness_Index"
 
 # BAEA and Movement Parameters
 baea_steps_file <- "Data/BAEA/baea_steps.rds"
 move_pars_file <- "Output/Analysis/Movements/move_pars.rds"
 
 # Subsetting Variables
-subsetting_bandwidths <- FALSE
+subsetting_bandwidths <- TRUE
 subsetting_covars <- FALSE
 subsetting_ids <- FALSE
 subsetting_step_types <- TRUE
 
-##########  IMPORT BASE RASTER, STEPS DATA, AND MOVEMENT PARAMETERS ############
+## Import Base Raster, Steps Data, and Movement Parameters ---------------------
 
 base <- raster(base_file)
 baea_steps <- readRDS(file = baea_steps_file)
 move_pars <- readRDS(file = move_pars_file)
 rm(base_file, baea_steps_file, move_pars_file)
 
-#######################  IMPORT COVARIATE RASTERS ##############################
+## Import Covariate Rasters ----------------------------------------------------
 
 # Import rasters
 elev <- raster(elev_file) # all other layers' extent are set to this layer
@@ -94,12 +76,11 @@ hydro_dist <- raster(hydro_dist_file)
 rm(developed_file, forest_file, open_water_file, pasture_file,
   shrub_herb_file, wetland_file, elev_file, hydro_dist_file)
 
-############ SPECIFY LANDSCAPE COVARIATES AND BANDWIDTHS  ######################
+## Specify Landscape Covariates and Bandwidths ---------------------------------
 
 cell_size <- 30
-kernel_bandwidths <- c(seq(0, 270, by=30), seq(300, 1350, by=150),
-  seq(1500, 3000, by=300))  # radius (meters)
-terrain_bandwidths <- c(seq(0, 270, by=30), seq(300, 1350, by=150), 1500)
+kernel_bandwidths <- c(seq(0, 3000, by=30))  # radius (meters)
+terrain_bandwidths <- c(seq(0, 300, by=30))
 
 extract_class <- c("hydro_dist")
 kernel_class <- c("developed", "forest", "open_water", "pasture", "shrub_herb",
@@ -112,13 +93,13 @@ names(covar_stack) <- str_replace_all(names(covar_stack), "_30mc", "")
 covar_types <- c(extract_class, kernel_class, terrain_class)
 covariate_cols <- c(paste0(rep(extract_class, each=1), 0),
   paste0(rep(kernel_class, each=length(kernel_bandwidths)),
-    rep(kernel_bandwidths,times=length(kernel_class))),
+    rep(kernel_bandwidths, times=length(kernel_class))),
   paste0(rep(terrain_class, each=length(terrain_bandwidths)),
-    rep(terrain_bandwidths,times=length(terrain_class))))
+    rep(terrain_bandwidths, times=length(terrain_class))))
 
 if (subsetting_bandwidths == TRUE){  # subset data for testing
   rm(kernel_bandwidths, terrain_bandwidths)
-  kernel_bandwidths <- c(seq(0, 150, by=30), 300, 600, 900, 1200, 1500)
+  kernel_bandwidths <- c(seq(0, 300, by=30))
   terrain_bandwidths <- c(seq(0, 150, by=30))
 }
 
@@ -126,7 +107,7 @@ if (subsetting_covars == TRUE){  # subset data for testing
   extract_class <- c("hydro_dist")
   kernel_class <- c("developed", "forest", "wetland")
   terrain_class <- c("tpi", "roughness")
-  covar_stack <- stack(hydro_dist, developed, forest, elev)
+  covar_stack <- stack(hydro_dist, developed, forest, wetland, tpi, roughness)
   names(covar_stack) <- str_replace_all(names(covar_stack), "_30mc", "")
   covar_types <- c(extract_class, kernel_class, terrain_class)
   covariate_cols <- c(paste0(rep(extract_class, each=1), 0),
@@ -140,7 +121,7 @@ if (subsetting_step_types == TRUE){  # subset data for testing
   baea_steps_all <- baea_steps
   unique(baea_steps_all$behavior_behavior)
   baea_steps <- baea_steps_all %>% filter(behavior_behavior %in%
-    c("Nest -> Roost"))
+    c("Roost -> Flight"))
   unique(baea_steps$behavior_behavior)
 }
 
@@ -212,7 +193,7 @@ for (i in seq_along(unique(baea_steps$behavior_behavior))){
   n_total <- length(unique(steps_i$id))*length(covariate_cols)
   counter <- 0
 
-  # Calculate Kernel-Weighted Covariate Values For Available and Used ----------
+  # Calculate Kernel-Weighted Covariate Values ---------------------------------
   for (j in seq_along(unique(steps_i$id))){
     id_j <- unique(steps_i$id)[j]
     tic(paste0(step_type_i_name, "-", id_j, "-NA-NA"), quiet = TRUE,
@@ -279,8 +260,8 @@ for (i in seq_along(unique(baea_steps$behavior_behavior))){
           avail_steps_ijp_xy <- c(avail_steps_ij[p,] %>% pull(long_utm),
             avail_steps_ij[p,] %>% pull(lat_utm))
           step_id_p <- paste0("step_", avail_steps_ij[p, "step_id"])
-          move_prob_raster_p <- shift(move_prob_rasters[[step_id_p]],
-            x = avail_steps_ijp_xy[1], y = avail_steps_ijp_xy[2])
+          move_prob_raster_p <- raster::shift(move_prob_rasters[[step_id_p]],
+            dx = avail_steps_ijp_xy[1], dy = avail_steps_ijp_xy[2])
           covar_raster_smooth_p <- crop(covar_raster_calc_m,
             move_prob_raster_p)
           covar_kernel_sum <- sum(as.matrix(covar_raster_smooth_p) *
@@ -323,19 +304,27 @@ for (i in seq_along(unique(baea_steps$behavior_behavior))){
   tic.clearlog()
 }
 
+### ------------------------------------------------------------------------ ###
+############################### OLD CODE #######################################
+### ------------------------------------------------------------------------ ###
+
+
+
 ############## FIT UNIVARIATE MODELS AT FIXED BANDWIDTHS #######################
 
-start = "nest"
-end = "roost"
+start = "roost"
+end = "flight"
 
 step_type <- paste0(start, "_", end)
 ua_data <- readRDS(file.path("Output/Analysis/Movements/SSF/UA_Data",
-  paste0("ua_steps_", step_type, ".rds")))
+  paste0("ua_steps_", step_type, ".rds"))) %>%
+  dplyr::select(-c(datetime)) %>%
+  select_if(function(x) !(all(is.na(x)) | all(x=="")))
 
 # Fit univariate models to find the "approximate" AIC-best bandwidth
 # (i.e., stage-one of a two-stage analysis)
 
-start_covar_cols  <- which(colnames(ua_data) == "lat_utm_end")+1
+start_covar_cols  <- which(colnames(ua_data) == "lat_utm_end") + 1
 covar_cols <- colnames(ua_data)[start_covar_cols:length(ua_data)]
 covar_cols_types_vec <- str_replace_all(covar_cols, "[:digit:]", "")
 covar_cols_bw_vec <- str_replace_all(covar_cols, "[:^digit:]", "")

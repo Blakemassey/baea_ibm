@@ -2,20 +2,10 @@
 
 ########################### LOAD PACKAGES AND DATA  ############################
 # Load libraries, scripts, and input parameters
-suppressPackageStartupMessages(library(AICcmodavg))
-suppressPackageStartupMessages(library(plyr))
-suppressPackageStartupMessages(library(dplyr))
-suppressPackageStartupMessages(library(optimx))
-suppressPackageStartupMessages(library(raster))
-suppressPackageStartupMessages(library(reproducible))
-suppressPackageStartupMessages(library(rgdal))
-suppressPackageStartupMessages(library(smoothie))
-suppressPackageStartupMessages(library(stringr))
-suppressPackageStartupMessages(library(survival))
-suppressPackageStartupMessages(library(tictoc))
-library(baear)
-library(gisr)
-library(ibmr)
+pacman::p_load(AICcmodavg, plyr, dplyr, future, furrr, optimx, ggplot2, ggthemes,
+  optimx, raster, reproducible, rgdal, rgenoud, smoothie, stringr, survival,
+  tictoc) #spatialfil
+pacman::p_load(baear, gisr, ibmr)
 options(stringsAsFactors=FALSE)
 
 tic_msg <- function(tic, msg) {
@@ -33,6 +23,134 @@ toc_msg <- function(tic, toc, msg, info) {
     outmsg <- paste0(info,": ", tt_duration)
   }
 }
+
+################ OPTIMIZATION PROCEDURE OF KERNEL BANDWIDTH ####################
+
+start = "roost"
+end = "flight"
+
+step_type <- paste0(start, "_", end)
+ua_steps_i <- readRDS(file.path("Output/Analysis/Movements/SSF/UA_Data",
+  paste0("ua_steps_", step_type, ".rds")))  %>%
+  #dplyr::select(-c(datetime)) %>%
+  dplyr::select(-c(step_id:lat_utm_end)) %>%
+  select_if(function(x) !(all(is.na(x)) | all(x=="")))
+
+colnames_alpha <- str_replace_all(colnames(ua_steps_i), "[0-9]", "")
+colnames_num <- as.numeric(str_replace_all(colnames(ua_steps_i), "[^0-9]", ""))
+covars <- unique(colnames_alpha[-1]) # list of covariates (minus case)
+
+colnames_tbl <- tibble(colnames_alpha, colnames_num) %>%
+  mutate(colnames_sigma = ifelse(!is.na(colnames_num), colnames_num/30, NA)) %>%
+  mutate_all(~str_replace_na(., "")) %>%
+  mutate(colnames_final = paste0(colnames_alpha, colnames_sigma))
+
+colnames(ua_steps_i) <- colnames_tbl %>% pull(colnames_final)
+
+domains <- tibble(covar = character(), covar_min = integer(),
+  covar_max = integer(), covar_median = integer())
+
+for (i in 1:length(covars)){
+  covar <- covars[i]
+  covar_i <- str_subset(colnames(ua_steps_i), covar)
+  covar_i_bandwidths <- as.numeric(str_replace_all(covar_i, "[^0-9]", ""))
+  domains[i, "covar"] <- covar
+  domains[i, "covar_min"] <- min(covar_i_bandwidths)
+  domains[i, "covar_max"] <- max(covar_i_bandwidths)
+  domains[i, "covar_median"] <- quantile(covar_i_bandwidths, p = 0.5, type = 1)
+}
+
+sigma_domains <- domains %>%
+  filter(!covar %in% c("hydro_dist"))
+
+sigma_matrix <- sigma_domains %>%
+  dplyr::select(covar_min, covar_max) %>%
+  as.matrix(.)
+sigma_variables <- sigma_domains %>% pull(covar)
+sigma_starts <- sigma_domains %>% pull(covar_median)
+
+# the domains matrix has to be equal to the number of scale-dependent variables
+
+# FIND UNIQUE COLUMN NAMES -----------------------------------------------------
+# FIND MIN, MAX, MEDIAN OF COLUMNS with that name
+
+# all_mods <- readRDS(file.path("Output/Analysis/Movements/SSF/Models",
+#   paste0("all_models_", step_type, ".rds")))
+# opt_mods <- readRDS(file.path("Output/Analysis/Movements/SSF/Models",
+#   paste0("opt_models_", step_type, ".rds")))
+
+
+# Create Covar Sigma Rasters Brick ---------------------------------------------
+
+# covar_brick <- brick(c(
+#   tibble(sigma = opt_sigmas, covar = "covar1") %>% pmap(., SmoothRaster),
+#   tibble(sigma = opt_sigmas, covar = "covar2") %>% pmap(., SmoothRaster),
+#   tibble(sigma = opt_sigmas, covar = "covar3") %>% pmap(., SmoothRaster)
+#   ))
+#
+# covar_matrix <- raster::as.matrix(covar_brick)
+# covar_cols <-  setNames(seq_len(ncol(covar_matrix)), colnames(covar_matrix))
+# covar_names <- c(names(covar1), names(covar2), names(covar3))
+# rm(covar_brick)
+
+# Fit Sigma Combo Models -------------------------------------------------------
+
+# Make Clusters
+plan(multiprocess)
+
+ua_steps_i_lst <- tibble(number = 1, ua_data = list(ua_steps_i))
+
+tic("Fit Optimization Models")
+df_opt_fit0 <- ua_steps_i_lst %>%
+  mutate(opt_fit = future_map2(number, ua_data, FitSigmaOpt_1_9,
+    .progress = TRUE))
+toc()
+#saveRDS(df_opt_fit0, file.path(file_dir, paste0("df_opt_fit0_", today(),
+#  ".rds")))
+
+# Functions: Sigma Combos Model Fitting  ---------------------------------------
+
+  domains = matrix(c(rep(min(opt_sigmas), 3), rep(max(opt_sigmas), 3)),
+    ncol = 2)
+  sigma3 <- sigma2 <- sigma1 <- median(opt_sigmas)
+  starting_values <- c(sigma1, sigma2, sigma3)
+  parms <- c(sigma1, sigma2, sigma3)
+  sigmas <- sigma_starts
+
+# For 1 scale-independent variable, 9 scale-dependent variables
+FitSigmaOpt_1_9 <- function(number, ua_data){
+  # domains are the min and max allowed sigma evalutated
+  domains <- sigma_matrix[1:4,]
+  # starting values for each covariate sigma evalutated
+  starting_values <- sigma_starts[1:4]
+  parms <- starting_values
+  cases <- ua_data[, "case"]
+  #cell_nums <- ua_data[, "cell_num"]
+  opt_fit <- genoud(fn = AICSigmaOpt_1_9, nvars = 4, pop.size = 10000,
+    starting.values = starting_values, optim.method = "SANN",
+    max.generations = 2000, hard.generation.limit = FALSE, # was 200 max.gen
+    wait.generations = 200, P5 = 0, P6 = 0, P7 = 0, P8 = 0,
+    BFGSburnin = 500,
+    print.level = 0, #cluster = cl,
+    boundary.enforcement = 2, ua_data = ua_data,
+    data.type.int = TRUE,  Domains = domains)
+  return(opt_fit)
+}
+
+AICSigmaOpt_1_9 <- function(sigmas, ua_data){
+  #cell_nums <- ua_data$cell_num
+  df <- data.frame(case = ua_data$case,
+    value1 = ua_data[, paste0(sigma_variables[1], sigmas[1])],
+    value2 = ua_data[, paste0(sigma_variables[2], sigmas[2])],
+    value3 = ua_data[, paste0(sigma_variables[3], sigmas[3])],
+    value4 = ua_data[, paste0(sigma_variables[4], sigmas[4])],
+    value5 = ua_data[, "hydro_dist0"])
+  model_logistic <- glm(case ~ value1 + value2 + value3 + value4 + value5,
+    family = binomial(link = "logit"), data = df)
+  model_aic = AIC(model_logistic)
+  return(model_aic)
+}
+
 
 # Projection data
 wgs84 <- CRS("+init=epsg:4326") # WGS84 Lat/Long
@@ -98,6 +216,69 @@ opt_mods <- readRDS(file.path("Output/Analysis/Movements/SSF/Models",
   paste0("opt_models_", step_type, ".rds")))
 
 
+# Create Covar Sigma Rasters Brick ---------------------------------------------
+
+covar_brick <- brick(c(
+  tibble(sigma = opt_sigmas, covar = "covar1") %>% pmap(., SmoothRaster),
+  tibble(sigma = opt_sigmas, covar = "covar2") %>% pmap(., SmoothRaster),
+  tibble(sigma = opt_sigmas, covar = "covar3") %>% pmap(., SmoothRaster)
+  ))
+
+covar_matrix <- raster::as.matrix(covar_brick)
+covar_cols <-  setNames(seq_len(ncol(covar_matrix)), colnames(covar_matrix))
+covar_names <- c(names(covar1), names(covar2), names(covar3))
+rm(covar_brick)
+
+# Fit Sigma Combo Models -------------------------------------------------------
+
+# Make Clusters
+plan(multiprocess)
+
+tic("Fit Optimization Models 0")
+df_opt_fit0 <- df_pa_data %>% slice(1:1000) %>%
+  mutate(opt_fit = future_map2(number, pa_data, FitSigmaOpt3, .progress = TRUE))
+toc()
+saveRDS(df_opt_fit0, file.path(file_dir, paste0("df_opt_fit0_", today(),
+  ".rds")))
+rm(df_opt_fit0)
+
+
+# Functions: Sigma Combos Model Fitting  ---------------------------------------
+
+FitSigmaOpt3 <- function(number, pa_data){
+  domains = matrix(c(rep(min(opt_sigmas), 3), rep(max(opt_sigmas), 3)),
+    ncol = 2)
+  sigma3 <- sigma2 <- sigma1 <- median(opt_sigmas)
+  starting_values <- c(sigma1, sigma2, sigma3)
+  parms <- c(sigma1, sigma2, sigma3)
+  cases <- pa_data[, "case"]
+  cell_nums <- pa_data[, "cell_num"]
+  opt_fit <- genoud(fn = AICSigmaOpt3, nvars = 3, pop.size = 10000,
+    starting.values = starting_values, optim.method = "SANN",
+    max.generations = 2000, hard.generation.limit = FALSE, # was 200 max.gen
+    wait.generations = 200, P5 = 0, P6 = 0, P7 = 0, P8 = 0,
+    BFGSburnin = 500,
+    print.level = 0, #cluster = cl,
+    boundary.enforcement = 2, pa_data = pa_data,
+    data.type.int = TRUE,  Domains = domains)
+  return(opt_fit)
+}
+
+AICSigmaOpt3 <- function(sigmas, pa_data){
+  cell_nums <- pa_data$cell_num
+  df <- data.frame(case = pa_data$case,
+    value1 = covar_matrix[cell_nums, covar_cols[paste0(covar_names[1],
+      sigmas[1])]],
+    value2 = covar_matrix[cell_nums, covar_cols[paste0(covar_names[2],
+      sigmas[2])]],
+    value3 = covar_matrix[cell_nums, covar_cols[paste0(covar_names[3],
+      sigmas[3])]])
+  model_logistic <- glm(case ~ value1 + value2 + value3,
+    family = binomial(link = "logit"), data = df)
+  model_aic = AIC(model_logistic)
+  return(model_aic)
+}
+
 
 
 ## -------------------------------------------------------------------------- ##
@@ -131,7 +312,7 @@ nll_kern_bw <- function(parms=parms, z=z, cell=cell, zmat1=zmat1, zmat2=zmat2){
   f2 <- kernel2dsmooth(zmat2,kernel.type="gauss", nx=nrow(r), ny=ncol(r),sigma=bwx2)
   values(r2) <- f2
   # Compute binomial success probabilities
-  probs <- plogis(b0 + bx1*(r[cell])+ bx2(r[cell])
+  probs <- plogis(b0 + bx1*(r[cell])+ bx2(r[cell]))
   # Evaluate log of binomial pmf
   tmp <- dbinom(z, 1, probs, log=TRUE)
   ll <- -1*sum(tmp)
@@ -274,7 +455,7 @@ nll_kern_bw <- function(parms=parms, z=z, cell=cell, r1=r1, r2=r2,
   f2 <- kernel2dsmooth(zmat2, kernel.type="gauss", nx=nrow(r2), ny=ncol(r2), sigma=bw2)
   values(r2) <- f2
   # Compute binomial success probabilities
-  probs <- plogis(b0 + beta1*(r1[cell]) + beta2(r2[cell])
+  probs <- plogis(b0 + beta1*(r1[cell]) + beta2(r2[cell]))
   # Evaluate log of binomial pmf
   tmp <- dbinom(z, 1, probs, log=TRUE)
   ll <- -1*sum(tmp)
