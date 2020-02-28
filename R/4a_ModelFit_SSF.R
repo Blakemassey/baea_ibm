@@ -21,34 +21,40 @@ toc_msg <- function(tic, toc, msg, info) {
   }
 }
 
-# Landscape file locations
-        base_file <- "C:/ArcGIS/Data/BlankRaster/maine_30mc.tif"
-   developed_file <- "C:/ArcGIS/Data/R_Input/BAEA/developed_30mc.tif"
-      forest_file <- "C:/ArcGIS/Data/R_Input/BAEA/forest_30mc.tif"
-  open_water_file <- "C:/ArcGIS/Data/R_Input/BAEA/open_water_30mc.tif"
-     pasture_file <- "C:/ArcGIS/Data/R_Input/BAEA/pasture_30mc.tif"
-  shrub_herb_file <- "C:/ArcGIS/Data/R_Input/BAEA/shrub_herb_30mc.tif"
-     wetland_file <- "C:/ArcGIS/Data/R_Input/BAEA/wetland_30mc.tif"
-        elev_file <- "C:/ArcGIS/Data/R_Input/BAEA/elev_30mc.tif"
-       hydro_file <- "C:/ArcGIS/Data/R_Input/BAEA/hydro_30mc.tif"
-  hydro_dist_file <- "C:/ArcGIS/Data/R_Input/BAEA/hydro_dist_30mc.tif"
-develop_dist_file <- "C:/ArcGIS/Data/R_Input/BAEA/develop_dist_30mc.tif"
-     wt_dist_file <- "C:/ArcGIS/Data/R_Input/BAEA/wt_dist_30mc.tif"
+# Output paths
+ua_data_dir <- "Output/Analysis/SSF/UA_Data"
+ssf_timing_dir <- "Output/Analysis/SSF/Timing"
 
-       slope_file <- "C:/ArcGIS/Data/R_Input/BAEA/slope_30mc.tif"
-      aspect_file <- "C:/ArcGIS/Data/R_Input/BAEA/aspect_30mc.tif"
-    eastness_file <- "C:/ArcGIS/Data/R_Input/BAEA/eastness_30mc.tif"
-   northness_file <- "C:/ArcGIS/Data/R_Input/BAEA/northness_30mc.tif"
-#rough_dir <- "C:/ArcGIS/Data/Elevation/Terrain_Metrics/Roughness"
-#tpi_dir <-"C:/ArcGIS/Data/Elevation/Terrain_Metrics/Topographic_Postition_Index"
-#tri_dir <- "C:/ArcGIS/Data/Elevation/Terrain_Metrics/Terrain_Ruggedness_Index"
+# Source data directories
+base_file <- "C:/ArcGIS/Data/BlankRaster/maine_30mc.tif"
+file_dir <- "C:/ArcGIS/Data/R_Input/BAEA"
+
+# Terrain class
+elev_file <- file.path(file_dir, "elev_30mc.tif")
+
+# Extract class
+developed_dist_file <- file.path(file_dir, "developed_dist_30mc.tif")
+hydro_dist_file <- file.path(file_dir, "hydro_dist_30mc.tif")
+turbine_dist_file <- file.path(file_dir, "turbine_dist_30mc.tif")
+
+# Kernel class
+developed_file <- file.path(file_dir, "developed_30mc.tif")
+forest_file <- file.path(file_dir, "forest_30mc.tif")
+open_water_file <- file.path(file_dir, "open_water_30mc.tif")
+pasture_file <- file.path(file_dir, "pasture_30mc.tif")
+shrub_herb_file <- file.path(file_dir, "shrub_herb_30mc.tif")
+wetland_file <- file.path(file_dir, "wetland_30mc.tif")
+eastness_file <- file.path(file_dir, "eastness_30mc.tif")
+northness_file <- file.path(file_dir, "northness_30mc.tif")
+wind_class_file <- file.path(file_dir, "wind_class_30mc.tif")
 
 # BAEA and Movement Parameters
 baea_steps_file <- "Data/BAEA/baea_steps.rds"
 move_pars_file <- "Output/Analysis/Movements/move_pars.rds"
 
+
 # Subsetting Variables
-subsetting_bandwidths <- TRUE
+subsetting_bandwidths <- FALSE
 subsetting_covars <- FALSE
 subsetting_ids <- FALSE
 subsetting_step_types <- TRUE
@@ -58,37 +64,52 @@ subsetting_step_types <- TRUE
 base <- raster(base_file)
 baea_steps <- readRDS(file = baea_steps_file)
 move_pars <- readRDS(file = move_pars_file)
-rm(base_file, baea_steps_file, move_pars_file)
+rm(baea_steps_file, move_pars_file) #base_file
 
 ## Import Covariate Rasters ----------------------------------------------------
 
 # Import rasters
+
+# Terrain class
 elev <- raster(elev_file) # all other layers' extent are set to this layer
-developed <- raster(developed_file)
-forest <- raster(forest_file)
+
+# Extract class
+developed_dist <- crop(raster(developed_dist_file), elev)
+hydro_dist <- crop(raster(hydro_dist_file), elev)
+turbine_dist <- crop(raster(turbine_dist_file), elev)
+
+# Kernel class
+developed <- crop(raster(developed_file), elev)
+forest <- crop(raster(forest_file), elev)
 open_water <- crop(raster(open_water_file), elev)
 pasture <- crop(raster(pasture_file), elev)
 shrub_herb <- crop(raster(shrub_herb_file), elev)
 wetland <- crop(raster(wetland_file), elev)
-hydro_dist <- raster(hydro_dist_file)
+eastness <- crop(raster(eastness_file), elev)
+northness <- crop(raster(northness_file), elev)
+wind_class <- crop(raster(wind_class_file), elev)
 
 # plot(developed$as.RasterLayer(band = 1))
-rm(developed_file, forest_file, open_water_file, pasture_file,
-  shrub_herb_file, wetland_file, elev_file, hydro_dist_file)
+rm(base_file, file_dir,
+  developed_dist_file, hydro_dist_file, turbine_dist_file,
+  developed_file, forest_file, open_water_file, pasture_file,
+  shrub_herb_file, wetland_file, eastness_file, northness_file, wind_class_file,
+  elev_file)
 
 ## Specify Landscape Covariates and Bandwidths ---------------------------------
 
 cell_size <- 30
-kernel_bandwidths <- c(seq(0, 3000, by=30))  # radius (meters)
-terrain_bandwidths <- c(seq(0, 300, by=30))
+kernel_bandwidths <- c(seq(0, 3000, by = 30))  # radius (meters)
+terrain_bandwidths <- c(seq(0, 1500, by = 30))
 
-extract_class <- c("hydro_dist")
+extract_class <- c("developed_dist", "hydro_dist", "turbine_dist")
 kernel_class <- c("developed", "forest", "open_water", "pasture", "shrub_herb",
-  "wetland")
+  "wetland", "eastness", "northness", "wind_class")
 terrain_class <- c("tpi", "tri", "roughness")
 
-covar_stack <- stack(developed, forest, open_water, pasture,
-  shrub_herb, wetland, elev, hydro_dist)
+covar_stack <- stack(developed_dist, hydro_dist, turbine_dist,
+  developed, forest, open_water, pasture, shrub_herb, wetland, eastness,
+  northness, wind_class, elev)
 names(covar_stack) <- str_replace_all(names(covar_stack), "_30mc", "")
 covar_types <- c(extract_class, kernel_class, terrain_class)
 covariate_cols <- c(paste0(rep(extract_class, each=1), 0),
@@ -99,8 +120,8 @@ covariate_cols <- c(paste0(rep(extract_class, each=1), 0),
 
 if (subsetting_bandwidths == TRUE){  # subset data for testing
   rm(kernel_bandwidths, terrain_bandwidths)
-  kernel_bandwidths <- c(seq(0, 300, by=30))
-  terrain_bandwidths <- c(seq(0, 150, by=30))
+  kernel_bandwidths <- c(seq(0, 300, by = 30))
+  terrain_bandwidths <- c(seq(0, 150, by = 30))
 }
 
 if (subsetting_covars == TRUE){  # subset data for testing
@@ -110,28 +131,35 @@ if (subsetting_covars == TRUE){  # subset data for testing
   covar_stack <- stack(hydro_dist, developed, forest, wetland, tpi, roughness)
   names(covar_stack) <- str_replace_all(names(covar_stack), "_30mc", "")
   covar_types <- c(extract_class, kernel_class, terrain_class)
-  covariate_cols <- c(paste0(rep(extract_class, each=1), 0),
-    paste0(rep(kernel_class, each=length(kernel_bandwidths)),
-      rep(kernel_bandwidths,times=length(kernel_class))),
-    paste0(rep(terrain_class, each=length(terrain_bandwidths)),
-      rep(terrain_bandwidths,times=length(terrain_class))))
+  covariate_cols <- c(paste0(rep(extract_class, each = 1), 0),
+    paste0(rep(kernel_class, each = length(kernel_bandwidths)),
+      rep(kernel_bandwidths, times = length(kernel_class))),
+    paste0(rep(terrain_class, each = length(terrain_bandwidths)),
+      rep(terrain_bandwidths, times = length(terrain_class))))
 }
 
+table(baea_steps$behavior_behavior)
 if (subsetting_step_types == TRUE){  # subset data for testing
+  baea_steps_file <- "Data/BAEA/baea_steps.rds"
+  baea_steps <- readRDS(file = baea_steps_file)
+  start = "roost"
+  end = "flight"
   baea_steps_all <- baea_steps
   unique(baea_steps_all$behavior_behavior)
   baea_steps <- baea_steps_all %>% filter(behavior_behavior %in%
-    c("Roost -> Flight"))
+    c(paste0(str_to_title(start)," -> ", str_to_title(end))))
   unique(baea_steps$behavior_behavior)
 }
 
 if (subsetting_ids == TRUE){  # subset data for testing
   baea_steps <- baea_steps %>% filter(id %in% c("Sandy", "Norway"))
-  #i <- j <- k <- m <- 1
+  unique(baea_steps$id)
+  i <- j <- k <- m <- 1
 }
 
-rm(developed, forest, open_water, pasture, shrub_herb, wetland, hydro_dist,
-  elev)
+rm(developed_dist, hydro_dist, turbine_dist,
+  developed, forest, open_water, pasture, shrub_herb, wetland, eastness,
+  northness, wind_class, elev)
 
 plot_stack <- FALSE
 if (isTRUE(plot_stack)){
@@ -139,6 +167,15 @@ if (isTRUE(plot_stack)){
   plot(covar_stack, 2)
   plot(covar_stack, 3)
   plot(covar_stack, 4)
+  plot(covar_stack, 5)
+  plot(covar_stack, 6)
+  plot(covar_stack, 7)
+  plot(covar_stack, 8)
+  plot(covar_stack, 9)
+  plot(covar_stack, 10)
+  plot(covar_stack, 11)
+  plot(covar_stack, 12)
+  plot(covar_stack, 13)
 }
 
 ### ------------------------------------------------------------------------ ###
@@ -203,7 +240,7 @@ for (i in seq_along(unique(baea_steps$behavior_behavior))){
     steps_ij <- steps_i %>% filter(id == id_j)
     steps_ij_range <- c(range(steps_ij$long_utm), range(steps_ij$lat_utm))
     extent_ij <- extend(extent(alignExtent(extent(steps_ij_range), base,
-      snap='out')), 9990)
+      snap = 'out')), 12990)
     for (k in seq_along(covar_types)){
       covar_type_k <- covar_types[k]
       tic(paste0(step_type_i_name, "-", id_j, "-", covar_type_k, "-NA"),
@@ -212,13 +249,13 @@ for (i in seq_along(unique(baea_steps$behavior_behavior))){
         covar_layer_k <- which(names(covar_stack) == covar_type_k)
         covar_raster_k <- crop(raster(covar_stack, layer=covar_layer_k),
           extent_ij)
-        covar_matrix_k <- as.matrix(covar_raster_k)
+        covar_matrix_k <- raster::as.matrix(covar_raster_k)
         bandwidths_k <- kernel_bandwidths
       } else if (covar_type_k %in% extract_class){
         covar_layer_k <- which(names(covar_stack) == covar_type_k)
         covar_raster_k <- crop(raster(covar_stack, layer=covar_layer_k),
           extent_ij)
-        covar_matrix_k <- as.matrix(covar_raster_k)
+        covar_matrix_k <- raster::as.matrix(covar_raster_k)
         bandwidths_k <- 0
       } else if (covar_type_k %in% terrain_class){
         covar_layer_k <- which(names(covar_stack) == "elev")
@@ -264,8 +301,8 @@ for (i in seq_along(unique(baea_steps$behavior_behavior))){
             dx = avail_steps_ijp_xy[1], dy = avail_steps_ijp_xy[2])
           covar_raster_smooth_p <- crop(covar_raster_calc_m,
             move_prob_raster_p)
-          covar_kernel_sum <- sum(as.matrix(covar_raster_smooth_p) *
-            as.matrix(move_prob_raster_p))
+          covar_kernel_sum <- sum(raster::as.matrix(covar_raster_smooth_p) *
+            raster::as.matrix(move_prob_raster_p))
           row_num <- which(avail_steps_i$step_id == avail_steps_ij[p,"step_id"])
           avail_steps_i[row_num, col_num_avail] <- covar_kernel_sum
           rm(avail_steps_ijp_xy, covar_raster_smooth_p, covar_kernel_sum,
@@ -293,117 +330,129 @@ for (i in seq_along(unique(baea_steps$behavior_behavior))){
   rm(counter, n_total,  covariate_df, steps_i, move_prob_rasters)
   toc(quiet = FALSE, log = TRUE, func.toc = toc_msg, info = "Finished")
   ua_steps_i <- rbind(avail_steps_i, used_steps_i) %>% arrange(step_id, case)
-  saveRDS(ua_steps_i, paste0("Output/Analysis/Movements/SSF/UA_Data/ua_steps_",
-    step_type_i_name, ".rds"))
+  saveRDS(ua_steps_i, file.path(ua_data_dir, paste0("ua_steps_",
+    step_type_i_name, ".rds")))
   steps_i_tictoc_df <- data.frame(stringr::str_split(unlist(tic.log(format =
     TRUE)), "\\-|\\:", simplify = TRUE))
   steps_i_tictoc_df[steps_i_tictoc_df == "NA"] <- NA
-  saveRDS(steps_i_tictoc_df, file.path("Output/Analysis/Movements/SSF/Timing",
-    paste0("tictoc_", step_type_i_name, ".rds")))
+  saveRDS(steps_i_tictoc_df, file.path(ssf_timing_dir, paste0("tictoc_",
+    step_type_i_name, ".rds")))
   rm(avail_steps_i, used_steps_i, step_type_i_name)
   tic.clearlog()
 }
+
+
+# Check Timings
+tictoc_df <- tictoc_perch_perch
+tictoc_df_sum <- tictoc_df %>%
+  group_by(X2, X3) %>%
+  filter(!is.na(X2)) %>%
+  summarize(mean_time = mean(as.numeric(str_extract(X5, "[0-9.]+")),
+    na.rm = TRUE)) %>%
+  mutate(mean_time = as.integer(mean_time)) %>%
+  ungroup()
+
 
 ### ------------------------------------------------------------------------ ###
 ############################### OLD CODE #######################################
 ### ------------------------------------------------------------------------ ###
 
-
-
 ############## FIT UNIVARIATE MODELS AT FIXED BANDWIDTHS #######################
-
-start = "roost"
-end = "flight"
-
-step_type <- paste0(start, "_", end)
-ua_data <- readRDS(file.path("Output/Analysis/Movements/SSF/UA_Data",
-  paste0("ua_steps_", step_type, ".rds"))) %>%
-  dplyr::select(-c(datetime)) %>%
-  select_if(function(x) !(all(is.na(x)) | all(x=="")))
-
-# Fit univariate models to find the "approximate" AIC-best bandwidth
-# (i.e., stage-one of a two-stage analysis)
-
-start_covar_cols  <- which(colnames(ua_data) == "lat_utm_end") + 1
-covar_cols <- colnames(ua_data)[start_covar_cols:length(ua_data)]
-covar_cols_types_vec <- str_replace_all(covar_cols, "[:digit:]", "")
-covar_cols_bw_vec <- str_replace_all(covar_cols, "[:^digit:]", "")
-all_models <- data.frame(covar_type = covar_cols_types_vec,
-  bw = covar_cols_bw_vec, aic = NA, coef = NA, opt_bw = NA)
-opt_models <- cbind(data.frame(covar_type = unique(covar_types)), bw = NA)
-covar_types <- unique(covar_cols_types_vec)
-
-for (i in seq_along(covar_types)){
-  covar_type_i <- covar_types[i]
-  colnames_i <- str_subset(colnames(ua_data), covar_type_i)
-  bandwidths_i <- unique(str_replace_all(colnames_i, "[:^digit:]", ""))
-  covar_models_list <- vector("list", length(bandwidths_i))
-  names(covar_models_list) <- as.character(bandwidths_i)
-  for (j in seq_along(bandwidths_i)){
-    covar_bw_name <- paste0(covar_type_i, bandwidths_i[j])
-    model_formula <- as.formula(paste("case ~ ", covar_bw_name,
-      " + strata(step_id)"))
-    covar_model <- survival::clogit(model_formula, data = ua_data,
-      iter.max=100000)
-    covar_models_list[[j]] <- covar_model
-    row_num = which(all_models$covar_type == covar_type_i &
-      all_models$bw == bandwidths_i[j])
-    print(row_num)
-    covar_mod_aic <- AIC(covar_model) #$aic
-    covar_mod_coef <- as.numeric(coef(covar_model)[1])
-    all_models[row_num, "aic"] <- ifelse(is.null(covar_mod_aic), NA, covar_mod_aic)
-    all_models[row_num, "coef"] <- ifelse(is.null(covar_mod_coef), NA, covar_mod_coef)
-  }
-  #lapply(covar_models_list, summary)
-  bandwidths_x <- seq(0, 3000, by=300)
-  aic_table <- aictab(covar_models_list, second.ord = FALSE) %>% arrange(AIC)
-  aic_table$covar_type <- covar_type_i
-  aic_table$opt_bw <- as.numeric(as.character(aic_table[1,1]))
-  opt_bw <- as.numeric(as.character(aic_table[1,1]))
-  all_models[all_models$covar_type == covar_type_i, "opt_bw"] <- opt_bw
-  opt_models[opt_models$covar_type == covar_type_i, "bw"] <- opt_bw
-  g <- ggplot(aic_table, aes(x = as.numeric(as.character(Modnames)), y = AIC)) +
-    #geom_line(color="red") +
-    geom_point() + xlab("Bandwidth") +
-    ggtitle(covar_type_i) +
-    theme_no_legend
-  if (nrow(aic_table) > 1){
-    g <- g +
-      scale_x_continuous(breaks = as.numeric(bandwidths_x)) +
-      geom_vline(xintercept = opt_bw, color="blue", linetype='dashed') +
-      geom_line(color="red") +
-      annotate("text",
-      x = opt_bw + (diff(range(as.numeric(aic_table$Modnames)))*.025),
-      y = max(aic_table$AIC), label = as.character(opt_bw), color = "blue")
-  }
-  print(g)
-  #SaveGGPlot(file = file.path("Results/Analysis/Plots/Step_Selection/AIC",
-  #  paste0("AIC_BW_", covar_type_i, ".svg")), bg = "transparent")
-}
-
-saveRDS(all_models, file=file.path("Output/Analysis/Movements/SSF/Models",
-  paste0("all_models_", step_type, ".rds")))
-saveRDS(opt_models, file=file.path("Output/Analysis/Movements/SSF/Models",
-  paste0("opt_models_", step_type, ".rds")))
-
-all_models_sort <- all_models %>% arrange(covar_type, aic)
-all_models_top5 <- all_models_sort %>% group_by(covar_type) %>% slice(1:5)
-saveRDS(all_models_top5, "Output/Analysis/Movements/SSF/Models",
-  paste0("top5_models_", step_type, ".rds")))
-
-# Plot all AIC by bandwidths in facet_wrap
-g <- ggplot(all_models, aes(x=bw, y = aic)) +
-  geom_line(color="red") + geom_point() + xlab("Bandwidth") + theme_no_legend +
-  facet_wrap(~covar_type, scales = "free_y") +
-  geom_vline(data = ddply(all_models, "covar_type", summarize,
-    opt_bw_i = min(opt_bw)), aes(xintercept=opt_bw_i), color= "blue") +
-  geom_text(data = ddply(all_models, "covar_type", summarize,
-    opt_bw_i = min(opt_bw), min_aic = min(aic)),
-    mapping=aes(x = opt_bw_i + 300, y = min_aic, label = opt_bw_i),
-    size = 4, color = "blue") +
-  theme(axis.title=element_text(size=12, face="bold")) +
-  theme(axis.text.x=element_text(size=8, angle=50, vjust=0.5)) +
-  theme(axis.text.y=element_text(size=8, vjust=0.5))
-print(g)
-SaveGGPlot(file = file.path("Results/Analysis/Plots/Step_Selection/AIC",
-    paste0("AIC_BW_ALL.svg")), bg = "transparent")
+#
+# start = "flight"
+# end = "roost"
+#
+# step_type <- paste0(start, "_", end)
+# ua_data <- readRDS(file.path("Output/Analysis/Movements/SSF/UA_Data",
+#   paste0("ua_steps_", step_type, ".rds"))) %>%
+#   dplyr::select(-c(datetime)) %>%
+#   select_if(function(x) !(all(is.na(x)) | all(x=="")))
+#
+# # Fit univariate models to find the "approximate" AIC-best bandwidth
+# # (i.e., stage-one of a two-stage analysis)
+#
+# start_covar_cols  <- which(colnames(ua_data) == "lat_utm_end") + 1
+# covar_cols <- colnames(ua_data)[start_covar_cols:length(ua_data)]
+# covar_cols_types_vec <- str_replace_all(covar_cols, "[:digit:]", "")
+# covar_cols_bw_vec <- str_replace_all(covar_cols, "[:^digit:]", "")
+# all_models <- data.frame(covar_type = covar_cols_types_vec,
+#   bw = covar_cols_bw_vec, aic = NA, coef = NA, opt_bw = NA)
+# opt_models <- cbind(data.frame(covar_type = unique(covar_types)), bw = NA)
+# covar_types <- unique(covar_cols_types_vec)
+#
+# for (i in seq_along(covar_types)){
+#   covar_type_i <- covar_types[i]
+#   colnames_i <- str_subset(colnames(ua_data), covar_type_i)
+#   bandwidths_i <- unique(str_replace_all(colnames_i, "[:^digit:]", ""))
+#   covar_models_list <- vector("list", length(bandwidths_i))
+#   names(covar_models_list) <- as.character(bandwidths_i)
+#   for (j in seq_along(bandwidths_i)){
+#     covar_bw_name <- paste0(covar_type_i, bandwidths_i[j])
+#     model_formula <- as.formula(paste("case ~ ", covar_bw_name,
+#       " + strata(step_id)"))
+#     covar_model <- survival::clogit(model_formula, data = ua_data,
+#       iter.max = 100000)
+#     covar_models_list[[j]] <- covar_model
+#     row_num = which(all_models$covar_type == covar_type_i &
+#       all_models$bw == bandwidths_i[j])
+#     print(row_num)
+#     covar_mod_aic <- AIC(covar_model) #$aic
+#     covar_mod_coef <- as.numeric(coef(covar_model)[1])
+#     all_models[row_num, "aic"] <- ifelse(is.null(covar_mod_aic), NA,
+#       covar_mod_aic)
+#     all_models[row_num, "coef"] <- ifelse(is.null(covar_mod_coef), NA,
+#       covar_mod_coef)
+#   }
+#   #lapply(covar_models_list, summary)
+#   bandwidths_x <- seq(0, 3000, by=300)
+#   aic_table <- aictab(covar_models_list, second.ord = FALSE) %>% arrange(AIC)
+#   aic_table$covar_type <- covar_type_i
+#   aic_table$opt_bw <- as.numeric(as.character(aic_table[1,1]))
+#   opt_bw <- as.numeric(as.character(aic_table[1,1]))
+#   all_models[all_models$covar_type == covar_type_i, "opt_bw"] <- opt_bw
+#   opt_models[opt_models$covar_type == covar_type_i, "bw"] <- opt_bw
+#   g <- ggplot(aic_table, aes(x = as.numeric(as.character(Modnames)), y = AIC)) +
+#     #geom_line(color="red") +
+#     geom_point() + xlab("Bandwidth") +
+#     ggtitle(covar_type_i) +
+#     theme_no_legend
+#   if (nrow(aic_table) > 1){
+#     g <- g +
+#       scale_x_continuous(breaks = as.numeric(bandwidths_x)) +
+#       geom_vline(xintercept = opt_bw, color="blue", linetype='dashed') +
+#       geom_line(color="red") +
+#       annotate("text",
+#       x = opt_bw + (diff(range(as.numeric(aic_table$Modnames)))*.025),
+#       y = max(aic_table$AIC), label = as.character(opt_bw), color = "blue")
+#   }
+#   print(g)
+#   #SaveGGPlot(file = file.path("Results/Analysis/Plots/Step_Selection/AIC",
+#   #  paste0("AIC_BW_", covar_type_i, ".svg")), bg = "transparent")
+# }
+#
+# saveRDS(all_models, file=file.path("Output/Analysis/Movements/SSF/Models",
+#   paste0("all_models_", step_type, ".rds")))
+# saveRDS(opt_models, file=file.path("Output/Analysis/Movements/SSF/Models",
+#   paste0("opt_models_", step_type, ".rds")))
+#
+# all_models_sort <- all_models %>% arrange(covar_type, aic)
+# all_models_top5 <- all_models_sort %>% group_by(covar_type) %>% slice(1:5)
+# saveRDS(all_models_top5, "Output/Analysis/Movements/SSF/Models",
+#   paste0("top5_models_", step_type, ".rds")))
+#
+# # Plot all AIC by bandwidths in facet_wrap
+# g <- ggplot(all_models, aes(x=bw, y = aic)) +
+#   geom_line(color="red") + geom_point() + xlab("Bandwidth") + theme_no_legend +
+#   facet_wrap(~covar_type, scales = "free_y") +
+#   geom_vline(data = ddply(all_models, "covar_type", summarize,
+#     opt_bw_i = min(opt_bw)), aes(xintercept=opt_bw_i), color= "blue") +
+#   geom_text(data = ddply(all_models, "covar_type", summarize,
+#     opt_bw_i = min(opt_bw), min_aic = min(aic)),
+#     mapping=aes(x = opt_bw_i + 300, y = min_aic, label = opt_bw_i),
+#     size = 4, color = "blue") +
+#   theme(axis.title=element_text(size=12, face="bold")) +
+#   theme(axis.text.x=element_text(size=8, angle=50, vjust=0.5)) +
+#   theme(axis.text.y=element_text(size=8, vjust=0.5))
+# print(g)
+# SaveGGPlot(file = file.path("Results/Analysis/Plots/Step_Selection/AIC",
+#     paste0("AIC_BW_ALL.svg")), bg = "transparent")

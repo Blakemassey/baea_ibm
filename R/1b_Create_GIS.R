@@ -221,15 +221,15 @@ developed_30mc_calc <- calc(developed_30mc, develop_fun)
 mapview(developed_30mc_calc)
 
 ## Output Files
-develop_dist_output <- "C:/ArcGIS/Data/R_Input/BAEA/develop_dist_30mc.tif"
+developed_dist_output <- "C:/ArcGIS/Data/R_Input/BAEA/developed_dist_30mc.tif"
 
 # tic()
-# develop_dist_30mc <- distance(develop_dist_30mc, doEdge = TRUE)
+# developed_dist_30mc <- distance(developed_30mc_calc, doEdge = TRUE)
 # toc()
 # Ended up doing above calcuation in ArcGIS - cannot allocate vector length of
 # sufficent size
 
-writeRaster(hydro_30mc, develop_dist_output, progress = "text",
+writeRaster(developed_dist_30mc, developed_dist_output, progress = "text",
   datatype = 'INT2U', overwrite = TRUE)
 
 ## ---------------------------- HYDRO LAYERS ------------------------------ ####
@@ -327,7 +327,7 @@ wind_class <- st_read(file.path("C:/ArcGIS/Data/Wind",
   st_transform(wgs84n19)
 
 # Output File
-wind_class_output <- "C:/ArcGIS/Data/R_Input/BAEA/windclass_30mc.tif"
+wind_class_output <- "C:/ArcGIS/Data/R_Input/BAEA/wind_class_30mc.tif"
 
 wind_class_30mc <- fasterize(wind_class, base, field ="WPC")
 #wind_class_30mc <- raster(wind_class, template = base)
@@ -352,7 +352,7 @@ wt_shp_output <- "C:/ArcGIS/Data/R_Input/BAEA/wind_turbines.shp"
 
 # Import Shapefile and Subset Data
 uswtdb <- st_read(uswtdb_file)
-wt <- uswtdb %>% filter(t_state == "ME")
+wt <- uswtdb %>% filter(t_state == "ME") %>% st_transform(crs = wgs84n19)
 table(wt$p_year)
 mapview(wt)
 
@@ -362,18 +362,18 @@ st_write(wt, wt_shp_output, delete_layer = TRUE) # overwrites
 
 # Output File
 wt_rast_output <- "C:/ArcGIS/Data/R_Input/BAEA/windturb_30mc.tif"
-wt_dist_output <- "C:/ArcGIS/Data/R_Input/BAEA/wt_dist_30mc.tif"
+wt_dist_output <- "C:/ArcGIS/Data/R_Input/BAEA/turbine_dist_30mc.tif"
 
-wind_turbines_30mc <- rasterize(wt, raster = base, field = 1)
+wind_turbines_30mc <- rasterize(wt, raster = base, field = 'case_id')
 writeRaster(wind_turbines_30mc, wt_rast_output, progress = "text",
   datatype = 'INT2U', overwrite = TRUE)
 
 # Calcuation done in ArcGIS - cannot allocate vector length of sufficent size
 # tic()
-# wind_turbine_dist_30mc <- distance(wind_turbines_30mc, doEdge = TRUE)
+# turbine_dist_30mc <- distance(wind_turbines_30mc, doEdge = TRUE)
 # toc()
 
-writeRaster(wind_turbine_dist_30mc, wt_dist_output, progress = "text",
+writeRaster(turbine_dist_30mc, wt_dist_output, progress = "text",
   datatype = 'INT2U', overwrite = TRUE)
 
 ######## ---------------------- TOPOGRAPHIC LAYERS ----------------- ###########
