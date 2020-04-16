@@ -4,6 +4,7 @@ pacman::p_load(AICcmodavg, plyr, dplyr, ggplot2, ggthemes, optimx, raster,
   reproducible, rgdal, smoothie, stringr, survival, tictoc) #spatialfil
 pacman::p_load(baear, gisr, ibmr)
 options(stringsAsFactors=FALSE)
+#setwd("C:/Users/blake/OneDrive/Work/R/Projects/baea_ibm")
 
 tic_msg <- function(tic, msg) {
   if (is.null(msg) || is.na(msg) || length(msg) == 0){
@@ -51,7 +52,6 @@ wind_class_file <- file.path(file_dir, "wind_class_30mc.tif")
 # BAEA and Movement Parameters
 baea_steps_file <- "Data/BAEA/baea_steps.rds"
 move_pars_file <- "Output/Analysis/Movements/move_pars.rds"
-
 
 # Subsetting Variables
 subsetting_bandwidths <- FALSE
@@ -142,8 +142,8 @@ table(baea_steps$behavior_behavior)
 if (subsetting_step_types == TRUE){  # subset data for testing
   baea_steps_file <- "Data/BAEA/baea_steps.rds"
   baea_steps <- readRDS(file = baea_steps_file)
-  start = "roost"
-  end = "flight"
+  start = "perch"
+  end = "roost"
   baea_steps_all <- baea_steps
   unique(baea_steps_all$behavior_behavior)
   baea_steps <- baea_steps_all %>% filter(behavior_behavior %in%
@@ -177,6 +177,11 @@ if (isTRUE(plot_stack)){
   plot(covar_stack, 12)
   plot(covar_stack, 13)
 }
+
+covar_matrix <- raster::as.matrix(covar_stack)
+covar_cols <- setNames(seq_len(ncol(covar_matrix)), colnames(covar_matrix))
+covar_names <- c(names(covar1), names(covar2), names(covar3))
+rm(covar_brick)
 
 ### ------------------------------------------------------------------------ ###
 ###    CALCULATE KERNEL-WEIGHTED COVARIATE VALUES FOR USED AND AVAILABLE     ###
@@ -240,7 +245,7 @@ for (i in seq_along(unique(baea_steps$behavior_behavior))){
     steps_ij <- steps_i %>% filter(id == id_j)
     steps_ij_range <- c(range(steps_ij$long_utm), range(steps_ij$lat_utm))
     extent_ij <- extend(extent(alignExtent(extent(steps_ij_range), base,
-      snap = 'out')), 12990)
+      snap = 'out')), 12000)
     for (k in seq_along(covar_types)){
       covar_type_k <- covar_types[k]
       tic(paste0(step_type_i_name, "-", id_j, "-", covar_type_k, "-NA"),
@@ -278,6 +283,16 @@ for (i in seq_along(unique(baea_steps$behavior_behavior))){
         col_num_avail <- which(colnames(used_steps_i) == col_name)
         if(bw_meters == 0){
           covar_raster_calc_m <- covar_raster_k
+          ## ####################### IMPORTANT NOTE ############################
+          ## This step incorrectly caused the 'elev' raster to be used directly
+          ## for the 'tpi', 'tri', and 'roughness' layers at bandwidth = 0.
+          ## This was corrected by replacing the bandwidth = 0 values with the
+          ## bandwidth = 1 values for these rasters. Fix is performed with code
+          ## starting at line ~355. Function CalculateTerrainMetricWithSigma()
+          ## was writtend so the function would still work if sigma = 0 (it is
+          ## internally converted to sigma = 1) because that was needed for
+          ## other steps in the analysis.
+          ## ################################################################# #
         } else {
           if (covar_type_k %in% kernel_class){
             covar_matrix_smooth_m <- kernel2dsmooth(covar_matrix_k,
@@ -341,9 +356,33 @@ for (i in seq_along(unique(baea_steps$behavior_behavior))){
   tic.clearlog()
 }
 
+# This section is replaces the terrain raster layers at bandwidth = 0 with the
+# bandwidth = 1 values. Needed to fix issue from procedure above (see note).
+
+ua_data_files <- list.files(ua_data_dir, full.names = TRUE)
+for (i in seq_along(ua_data_files)){
+  ua_data_i <- readRDS(ua_data_files[i])
+  unique(ua_data_i$behavior_behavior)
+  identical(head(ua_data_i$tpi0), head(ua_data_i$tri0),
+    head(ua_data_i$roughness0)) # if TRUE, terrain rasters (bw = 0) are "elev"
+  identical(ua_data_i$tpi0, ua_data_i$tpi30)
+  identical(ua_data_i$tri0, ua_data_i$tri30)
+  identical(ua_data_i$roughness0, ua_data_i$roughness30)
+  # Next step replaces the (bw = 0) with the (bw = 1) values. A simple fix.
+  ua_data_i_out <- ua_data_i %>%
+    mutate(tpi0 = tpi30,
+           tri0 = tri30,
+           roughness0 = roughness30)
+  updated <- all(identical(ua_data_i_out$tpi0, ua_data_i_out$tpi30),
+      identical(ua_data_i_out$tri0, ua_data_i_out$tri30),
+      identical(ua_data_i_out$roughness0, ua_data_i_out$roughness30))
+  if(updated) saveRDS(ua_data_i_out, ua_data_files[i])
+}
+
+# End of section to fix the terrain bandwidths
 
 # Check Timings
-tictoc_df <- tictoc_perch_perch
+tictoc_df <- tictoc_cruise_cruise
 tictoc_df_sum <- tictoc_df %>%
   group_by(X2, X3) %>%
   filter(!is.na(X2)) %>%
