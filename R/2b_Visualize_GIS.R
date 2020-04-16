@@ -1,6 +1,6 @@
 ### This script is for importing GIS datalayers and converting them to the
 ### proper coordinate reference system (NAD83 UTM N19), extent, and resolution.
---------------------------------------------------------------------------------
+###-----------------------------------------------------------------------------
 
 ## Import libraries ------------------------------------------------------------
 suppressPackageStartupMessages(library(foreign))
@@ -99,7 +99,6 @@ gplot(habitat2, maxpixel = 200000) +
 SaveGGPlot("Habitat.jpeg",
   "Results/Analysis/GIS", bg = "white")
 
-
 # Mapping of landcover_30mc. Demostrates the use of a 'color' file in conjuntion
 # w/gplot for plotting rasters in the ggplot2 format
 value_vec <- freq(landcover)[,1]
@@ -112,8 +111,6 @@ gplot(landcover, maxpixel = 500000) +
   scale_x_continuous(expand = c(0, 0)) + scale_y_continuous(expand = c(0, 0)) +
   theme_tufte(base_size = 15) + xlab("Longitude") + ylab("Latitude")
 
-
-
 # For testing purposes - clip to smaller area
 value_vec2 <- freq(landcover2)[,1]
 landcover_colors_sub2 <- landcover_colors %>% dplyr::filter(value%in%value_vec2)
@@ -125,8 +122,6 @@ gplot(landcover2, maxpixel = 200000) +
   theme_tufte(base_size = 15) + xlab("Longitude") + ylab("Latitude")
 SaveGGPlot("LC.jpeg",
   "Results/Analysis/GIS", bg = "white")
-
-
 
 # Mapping of iei_30mc.
 gplot(iei, maxpixel = 500000) +
