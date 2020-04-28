@@ -288,10 +288,14 @@ for (i in seq_along(unique(baea_steps$behavior_behavior))){
           ## for the 'tpi', 'tri', and 'roughness' layers at bandwidth = 0.
           ## This was corrected by replacing the bandwidth = 0 values with the
           ## bandwidth = 1 values for these rasters. Fix is performed with code
+<<<<<<< HEAD
           ## starting at line ~355. Function CalculateTerrainMetricWithSigma()
           ## was writtend so the function would still work if sigma = 0 (it is
           ## internally converted to sigma = 1) because that was needed for
           ## other steps in the analysis.
+=======
+          ## starting at line ~355.
+>>>>>>> 4735db33143c2e471e8ae0ae76b6d00a01c296c8
           ## ################################################################# #
         } else {
           if (covar_type_k %in% kernel_class){
@@ -356,8 +360,13 @@ for (i in seq_along(unique(baea_steps$behavior_behavior))){
   tic.clearlog()
 }
 
+<<<<<<< HEAD
 # This section is replaces the terrain raster layers at bandwidth = 0 with the
 # bandwidth = 1 values. Needed to fix issue from procedure above (see note).
+=======
+# This section is used to replace the terrain_raster bandwidth = 0, with the
+# bandwidth = 1 values.
+>>>>>>> 4735db33143c2e471e8ae0ae76b6d00a01c296c8
 
 ua_data_files <- list.files(ua_data_dir, full.names = TRUE)
 for (i in seq_along(ua_data_files)){

@@ -146,6 +146,7 @@ eval(parse(text="5+5"))
 # roughness50 = .1
 # developed_dist0 = 30
 # turbine_dist0 = 3000
+<<<<<<< HEAD
 
 #setwd("C:/Users/blake/OneDrive/Work/R/Projects/baea_ibm")
 
@@ -186,3 +187,5 @@ eval(parse(text="5+5"))
 #   file.rename(fit_file_i, fit_file_i_new)
 # }
 
+=======
+>>>>>>> 4735db33143c2e471e8ae0ae76b6d00a01c296c8
