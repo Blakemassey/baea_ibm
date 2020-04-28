@@ -241,7 +241,6 @@ options(stringsAsFactors=FALSE)
 
 # Output paths
 ua_data_dir <- "Output/Analysis/SSF/UA_Data"
-
 ua_data_files <- list.files(ua_data_dir, full.names = TRUE)
 
 for (i in seq_along(ua_data_files)){
@@ -263,9 +262,6 @@ for (i in seq_along(ua_data_files)){
 
   saveRDS(ua_steps_i, file.path(ua_data_dir, paste0("ua_steps_",
     step_type_i_name, ".rds")))
-
-
-
 
 # # Rename files
 # fit_files <- list.files(file.path(mod_fit_dir, "cruise_perch"),

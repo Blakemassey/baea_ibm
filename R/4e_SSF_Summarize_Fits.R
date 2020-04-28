@@ -1,0 +1,368 @@
+###################### ModelFit_SSF_Summarize ##################################
+
+########################### LOAD PACKAGES AND DATA  ############################
+# Load libraries, scripts, and input parameters
+pacman::p_load(AICcmodavg, plyr, dplyr, future, furrr, optimx, ggplot2,
+  ggthemes, glmulti, lubridate, optimx, purrr, reproducible, rgenoud, stringr,
+  survival, surveybootstrap, tibble, tictoc, tidyr)
+library(baear, gisr)
+options(stringsAsFactors=FALSE)
+
+# Output Directory
+mod_fit_dir = "Output/Analysis/SSF/Models"
+
+# Source Data Directory
+ua_data_dir <- "Output/Analysis/SSF/UA_Data"
+
+# Find all of the step_type folders in mod_fit_dir
+step_types <- list.dirs(mod_fit_dir, full.names = FALSE, recursive = FALSE) %>%
+  .[!. %in% c("Archive")]
+
+############################### FUNCTIONS #####################################
+
+PastePreds <- function(x, y){
+  xy <- c(x[!is.na(x)], y[!is.na(y)])
+  xy <- paste(xy[!is.na(xy)], collapse = " + ")
+  out <- if_else(str_length(xy) > 0, xy, NA_character_)
+  return(out)
+}
+
+PasteFixedSigmas <- function(x, y){
+  xy <- paste0(x[!is.na(x)], y[!is.na(y)], collapse = " + ")
+  out <- if_else(str_length(xy) > 0, xy, NA_character_)
+  return(out)
+}
+
+iter_max <- 50
+# Function to be used in the next step using map()
+FitClogit <- function(clogit_preds, ua_data){
+  clogit_model_formula = as.formula(clogit_preds)
+  clogit_fit <- clogit(clogit_model_formula, data = ua_data, method = "efron",
+    iter.max = iter_max)
+  return(clogit_fit)
+}
+
+RenameUAStepsToMeters <- function(ua_steps){
+  colnames_alpha <- str_replace_all(colnames(ua_steps), "[0-9]", "")
+  colnames_num <- as.numeric(str_replace_all(colnames(ua_steps), "[^0-9]", ""))
+  covars <- unique(colnames_alpha %>% .[!. %in% c("dummy", "case", "step_id")])
+  colnames_tbl <- tibble(colnames_alpha, colnames_num) %>%
+    mutate(colnames_sigma = ifelse(!is.na(colnames_num), colnames_num/30,NA))%>%
+    mutate_all(~str_replace_na(., "")) %>%
+    mutate(colnames_final = paste0(colnames_alpha, colnames_sigma))
+  colnames(ua_steps) <- colnames_tbl %>% pull(colnames_final)
+  return(ua_steps)
+}
+
+##################### CHECK ALL MODELS ARE PRESENT #############################
+
+# Find missing 'range group' model fit restuls for each step_type
+for (i in seq_along(step_types)){
+  step_type_i <- step_types[i]
+  print(paste("Step_type:", step_type_i))
+  fits_folder <- file.path(mod_fit_dir, step_type_i)
+  range_groups <- unique(as.numeric(str_extract(list.files(fits_folder),
+    "(?<=_)[0-9]{3}(?=_)")))
+  print(paste("Min:", min(range_groups), "Max:", max(range_groups)))
+  miss_vec <- setdiff(min(range_groups):max(range_groups), range_groups)
+  miss_vec <- ifelse(length(miss_vec) > 0, miss_vec, "NONE")
+  print(paste0("Missing: ", paste0(miss_vec, collapse = ", ")))
+}
+rm(step_type_i, range_groups)
+
+################### COMPILE MODELS FOR EACH STEP TYPE ##########################
+
+# Compile all models for each step_type into a compiled_fit file
+for (i in seq_along(step_types)) {
+  step_type_i <- step_types[i]
+  print(paste0(step_type_i, " (", i, " of ", length(step_types), ")"))
+  ssf_fits_step_type_i <- list.files(path = file.path(mod_fit_dir, step_type_i),
+      pattern = paste0("ssf_fit_", step_type_i, "*")) %>%
+    map(~ readRDS(file.path(mod_fit_dir, step_type_i, .))) %>%
+    reduce(bind_rows) %>%
+    as_tibble(.)
+  print(paste0("Models evaluated: n = ", nrow(ssf_fits_step_type_i)))
+  compiled_ssf_fits_step_type_i <- ssf_fits_step_type_i  %>%
+    mutate(model_chr = map_chr(model, as.character)) %>%
+    group_by(model_chr) %>%
+    slice(which.min(fit_aicc)) %>%
+    ungroup() %>%
+    arrange(fit_aicc) %>%
+    mutate(pars = map2(opt_fit, "par", pluck)) %>%
+    mutate(peak_generation = map2(opt_fit, "peakgeneration", pluck)) %>%
+    mutate(covars_scale_sigmas = map2_chr(covars_scale, pars, paste0,
+      collapse = " + ")) %>%
+    mutate(covars_scale_sigmas = ifelse(covars_scale_sigmas == "NA", NA,
+      covars_scale_sigmas)) %>%
+    mutate(covars_scale_sigmas = ifelse(covars_scale_sigmas == "", NA,
+      covars_scale_sigmas)) %>%
+    mutate(fixed_sigma = ifelse(!is.na(covars_fixed), 0, NA)) %>%
+    mutate(covars_fixed_sigmas = map2_chr(covars_fixed, fixed_sigma,
+      PasteFixedSigmas)) %>%
+    mutate(covars_fixed_sigmas = ifelse(covars_fixed_sigmas == "NA", NA,
+      covars_fixed_sigmas)) %>%
+    mutate(covars_fixed_sigmas = ifelse(covars_fixed_sigmas == "0", NA,
+      covars_fixed_sigmas)) %>%
+    mutate(preds = map2_chr(.x = covars_scale_sigmas, .y = covars_fixed_sigmas,
+      .f = PastePreds)) %>%
+    select(step_type:peak_generation, preds)
+  print(paste0("Models with fits: n = ", nrow(compiled_ssf_fits_step_type_i)))
+  saveRDS(compiled_ssf_fits_step_type_i, file.path(mod_fit_dir, paste0(
+    "compiled_ssf_fits_", step_type_i, ".rds")))
+}
+rm(step_type_i, ssf_fits_step_type_i, compiled_ssf_fits_step_type_i)
+
+############## COMPILE ALL OF THE STEP TYPES BEST FIT MODELS ###################
+
+# Find all of the best fit models for each step_type
+best_fit_models <- list.files(path = file.path(mod_fit_dir),
+    pattern = "^compiled_ssf_fits_*")  %>%
+  map(~ readRDS(file.path(mod_fit_dir, .))) %>%
+  reduce(bind_rows) %>%
+  group_by(step_type) %>%
+  arrange(fit_aicc) %>%
+  slice(which.min(fit_aicc)) %>%
+  ungroup(.) %>%
+  arrange(step_type) %>%
+  dplyr::select(step_type, model_num, opt_fit, fit_aicc, preds)
+
+# Match ua_step data with the best fit models
+ua_steps_sigma <- list.files(path = ua_data_dir,
+  pattern = paste0("ua_steps_*")) %>%
+  map(~ readRDS(file.path(ua_data_dir, .))) %>%
+  reduce(bind_rows) %>%
+  mutate(step_type = str_replace_all(behavior_behavior, " -> ", "_")) %>%
+  mutate(step_type = str_to_lower(step_type))
+
+ua_steps <- RenameUAStepsToMeters(ua_steps_sigma)
+
+ua_steps_nested <- ua_steps %>%
+  as_tibble(.) %>%
+  group_by(step_type) %>%
+  nest(.) %>%
+  ungroup(.)
+
+best_fit_models_data <- best_fit_models %>%
+  dplyr::select(step_type, fit_aicc, preds) %>%
+  left_join(., ua_steps_nested, by = "step_type") %>%
+  rename(ua_steps = data)
+rm(best_fit_models, ua_steps_sigma, ua_steps, ua_steps_nested)
+
+# Re-checking model fits -------------------------------------------------------
+# Directly recalculate the fit to ensure that the optimization and
+# summarization worked as expected. Optimization result fit aic and
+# recalculated fit aic should match.
+
+# Use the best-aic predictors and original data to refit clogit model
+best_fit_models_final <- best_fit_models_data %>%
+  mutate(clogit_preds = paste0("case ~ ", preds, " + strata(step_id)")) %>%
+  dplyr::select(step_type, fit_aicc, clogit_preds, ua_steps, preds) %>%
+  mutate(clogit_fit = map2(.x = clogit_preds, .y = ua_steps,
+    .f = FitClogit)) %>%
+  mutate(fit_aicc_refit = map_dbl(clogit_fit, AICc))
+
+glimpse(best_fit_models_final)
+
+# Check for consistency between optimization fit and refit (should be TRUE)
+identical(round(best_fit_models_final %>% pull(fit_aicc), 5),
+  round(best_fit_models_final %>% pull(fit_aicc_refit), 5))
+
+# Save 'best_ssf_fits_all'
+saveRDS(best_fit_models_final, file.path(mod_fit_dir, "best_ssf_fits_all.rds"))
+
+################# COMPILE ALL BEST NO-MAX-SGIMA FIT MODELS #####################
+
+# Determine the best fit models that do not have a "maximum sigma" variable,
+# specifically 100 or 50 sigma values (depending on class).
+best_fit_models_no_max_variables <- list.files(path = file.path(mod_fit_dir),
+    pattern = paste0("^compiled_ssf_fits_*"))  %>%
+  map(~ readRDS(file.path(mod_fit_dir, .))) %>%
+  reduce(bind_rows) %>%
+  group_by(step_type) %>%
+  arrange(fit_aicc) %>%
+  mutate(mod_rank = 1:n()) %>%
+  filter(!str_detect(preds, paste0("developed100|forest100|open_water100|",
+    "pasture100|shrub_herb100|eastness100|northness100|wind_class100"))) %>%
+  filter(!str_detect(preds, "tpi50|tri50|roughness50")) %>%
+  slice(which.min(fit_aicc)) %>%
+  ungroup() %>%
+  arrange(step_type) %>%
+  mutate(ua_steps = list(NA))
+
+### ------------------------------------------------------------------------ ###
+############################### OLD CODE #######################################
+### ------------------------------------------------------------------------ ###
+
+# # Find all of the step_type mods_sum in fit_file_dir
+# all_fit_sums <- list.files(path = file.path(mod_fit_dir),
+#     pattern = paste0("^compiled_ssf_fits_*"))  %>%
+#   map(~ readRDS(file.path(mod_fit_dir, .))) %>%
+#   reduce(bind_rows) %>%
+#   arrange(step_type, fit_aicc)
+#
+# saveRDS(all_fit_sums, file.path(mod_fit_dir, "compiled_ssf_fits_all.rds"))
+
+
+# for (i in seq_along(step_types)) {
+#   model_num_max <- fit_sum_step_type_i %>% pull(model_num) %>% max(.)
+#   fit_sum_step_type_missing <- setdiff(1:model_num_max,
+#     fit_sum_step_type_i %>% pull(model_num) %>% as.numeric(.) %>% sort(.))
+#   d_as <- diff(fit_sum_step_type_missing)
+#   which(diff(fit_sum_step_type_missing) != 1)
+# }
+#
+# # Make all step_type best fit model - generate all subsets
+# for (i in 1:nrow(best_fit_models_data)){
+#   covars <- str_split(best_fit_models_data %>% slice(i) %>% pull(preds),
+#     " \\+ ", simplify = TRUE)
+#   list_of_models <- lapply(seq_along((covars)), function(n) {
+#       left_hand_side <- "case"
+#       right_hand_side <- apply(X = combn(covars, n), MARGIN = 2, paste,
+#         collapse = " + ")
+#       paste(left_hand_side, right_hand_side, sep = " ~ ")
+#   })
+#   model <- flatten_chr(list_of_models)
+#   best_fit_models_data_i <- best_fit_models_data %>% slice(i) %>%
+#     mutate(count = length(model)) %>%
+#     uncount(count) %>%
+#     mutate(preds = model)
+# }
+
+# # Find all of the step_type mods_sum in fit_file_dir
+# all_fit_sums <- list.files(path = file.path(mod_fit_dir),
+#     pattern = paste0("^fit_sum_*"))  %>%
+#   map(~ readRDS(file.path(mod_fit_dir, .))) %>%
+#   reduce(bind_rows) %>%
+#   arrange(step_type, fit_aic)
+# saveRDS(all_fit_sums, file.path(mod_fit_dir, "all_fit_sums.rds"))
+#
+# all_fit_sums_simple <- all_fit_sums %>%
+#   select(step_type, preds)
+# writexl::write_xlsx(all_fit_sums_simple, file.path(mod_fit_dir,
+#   "all_fit_sums_simple.xlsx"))
+#
+# all_fit_sums_1variable <- all_fit_sums %>%
+#   mutate(covars_fixed_chr = map_chr(covars_fixed, paste, collapse = " + ")) %>%
+#   filter(covars_fixed_chr == "") %>%
+#   mutate(preds = str_replace_all(preds, " \\+ 0", "")) %>%
+#   filter(pop_size == 100) %>%
+#   filter(!preds %in% c("developed100", "forest100", "open_water100",
+#     "pasture100", "shrub_herb100", "eastness100", "northness100",
+#     "wind_class100")) %>%
+#   filter(!preds %in% c("tpi50","tri50","roughness50")) %>%
+#   select(step_type, model_num, fit_aic, preds) %>%
+#   arrange(step_type, fit_aic)
+
+# best_fit_models_simple <- best_fit_models %>%
+#   select(step_type, mod_rank, preds)
+
+#   list_of_models <- lapply(seq_along((covars)), function(n) {
+#       left_hand_side <- "case"
+#       right_hand_side <- apply(X = combn(covars, n), MARGIN = 2, paste,
+#         collapse = " + ")
+#       paste(left_hand_side, right_hand_side, sep = " ~ ")
+#   })
+#   model <- flatten(list_of_models)
+#
+#
+#
+# # For each step_type best fit model, run an all subsets regression
+#
+# # Method to redefine a fit function comes from the 'multiglm' package PDF
+# coxph_redefined = function(formula, data, always = "", ...) {
+#   coxph(as.formula(paste(deparse(formula), always)), data = data,
+#     method = "efron", ...)
+# }
+#
+# # For each of best_fit_models rows, run all-subset regression w/ ua_steps & preds
+# # BUT this doesn't really work for my analysis b/c the subset models that I
+# # evaluated allowed the variable-sigma covariates to change, so they would not
+# # truly be subsets
+# for (i in 1:nrow(best_fit_models_data)){
+#   i <- 1
+#   ua_steps_i <- best_fit_models_data %>% select("ua_steps") %>% pluck(1, i) %>%
+#     mutate(dummy = 1)
+#   preds <- best_fit_models %>% slice(i) %>% pull(preds)
+#   print(preds)
+#   fmla_full <- as.formula(paste("Surv(dummy, case) ~ ", preds))
+#   glmulti_coxph <-
+#     glmulti(fmla_full,
+#             data = ua_steps_i,
+#             level = 1,               # No interaction considered
+#             method = "h",            # Exhaustive approach
+#             crit = "aic",            # AIC as criteria
+#             confsetsize = 5,         # Keep 5 best models
+#             plotty = F, report = F,  # No plot or interim reports
+#             always = "+ strata(step_id)",
+#             fitfunction = coxph_redefined)   # coxph function
+#
+#   ## Show 5 best models (Use @ instead of $ for an S4 object)
+#   glmulti_coxph@formulas
+#   print(glmulti_coxph@formulas[[1]])
+# }
+#   glmulti_coxph@formulas[[2]]
+#
+#   ## Show result for the best model
+#   summary(glmulti_coxph@objects[[1]])
+#
+#   coef(glmulti_coxph@objects[[1]])
+#   coef(glmulti_coxph@objects[[2]])
+#   coef(glmulti_coxph@objects[[3]])
+#   coef(glmulti_coxph@objects[[4]])
+#   coef(glmulti_coxph@objects[[5]])
+#
+#   test <- glmulti_coxph@objects[[1]]
+#   summary(glmulti_coxph)
+#
+#   ## Can get model weights:
+#   summary(glmulti_coxph)$modelweights
+#
+
+
+# # glm approach
+# fit1 <- glm(case ~ 1 + developed100 + forest100 + open_water68 + pasture3 +
+#   shrub_herb29 + developed_dist0 + hydro_dist0 + turbine_dist0,
+#   family = 'binomial', data = ua_steps_i)
+# summary(fit1)
+#
+# # survival clogit approach -- equivalent
+# fit2 <- clogit(case ~ developed100 + forest100 + open_water68 + pasture3 +
+#   shrub_herb29 + developed_dist0 + hydro_dist0 + turbine_dist0 + strata(step_id),
+#   data = ua_steps_i)
+# summary(fit2)
+#
+# # survival coxph approach -- equivalent
+# fit3 <- coxph(Surv(dummy, case) ~ developed100 + forest100 + open_water68 +
+#   pasture3 + shrub_herb29 + developed_dist0 + hydro_dist0 + turbine_dist0 +
+#   strata(step_id), data = ua_steps_i)
+# summary(fit3)
+#
+# #AIC equivalent
+# AIC(fit1,fit2,fit3)
+
+
+
+# getmode <- function(v) {
+#    unique_v <- unique(v)
+#    unique_v[which.max(tabulate(match(v, unique_v)))]
+# }
+#
+# opt_sigmas <- df_opt_results %>%
+#   filter(AIC == min(AIC)) %>%
+#   summarize(
+#     var1 = getmode(get(sigma_variables[1])),
+#     var2 = getmode(get(sigma_variables[2])),
+#     var3 = getmode(get(sigma_variables[3])),
+#     var4 = getmode(get(sigma_variables[4])),
+#     var5 = getmode(get(sigma_variables[5]))) %>%
+#   slice(1) %>%
+#   unlist(., use.names=FALSE)
+
+
+# clogit_preds <- best_fit_sums3 %>% slice(1) %>% pull(clogit_preds)
+# ua_data <- best_fit_sums3 %>% slice(1) %>% select(ua_steps, step_type) %>%
+#   rename(step_type2 = step_type) %>%
+#   unnest(cols = c(ua_steps)) %>%
+#   select(step_type, step_type2, everything(.))
+#
+# tail(colnames(ua_data))
