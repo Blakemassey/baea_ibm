@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 ## THIS IS A TEST FOR CONVERTING THE SSF MODELS TO SSF SURFACES
 
 # Load libraries, scripts, and input parameters
@@ -230,7 +229,6 @@ if (isTRUE(load_covars)){
   names(covar2) <- "develop"
   names(covar3) <- "gauss"
 }
-=======
 
 ############################# ModelFit_SSF #####################################
 # Load libraries, scripts, and input parameters --------------------------------
@@ -268,6 +266,7 @@ for (i in seq_along(ua_data_files)){
 
 
 
+
 # # Rename files
 # fit_files <- list.files(file.path(mod_fit_dir, "cruise_perch"),
 #   full.names = TRUE)
@@ -276,4 +275,3 @@ for (i in seq_along(ua_data_files)){
 #   fit_file_i_new <- str_replace(fit_file_i, "models", "ssf")
 #   file.rename(fit_file_i, fit_file_i_new)
 # }
->>>>>>> 4735db33143c2e471e8ae0ae76b6d00a01c296c8
