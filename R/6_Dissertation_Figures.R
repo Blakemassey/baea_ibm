@@ -1,6 +1,8 @@
 ############################################################################# ##
 #### -------------------------- CHAPTER 2 --------------------------------- ####
 ############################################################################# ##
+# Maps and Flowcharts: Save as .svg
+# Figures: Save as .pdf
 
 # Load packages, helpers, and functions
 pacman::p_load(CircStats, ggplot2, gridExtra, magick, latex2exp, patchwork,

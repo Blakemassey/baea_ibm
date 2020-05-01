@@ -18,6 +18,57 @@ ua_data_dir <- "Output/Analysis/SSF/UA_Data"
 step_types <- list.dirs(mod_fit_dir, full.names = FALSE, recursive = FALSE) %>%
   .[!. %in% c("Archive")]
 
+######################## MODELS DATA MANAGEMENT ################################
+# Files can't be larger than 100mb, so I had to split up them up
+
+models_folder <- file.path("C:/Users/blake/OneDrive/Work/R/Projects/baea_ibm",
+  "Output/Analysis/SSF/Models")
+ssf_fit_perch_perch_001 <- readRDS(file.path(models_folder,
+  "perch_perch/ssf_fit_perch_perch_001_2020-04-29_1123.rds"))
+nrow(ssf_fit_perch_perch_001)
+ssf_fit_perch_perch_001a <- ssf_fit_perch_perch_001 %>% slice(1:10)
+ssf_fit_perch_perch_001b <- ssf_fit_perch_perch_001 %>% slice(11)
+ssf_fit_perch_perch_001c <- ssf_fit_perch_perch_001 %>% slice(12)
+
+saveRDS(ssf_fit_perch_perch_001a, file.path(models_folder, "perch_perch",
+    "ssf_fit_perch_perch_001a_2020-04-29_1123.rds"))
+saveRDS(ssf_fit_perch_perch_001b, file.path(models_folder, "perch_perch",
+    "ssf_fit_perch_perch_001b_2020-04-29_1123.rds"))
+saveRDS(ssf_fit_perch_perch_001c, file.path(models_folder, "perch_perch",
+    "ssf_fit_perch_perch_001c_2020-04-29_1123.rds"))
+
+models_folder <- file.path("C:/Users/blake/OneDrive/Work/R/Projects/baea_ibm",
+  "Output/Analysis/SSF/Models")
+ssf_fit_perch_perch_002 <- readRDS(file.path(models_folder,
+  "perch_perch/ssf_fit_perch_perch_002_2020-04-29_1409.rds"))
+nrow(ssf_fit_perch_perch_002)
+ssf_fit_perch_perch_002a <- ssf_fit_perch_perch_002 %>% slice(1:10)
+ssf_fit_perch_perch_002b <- ssf_fit_perch_perch_002 %>% slice(11:40)
+ssf_fit_perch_perch_002c <- ssf_fit_perch_perch_002 %>% slice(41:66)
+
+saveRDS(ssf_fit_perch_perch_002a, file.path(models_folder, "perch_perch",
+    "ssf_fit_perch_perch_002a_2020-04-29_1409.rds"))
+saveRDS(ssf_fit_perch_perch_002b, file.path(models_folder, "perch_perch",
+    "ssf_fit_perch_perch_002b_2020-04-29_1409.rds"))
+saveRDS(ssf_fit_perch_perch_002c, file.path(models_folder, "perch_perch",
+    "ssf_fit_perch_perch_002c_2020-04-29_1409.rds"))
+
+##################### CHECK ALL MODELS ARE PRESENT #############################
+
+# Find missing 'range group' model fit restuls for each step_type
+for (i in seq_along(step_types)){
+  step_type_i <- step_types[i]
+  fits_folder <- file.path(mod_fit_dir, step_type_i)
+  range_groups <- unique(as.numeric(str_extract(list.files(fits_folder),
+    "(?<=_)[0-9]{3}(?=_)")))
+  print(paste0("Step_type: ", step_type_i, " (", min(range_groups), "-",
+    max(range_groups), ")"))
+  miss_vec <- setdiff(min(range_groups):max(range_groups), range_groups)
+  if(length(miss_vec) == 0) miss_vec <- "NONE"
+  print(paste0("Missing: ", paste0(miss_vec, collapse = ", ")))
+}
+rm(step_type_i, range_groups)
+
 ############################### FUNCTIONS #####################################
 
 PastePreds <- function(x, y){
@@ -33,8 +84,6 @@ PasteFixedSigmas <- function(x, y){
   return(out)
 }
 
-iter_max <- 50
-# Function to be used in the next step using map()
 FitClogit <- function(clogit_preds, ua_data){
   clogit_model_formula = as.formula(clogit_preds)
   clogit_fit <- clogit(clogit_model_formula, data = ua_data, method = "efron",
@@ -53,22 +102,6 @@ RenameUAStepsToMeters <- function(ua_steps){
   colnames(ua_steps) <- colnames_tbl %>% pull(colnames_final)
   return(ua_steps)
 }
-
-##################### CHECK ALL MODELS ARE PRESENT #############################
-
-# Find missing 'range group' model fit restuls for each step_type
-for (i in seq_along(step_types)){
-  step_type_i <- step_types[i]
-  print(paste("Step_type:", step_type_i))
-  fits_folder <- file.path(mod_fit_dir, step_type_i)
-  range_groups <- unique(as.numeric(str_extract(list.files(fits_folder),
-    "(?<=_)[0-9]{3}(?=_)")))
-  print(paste("Min:", min(range_groups), "Max:", max(range_groups)))
-  miss_vec <- setdiff(min(range_groups):max(range_groups), range_groups)
-  miss_vec <- ifelse(length(miss_vec) > 0, miss_vec, "NONE")
-  print(paste0("Missing: ", paste0(miss_vec, collapse = ", ")))
-}
-rm(step_type_i, range_groups)
 
 ################### COMPILE MODELS FOR EACH STEP TYPE ##########################
 
@@ -105,8 +138,9 @@ for (i in seq_along(step_types)) {
       covars_fixed_sigmas)) %>%
     mutate(preds = map2_chr(.x = covars_scale_sigmas, .y = covars_fixed_sigmas,
       .f = PastePreds)) %>%
-    select(step_type:peak_generation, preds)
+  dplyr::select(step_type, model_num, opt_fit, fit_aicc, preds)
   print(paste0("Models with fits: n = ", nrow(compiled_ssf_fits_step_type_i)))
+  # Save files (not needed if all of this script is working and run)
   saveRDS(compiled_ssf_fits_step_type_i, file.path(mod_fit_dir, paste0(
     "compiled_ssf_fits_", step_type_i, ".rds")))
 }
@@ -122,9 +156,15 @@ best_fit_models <- list.files(path = file.path(mod_fit_dir),
   group_by(step_type) %>%
   arrange(fit_aicc) %>%
   slice(which.min(fit_aicc)) %>%
+  #slice(1:10) %>%
   ungroup(.) %>%
   arrange(step_type) %>%
   dplyr::select(step_type, model_num, opt_fit, fit_aicc, preds)
+
+# Delete files (no longer needed if this script works and is run to completion)
+compiled_files <- list.files(path = file.path(mod_fit_dir),
+  pattern = "^compiled_ssf_fits_*", full.names = TRUE)
+sapply(compiled_files, unlink)
 
 # Match ua_step data with the best fit models
 ua_steps_sigma <- list.files(path = ua_data_dir,
@@ -154,12 +194,15 @@ rm(best_fit_models, ua_steps_sigma, ua_steps, ua_steps_nested)
 # recalculated fit aic should match.
 
 # Use the best-aic predictors and original data to refit clogit model
-best_fit_models_final <- best_fit_models_data %>%
+iter_max <- 200
+best_fit_models_final <- best_fit_models_data %>% #slice(11) %>%
   mutate(clogit_preds = paste0("case ~ ", preds, " + strata(step_id)")) %>%
   dplyr::select(step_type, fit_aicc, clogit_preds, ua_steps, preds) %>%
   mutate(clogit_fit = map2(.x = clogit_preds, .y = ua_steps,
     .f = FitClogit)) %>%
-  mutate(fit_aicc_refit = map_dbl(clogit_fit, AICc))
+  mutate(fit_aicc_refit = map_dbl(clogit_fit, AICc)) %>%
+  dplyr::select(-ua_steps)
+  # Got a Warning about nest_roost did not converg, but it appears to be refit.
 
 glimpse(best_fit_models_final)
 
@@ -168,9 +211,16 @@ identical(round(best_fit_models_final %>% pull(fit_aicc), 5),
   round(best_fit_models_final %>% pull(fit_aicc_refit), 5))
 
 # Save 'best_ssf_fits_all'
-saveRDS(best_fit_models_final, file.path(mod_fit_dir, "best_ssf_fits_all.rds"))
 
-################# COMPILE ALL BEST NO-MAX-SGIMA FIT MODELS #####################
+for (i in seq_len(nrow(best_fit_models_final))){
+  ssf_fit_i <- best_fit_models_final %>% slice(i)
+  step_type_i <- ssf_fit_i %>% pull(step_type)
+  saveRDS(ssf_fit_i, file.path(mod_fit_dir, paste0("best_ssf_fits_",
+    step_type_i, ".rds")))
+}
+
+
+################# COMPILE ALL BEST NO-MAX-SIGMA FIT MODELS #####################
 
 # Determine the best fit models that do not have a "maximum sigma" variable,
 # specifically 100 or 50 sigma values (depending on class).

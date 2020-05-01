@@ -1,15 +1,12 @@
---------------------------------------------------------------------------------
+#-------------------------------------------------------------------------------
 ### This script is used to create a 'sim' list object, consisting of 'agents',
 ### 'pars', and 'spatial' lists.
---------------------------------------------------------------------------------
-
-library(baear)
-library(gisr)
-library(ibmr)
+#--------------------------------------------------------------------------------
+pacman::p_load(baear, gisr, ibmr)
 
 ######################## SIMULATED AGENTS ######################################
 
-suppressPackageStartupMessages(require(raster))
+pacman::p_load(raster)
 
 ## Set base area ---------------------------------------------------------------
 x_min <- 0
@@ -48,8 +45,7 @@ agents <- NamedList(input)
 
 ######################## REAL BAEA AGENTS ######################################
 
-suppressPackageStartupMessages(library(raster))
-suppressPackageStartupMessages(library(rgdal))
+pacman::p_load(raster, rgdal)
 
 base <- raster("C:/ArcGIS/Data/BlankRaster/maine_30mc.tif")
 all_nests <- read.csv(file=file.path("Data/Nests/Nests_csv",
@@ -73,7 +69,6 @@ for (i in 1:nrow(study_nests)){
     study_nests$lat_utm[i], xmin(base), ymin(base), res(base)[1])[2]
   study_nests[i, "nest_id"] <- paste0("nest_", study_nests[i, "nest_site"])
 }
-
 
 #global_dist <- raster(file.path("C:/ArcGIS/Data/BAEA/Nests/Distance_Rasters",
 #  "global_dist_001.tif"))
