@@ -74,28 +74,22 @@ MovementSubModelBAEA2 <- function(sim = sim,
 
     move_rotated <- RotateRaster(move_org, Rad2Deg(step_data$exp_angle[i]),
       resolution=raster::res(base))
-    #extent(move_rotated)
-    #plot(move_rotated)
+    #extent(move_rotated); plot(move_rotated)
 
     move_crop <- raster::crop(move_rotated, move_org, snap = "near")
-    #extent(move_crop)
-    #plot(move_crop)
+    #extent(move_crop); plot(move_crop)
 
     move_resample <- raster::resample(move_rotated, move_org, method = "ngb")
-    #extent(move_resample)
-    #plot(move_resample)
+    #extent(move_resample); plot(move_resample)
 
-    # IS THIS CORRECT? Should be the dx be +15?
     move_shift <- raster::shift(move_resample, dx = step_data$x[i],
       dy = step_data$y[i])
-    #extent(move_shift)
-    #plot(move_shift)
+    #extent(move_shift); plot(move_shift)
 
     raster::crs(move_shift) <- raster::crs(base)
 
     move_kernel <- raster::crop(move_shift, base, snap="in")
-    #extent(move_kernel)
-    #plot(move_kernel)
+    #extent(move_kernel); plot(move_kernel)
 
     con_nest_raster <- sim$spatial$con_nest_dist[[agent_states$nest_id]]
     #plot(con_nest_raster)
@@ -114,8 +108,17 @@ MovementSubModelBAEA2 <- function(sim = sim,
     prob_raster <- raster::overlay(move_kernel, con_nest_kernel,
       fun=function(a,b) {return(sqrt(a*b))}, recycle=FALSE)
     #plot(prob_raster)
-    #
-#    landcover_crop <- crop(landcover, move_shift, snap="out")
+
+
+    # This needs to be set up for different next_behavior
+    # 1 (cruise) = no restrictions
+    # 2 (flight) = no restrictions
+    # 3 (nest) = no restrictions
+    # 4 (perch) = no open_water
+    # 5 (perch) = no open_water
+
+
+#   landcover_crop <- crop(landcover, move_shift, snap="out")
 #    hydro_dist_crop <- crop(hydro_dist, move_shift, snap="out")
 #    homerange_crop <- crop(homerange_kernel, move_shift, snap="out")
 #    prob_raster <- overlay(move_shift, landcover_crop, hydro_dist_crop,
