@@ -21,7 +21,7 @@ wgs84n19 <- CRS("+init=epsg:32619") # WGS84 UTM 19N
 id_colors <- CreateColorsByAny(by="id", output=TRUE)
 
 theme_legend <- theme(plot.title=element_text(size=24, face="bold", vjust=1.5,
-    hjust = 0.5))+
+  hjust = 0.5))+
   theme(axis.title=element_text(size=20, face="bold")) +
   theme(axis.text=element_text(colour="black")) +
   theme(axis.text.x=element_text(size=16, angle=50, vjust=0.5)) +
@@ -138,8 +138,8 @@ fit_name <- "Con_Nest Distance"
 
 plot(fits_baea_dist$exponential)
 mtext(paste(fit_name, "-", "Exponential"), font=2, line = 4.5)
-  ## The placement of the text depends on how plot screen is sized - 4 is
-  ## right at the top of the graph when the plot window is 1/4 of screen
+## The placement of the text depends on how plot screen is sized - 4 is
+## right at the top of the graph when the plot window is 1/4 of screen
 SavePlot(paste0(fit_name, " - Exponential.jpeg"), image_output)
 
 plot(fits_baea_dist$gamma)
@@ -157,6 +157,149 @@ SavePlot(paste0(fit_name, " - Pareto.jpeg"), image_output)
 plot(fits_baea_dist$weibull)
 mtext(paste(fit_name, "-", "Weibull"), font=2, line = 4.5)
 SavePlot(paste0(fit_name, " - Weibull.jpeg"), image_output)
+
+#################### DETERMINE THE CON_NEST RESCALE PARS #######################
+fits_baea_dist <- readRDS("Output/Analysis/Territorial/fits_baea_dist.rds")
+
+shape <- fits_baea_dist$gamma$estimate[["shape"]]
+rate <- fits_baea_dist$gamma$estimate[["rate"]]
+
+# Plot the Cumulative Distribution Function of the Gamma distribution
+x = seq(0, 30, .5)
+y_pgamma <- pgamma(x, shape=shape, rate=rate)
+df_pgamma <- as.data.frame(cbind(x, y_pgamma))
+main <- paste0("CDF - Gamma Distribution (shape = ", round(shape, 2),
+  ", rate = ", round(rate, 2), ")")
+ggplot(df_pgamma, aes(x, y_pgamma)) +
+  geom_line(colour = "slateblue4", size = 1.5) +
+  theme(legend.position = "none") +
+  theme(plot.title = element_text(size = 16)) +
+  theme(text = element_text(size = 16, colour = "black")) +
+  theme(axis.text = element_text(colour = "black")) +
+  labs(x = 'Predictor', y = 'Probability', title=main)
+
+# Rescale the Y axis
+
+# These parameters determine the rescaling
+y_min <- .001
+y_max <- .999
+y_max_new <- -2   # More negative values result in overall flatter curves
+y_min_new <- -50  # More negative values result in overall flatter curves
+y_diff_new <- y_max_new - y_min_new
+
+x = seq(0, 30, .5)
+y_pgamma <- pgamma(x, shape=shape, rate=rate)
+y_rescale <- y_min_new + (((y_pgamma-y_min)/(y_max-y_min)) * (y_diff_new))
+df_rescale <- as.data.frame(cbind(x, y_rescale))
+ggplot(df_rescale, aes(x, y_rescale)) +
+  geom_line(colour = "slateblue4", size = 1.5) +
+  theme(legend.position = "none") +
+  theme(plot.title = element_text(size = 16)) +
+  theme(text = element_text(size = 16, colour = "black")) +
+  theme(axis.text = element_text(colour = "black")) +
+  labs(x = 'Predictor', y = 'Kernel Surface (Probability)',
+    title = "Rescaled Y-axis Gamma CDF")
+
+# Plot Logistic Function
+x <- seq(-5, 5, .1)
+
+df_rescale %>% filter(x == 1) %>% pull(y_rescale)
+
+pred_logistic_lines <- data.frame(x=x,
+  y_01 = LogisticByInflection(x, inflection = 0, scale = df_rescale %>%
+      filter(x == 1) %>% pull(y_rescale)),
+  y_02 = LogisticByInflection(x, inflection = 0, scale = df_rescale %>%
+      filter(x == 2) %>% pull(y_rescale)),
+  y_03 = LogisticByInflection(x, inflection = 0, scale = df_rescale %>%
+      filter(x == 3) %>% pull(y_rescale)),
+  y_04 = LogisticByInflection(x, inflection = 0, scale = df_rescale %>%
+      filter(x == 4) %>% pull(y_rescale)),
+  y_05 = LogisticByInflection(x, inflection = 0, scale = df_rescale %>%
+      filter(x == 5) %>% pull(y_rescale)),
+  y_06 = LogisticByInflection(x, inflection = 0, scale = df_rescale %>%
+      filter(x == 6) %>% pull(y_rescale)),
+  y_07 = LogisticByInflection(x, inflection = 0, scale = df_rescale %>%
+      filter(x == 7) %>% pull(y_rescale)),
+  y_08 = LogisticByInflection(x, inflection = 0, scale = df_rescale %>%
+      filter(x == 8) %>% pull(y_rescale)),
+  y_09 = LogisticByInflection(x, inflection = 0, scale = df_rescale %>%
+      filter(x == 9) %>% pull(y_rescale)),
+  y_10 = LogisticByInflection(x, inflection = 0, scale = df_rescale %>%
+      filter(x == 10) %>% pull(y_rescale)),
+  y_20 = LogisticByInflection(x, inflection = 0, scale = df_rescale %>%
+      filter(x == 20) %>% pull(y_rescale))
+)
+
+pred_logistic_lines <- pred_logistic_lines %>%
+  mutate(y_01 = ifelse(x < -1, NA, y_01)) %>%
+  mutate(y_02 = ifelse(x < -2, NA, y_02)) %>%
+  mutate(y_03 = ifelse(x < -3, NA, y_03)) %>%
+  mutate(y_04 = ifelse(x < -4, NA, y_04)) %>%
+  mutate(y_05 = ifelse(x < -5, NA, y_05))
+
+# Make plot with multiple lines
+df_logistic <- as.data.frame(cbind(x, pred_logistic_lines))
+text_size = 10; line_size = .8; point_size = 2; space_legend = 1
+
+gg_connest_logistic <- ggplot(df_logistic) +
+  ggtitle(NULL) +
+  labs(x = 'Conspecific and Nest Distance Relative Position (km)',
+    y = 'Raster Surface (Probability)') +
+  geom_line(data = pred_logistic_lines, aes(x, y_20, color = "20"),
+    size = line_size) +
+  geom_line(data = pred_logistic_lines, aes(x, y_10, color = "10"),
+    size = line_size) +
+  geom_line(data = pred_logistic_lines, aes(x, y_08, color = "08"),
+    size = line_size) +
+  geom_line(data = pred_logistic_lines, aes(x, y_05, color = "05"),
+    size = line_size) +
+  geom_line(data = pred_logistic_lines, aes(x, y_03, color = "03"),
+    size = line_size) +
+  geom_line(data = pred_logistic_lines, aes(x, y_02, color = "02"),
+    size = line_size) +
+  geom_line(data = pred_logistic_lines, aes(x, y_01, color = "01"),
+    size = line_size) +
+#  scale_color_viridis_d(name = "Conspecific\nand Nest\n Distance\nValue (km)") +
+  scale_color_viridis_d(name = "Conspecific and Nest\nDistance Value (km)",
+    option = "D", labels=c("1", "2", "3", "5", "8", "10", "20")) +
+  ylim(c(0, 1)) +
+  scale_x_continuous(limits = c(-5,5), breaks = -5:5) + #breaks = c(0:10),
+  theme_minimal() +
+  theme(text = element_text(family = "Latin Modern Roman")) +
+  theme(line = element_line(size = line_size)) +
+  theme(axis.text = element_text(size = 9)) +
+  theme(axis.title = element_text(size = 11)) +
+  theme(plot.title = element_text(size = 13, hjust = 0.5)) +
+    guides(shape = guide_legend(override.aes = list(size = point_size)),
+      color = guide_legend(override.aes = list(size = point_size))) +
+    theme(legend.title = element_text(size = text_size),
+      legend.text  = element_text(size = text_size),
+      legend.key.size = unit(space_legend, "lines")) +
+    theme(panel.grid.minor.x = element_blank())
+gg_connest_logistic
+
+
+#################### SAVE THE CON_NEST_PARS ####################################
+
+# Load territorial dist fits
+fits_baea_dist <- readRDS("Output/Analysis/Territorial/fits_baea_dist.rds")
+
+# Extract Gamma paramaters
+shape <- fits_baea_dist$gamma$estimate[["shape"]]
+rate <- fits_baea_dist$gamma$estimate[["rate"]]
+
+# These parameters determine the rescaling (reset these in code above)
+y_min <- y_min
+y_max <- y_max
+y_max_new <- y_max_new
+y_min_new <- y_min_new
+
+gamma <- NamedList(shape, rate)
+rescale <- NamedList(y_min, y_max, y_max_new, y_min_new)
+
+con_nest_pars <- NamedList(gamma, rescale)
+
+saveRDS(con_nest_pars, file = "Output/Analysis/Territorial/con_nest_pars.rds")
 
 # ---------------------------------------------------------------------------- #
 ################################ OLD CODE ######################################

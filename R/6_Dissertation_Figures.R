@@ -30,7 +30,7 @@ theme_blank <- theme(legend.position = "none",
 
 # Homerange Size/Terrain Metrics -----------------------------------------------
 hr_metrics_org <- readRDS("Output/Analysis/Homerange/hr_all_metrics.rds")
-
+hr_metrics <- hr_metrics_org
 unique(hr_metrics$id)
 sort(colnames(hr_metrics))
 
@@ -866,7 +866,143 @@ file.remove(movements_kernel_no_label_fig_file)
 #### -------------------------- CHAPTER 3 --------------------------------- ####
 ############################################################################# ##
 
+# Plot ConNestDist Scale Logistic Function -------------------------------------
+con_nest_pars <- readRDS("Output/Analysis/Territorial/con_nest_pars.rds")
+
+shape <- con_nest_pars$gamma$shape
+rate <- con_nest_pars$gamma$rate
+
+x_min <- con_nest_pars$rescale$x_min
+y_min <- con_nest_pars$rescale$y_min
+x_min_new <- con_nest_pars$rescale$x_min_new
+y_min_new <- con_nest_pars$rescale$y_min_new
+y_diff_new <- y_max_new - y_min_new
+
+# Plot the Cumulative Distribution Function of the Gamma distribution
+x = seq(0, 30, .5)
+y_pgamma <- pgamma(x, shape=shape, rate=rate)
+y_rescale <- y_min_new + (((y_pgamma-y_min)/(y_max-y_min)) * (y_diff_new))
+df_rescale <- as.data.frame(cbind(x, y_pgamma, y_rescale))
+text_size = 10; line_size = .8; point_size = 2; space_legend = 1
+
+gg_connest_pgamma <- ggplot(df_rescale, aes(x, y_pgamma)) +
+  geom_line(colour = "slateblue4", size = 1.5) +
+  theme(legend.position = "none") +
+  theme_minimal() +
+  theme(text = element_text(family = "Latin Modern Roman")) +
+  theme(line = element_line(size = line_size)) +
+  theme(axis.text = element_text(size = 9)) +
+  theme(axis.title = element_text(size = 11)) +
+    guides(shape = guide_legend(override.aes = list(size = point_size)),
+      color = guide_legend(override.aes = list(size = point_size))) +
+    theme(legend.title = element_text(size = text_size),
+      legend.text  = element_text(size = text_size),
+      legend.key.size = unit(space_legend, "lines")) +
+    theme(panel.grid.minor.x = element_blank()) +
+  labs(x = 'Conspecific and Nest Distance Value (km)', y =
+      'Cumulative Distribution Function (Probability)', title = NULL)
+gg_connest_pgamma
+ggsave(filename = "ConNest_PGamma.png", plot = gg_connest_pgamma,
+  path = file.path(tex_dir, "Figures/Ch3"), scale = 1, width = 6, height = 4,
+  units = "in", dpi = 300)
+
+gg_connest_rescale <- ggplot(df_rescale, aes(x, y_rescale)) +
+  geom_line(colour = "slateblue4", size = 1.5) +
+  theme(legend.position = "none") +
+  theme_minimal() +
+  theme(text = element_text(family = "Latin Modern Roman")) +
+  theme(line = element_line(size = line_size)) +
+  theme(axis.text = element_text(size = 9)) +
+  theme(axis.title = element_text(size = 11)) +
+    guides(shape = guide_legend(override.aes = list(size = point_size)),
+      color = guide_legend(override.aes = list(size = point_size))) +
+    theme(legend.title = element_text(size = text_size),
+      legend.text  = element_text(size = text_size),
+      legend.key.size = unit(space_legend, "lines")) +
+    theme(panel.grid.minor.x = element_blank()) +
+  labs(x = 'Conspecific and Nest Distance Value (km)', y =
+      'IBM Logistic Scale Parameter', title = NULL)
+gg_connest_rescale
+ggsave(filename = "ConNest_Rescale.png", plot = gg_connest_rescale,
+  path = file.path(tex_dir, "Figures/Ch3"), scale = 1, width = 6, height = 4,
+  units = "in", dpi = 300)
+
+# Plot Logistic Function -------------------------------------------------------
+x <- seq(-5, 5, .1)
+pred_logistic_lines <- data.frame(x=x,
+  y_01 = LogisticByInflection(x, inflection = 0, scale = df_rescale %>%
+      filter(x == 1) %>% pull(y_rescale)),
+  y_02 = LogisticByInflection(x, inflection = 0, scale = df_rescale %>%
+      filter(x == 2) %>% pull(y_rescale)),
+  y_03 = LogisticByInflection(x, inflection = 0, scale = df_rescale %>%
+      filter(x == 3) %>% pull(y_rescale)),
+  y_04 = LogisticByInflection(x, inflection = 0, scale = df_rescale %>%
+      filter(x == 4) %>% pull(y_rescale)),
+  y_05 = LogisticByInflection(x, inflection = 0, scale = df_rescale %>%
+      filter(x == 5) %>% pull(y_rescale)),
+  y_06 = LogisticByInflection(x, inflection = 0, scale = df_rescale %>%
+      filter(x == 6) %>% pull(y_rescale)),
+  y_07 = LogisticByInflection(x, inflection = 0, scale = df_rescale %>%
+      filter(x == 7) %>% pull(y_rescale)),
+  y_08 = LogisticByInflection(x, inflection = 0, scale = df_rescale %>%
+      filter(x == 8) %>% pull(y_rescale)),
+  y_09 = LogisticByInflection(x, inflection = 0, scale = df_rescale %>%
+      filter(x == 9) %>% pull(y_rescale)),
+  y_10 = LogisticByInflection(x, inflection = 0, scale = df_rescale %>%
+      filter(x == 10) %>% pull(y_rescale)),
+  y_20 = LogisticByInflection(x, inflection = 0, scale = df_rescale %>%
+      filter(x == 20) %>% pull(y_rescale)) %>%
+  mutate(y_01 = ifelse(x < -1, NA, y_01)) %>%
+  mutate(y_02 = ifelse(x < -2, NA, y_02)) %>%
+  mutate(y_03 = ifelse(x < -3, NA, y_03)) %>%
+  mutate(y_04 = ifelse(x < -4, NA, y_04)) %>%
+  mutate(y_05 = ifelse(x < -5, NA, y_05))
+)
+
+# Make plot with multiple lines
+df_logistic <- as.data.frame(cbind(x, pred_logistic_lines))
+text_size = 10; line_size = .8; point_size = 2; space_legend = 1
+
+gg_connest_logistic <- ggplot(df_logistic) +
+  ggtitle(NULL) +
+  labs(x = 'Conspecific and Nest Distance Relative Position (km)',
+    y = 'Kernel Surface (Probability)') +
+  geom_line(data = pred_logistic_lines, aes(x, y_20, color = "20"),
+    size = line_size) +
+  geom_line(data = pred_logistic_lines, aes(x, y_10, color = "10"),
+    size = line_size) +
+  geom_line(data = pred_logistic_lines, aes(x, y_08, color = "08"),
+    size = line_size) +
+  geom_line(data = pred_logistic_lines, aes(x, y_05, color = "05"),
+    size = line_size) +
+  geom_line(data = pred_logistic_lines, aes(x, y_03, color = "03"),
+    size = line_size) +
+  geom_line(data = pred_logistic_lines, aes(x, y_02, color = "02"),
+    size = line_size) +
+  geom_line(data = pred_logistic_lines, aes(x, y_01, color = "01"),
+    size = line_size) +
+  scale_color_viridis_d(name = "Conspecific and\nNest Distance\nValue (km)",
+    option = "D", labels=c("1", "2", "3", "5", "8", "10", "20")) +
+  ylim(c(0, 1)) +
+  scale_x_continuous(limits = c(-5,5), breaks = -5:5) + #breaks = c(0:10),
+  theme_minimal() +
+  theme(text = element_text(family = "Latin Modern Roman")) +
+  theme(line = element_line(size = line_size)) +
+  theme(axis.text = element_text(size = 9)) +
+  theme(axis.title = element_text(size = 11)) +
+  theme(plot.title = element_text(size = 13, hjust = 0.5)) +
+    guides(shape = guide_legend(override.aes = list(size = point_size)),
+      color = guide_legend(override.aes = list(size = point_size))) +
+    theme(legend.title = element_text(size = text_size),
+      legend.text  = element_text(size = text_size),
+      legend.key.size = unit(space_legend, "lines")) +
+    theme(panel.grid.minor.x = element_blank())
+gg_connest_logistic
+ggsave(filename = "ConNest_Logistic.png", plot = gg_connest_logistic,
+  path = file.path(tex_dir, "Figures/Ch3"), scale = 1, width = 6, height = 4,
+  units = "in", dpi = 300)
 
 # ---------------------------------------------------------------------------- #
 ################################ OLD CODE ######################################
 # ---------------------------------------------------------------------------- #
+

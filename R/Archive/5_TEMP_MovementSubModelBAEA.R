@@ -1,3 +1,5 @@
+# original is in the ibmr move.R
+
 MovementSubModelBAEA <- function(sim = sim,
                                  agent_states = agent_states,
                                  step_data = step_data,
@@ -8,29 +10,6 @@ MovementSubModelBAEA <- function(sim = sim,
   step_start <- step
   step_end <- lubridate::int_end(step)
   sex <- agent_states$sex
-  season <- FindSeasonFromDatetime(datetime = step_start,
-    seasons = sim$pars$global$sim_seasons)
-  #home_return <-
-  #  sim$pars$classes[[sex]]$julian[lubridate::yday(lubridate::int_start(step)),
-  #  2]
-  step_max_r <- sim$pars$classes[[sex]]$season[[season]]$step_max_r
-  step_cauchy_mu <- sim$pars$classes[[sex]]$constant$fixed$step_cauchy_mu
-  step_cauchy_rho <- sim$pars$classes[[sex]]$constant$fixed$step_cauchy_rho
-  step_weibull_shape <-
-    sim$pars$classes[[sex]]$season[[season]]$step_weibull_shape
-  step_weibull_scale <-
-    sim$pars$classes[[sex]]$season[[season]]$step_weibull_scale
-
-  connest_gamma_shape <-
-    sim$pars$classes[[sex]]$constant$fixed$nestcon_gamma_shape
-  connest_gamma_rate <-
-    sim$pars$classes[[sex]]$constant$fixed$nestcon_gamma_rate
-
-  con_nest_raster <- sim$spatial$con_nest_raster[[agent_states$nest_id]]
-
-#  homerange_kernel <- sim$spatial$homerange_kernel[[agent_states$nest_id]]
-#  landcover <- sim$spatial$landcover
-#  hydro_dist <- sim$spatial$hydro_dist
 
   if (nrow(step_data) == 1) {
     i <- 1

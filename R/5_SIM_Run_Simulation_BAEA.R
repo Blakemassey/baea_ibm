@@ -1,4 +1,4 @@
-suppressPackageStartupMessages(library(baear))
+pacman::p_load(baear, gisr, ibmr)
 suppressPackageStartupMessages(library(gisr))
 suppressPackageStartupMessages(library(ibmr))
 suppressPackageStartupMessages(library(lubridate))
