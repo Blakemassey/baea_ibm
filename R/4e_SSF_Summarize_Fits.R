@@ -4,61 +4,63 @@
 # Load libraries, scripts, and input parameters
 pacman::p_load(AICcmodavg, plyr, dplyr, future, furrr, optimx, ggplot2,
   ggthemes, glmulti, lubridate, optimx, purrr, reproducible, rgenoud, stringr,
-  survival, surveybootstrap, tibble, tictoc, tidyr)
+  summarytools, survival, surveybootstrap, tibble, tictoc, tidyr)
 library(baear, gisr)
 options(stringsAsFactors=FALSE)
 
 # Output Directory
 mod_fit_dir = "Output/Analysis/SSF/Models"
+org_fit_dir = "Output/Analysis/SSF/Models"
 
 # Source Data Directory
 ua_data_dir <- "Output/Analysis/SSF/UA_Data"
 
 # Find all of the step_type folders in mod_fit_dir
-step_types <- list.dirs(mod_fit_dir, full.names = FALSE, recursive = FALSE) %>%
-  .[!. %in% c("Archive")]
+step_types <- list.dirs(file.path(mod_fit_dir, "original_fits"),
+  full.names = FALSE, recursive = FALSE)
 
 ######################## MODELS DATA MANAGEMENT ################################
-# Files can't be larger than 100mb, so I had to split up them up
+# Files can't be larger than 100mb on GitHub, so I had to split up them up
 
-models_folder <- file.path("C:/Users/blake/OneDrive/Work/R/Projects/baea_ibm",
-  "Output/Analysis/SSF/Models")
-ssf_fit_perch_perch_001 <- readRDS(file.path(models_folder,
-  "perch_perch/ssf_fit_perch_perch_001_2020-04-29_1123.rds"))
-nrow(ssf_fit_perch_perch_001)
-ssf_fit_perch_perch_001a <- ssf_fit_perch_perch_001 %>% slice(1:10)
-ssf_fit_perch_perch_001b <- ssf_fit_perch_perch_001 %>% slice(11)
-ssf_fit_perch_perch_001c <- ssf_fit_perch_perch_001 %>% slice(12)
+rerun_data_management <- FALSE
+if (isTRUE(rerun_data_management)){
+  models_folder <- file.path("C:/Users/blake/OneDrive/Work/R/Projects/baea_ibm",
+    "Output/Analysis/SSF/Models/original_fits")
+  ssf_fit_perch_perch_001 <- readRDS(file.path(models_folder,
+    "perch_perch/ssf_fit_perch_perch_001_2020-04-29_1123.rds"))
+  nrow(ssf_fit_perch_perch_001)
+  ssf_fit_perch_perch_001a <- ssf_fit_perch_perch_001 %>% slice(1:10)
+  ssf_fit_perch_perch_001b <- ssf_fit_perch_perch_001 %>% slice(11)
+  ssf_fit_perch_perch_001c <- ssf_fit_perch_perch_001 %>% slice(12)
 
-saveRDS(ssf_fit_perch_perch_001a, file.path(models_folder, "perch_perch",
-    "ssf_fit_perch_perch_001a_2020-04-29_1123.rds"))
-saveRDS(ssf_fit_perch_perch_001b, file.path(models_folder, "perch_perch",
-    "ssf_fit_perch_perch_001b_2020-04-29_1123.rds"))
-saveRDS(ssf_fit_perch_perch_001c, file.path(models_folder, "perch_perch",
-    "ssf_fit_perch_perch_001c_2020-04-29_1123.rds"))
+  saveRDS(ssf_fit_perch_perch_001a, file.path(models_folder, "perch_perch",
+      "ssf_fit_perch_perch_001a_2020-04-29_1123.rds"))
+  saveRDS(ssf_fit_perch_perch_001b, file.path(models_folder, "perch_perch",
+      "ssf_fit_perch_perch_001b_2020-04-29_1123.rds"))
+  saveRDS(ssf_fit_perch_perch_001c, file.path(models_folder, "perch_perch",
+      "ssf_fit_perch_perch_001c_2020-04-29_1123.rds"))
 
-models_folder <- file.path("C:/Users/blake/OneDrive/Work/R/Projects/baea_ibm",
-  "Output/Analysis/SSF/Models")
-ssf_fit_perch_perch_002 <- readRDS(file.path(models_folder,
-  "perch_perch/ssf_fit_perch_perch_002_2020-04-29_1409.rds"))
-nrow(ssf_fit_perch_perch_002)
-ssf_fit_perch_perch_002a <- ssf_fit_perch_perch_002 %>% slice(1:10)
-ssf_fit_perch_perch_002b <- ssf_fit_perch_perch_002 %>% slice(11:40)
-ssf_fit_perch_perch_002c <- ssf_fit_perch_perch_002 %>% slice(41:66)
+  ssf_fit_perch_perch_002 <- readRDS(file.path(models_folder,
+    "perch_perch/ssf_fit_perch_perch_002_2020-04-29_1409.rds"))
+  nrow(ssf_fit_perch_perch_002)
+  ssf_fit_perch_perch_002a <- ssf_fit_perch_perch_002 %>% slice(1:10)
+  ssf_fit_perch_perch_002b <- ssf_fit_perch_perch_002 %>% slice(11:40)
+  ssf_fit_perch_perch_002c <- ssf_fit_perch_perch_002 %>% slice(41:66)
 
-saveRDS(ssf_fit_perch_perch_002a, file.path(models_folder, "perch_perch",
-    "ssf_fit_perch_perch_002a_2020-04-29_1409.rds"))
-saveRDS(ssf_fit_perch_perch_002b, file.path(models_folder, "perch_perch",
-    "ssf_fit_perch_perch_002b_2020-04-29_1409.rds"))
-saveRDS(ssf_fit_perch_perch_002c, file.path(models_folder, "perch_perch",
-    "ssf_fit_perch_perch_002c_2020-04-29_1409.rds"))
+  saveRDS(ssf_fit_perch_perch_002a, file.path(models_folder, "perch_perch",
+      "ssf_fit_perch_perch_002a_2020-04-29_1409.rds"))
+  saveRDS(ssf_fit_perch_perch_002b, file.path(models_folder, "perch_perch",
+      "ssf_fit_perch_perch_002b_2020-04-29_1409.rds"))
+  saveRDS(ssf_fit_perch_perch_002c, file.path(models_folder, "perch_perch",
+      "ssf_fit_perch_perch_002c_2020-04-29_1409.rds"))
+}
 
 ##################### CHECK ALL MODELS ARE PRESENT #############################
 
-# Find missing 'range group' model fit restuls for each step_type
+# Find missing 'range group' model fit results for each step_type
 for (i in seq_along(step_types)){
   step_type_i <- step_types[i]
-  fits_folder <- file.path(mod_fit_dir, step_type_i)
+  fits_folder <- file.path(mod_fit_dir, "original_fits", step_type_i)
   range_groups <- unique(as.numeric(str_extract(list.files(fits_folder),
     "(?<=_)[0-9]{3}(?=_)")))
   print(paste0("Step_type: ", step_type_i, " (", min(range_groups), "-",
@@ -109,9 +111,10 @@ RenameUAStepsToMeters <- function(ua_steps){
 for (i in seq_along(step_types)) {
   step_type_i <- step_types[i]
   print(paste0(step_type_i, " (", i, " of ", length(step_types), ")"))
-  ssf_fits_step_type_i <- list.files(path = file.path(mod_fit_dir, step_type_i),
-      pattern = paste0("ssf_fit_", step_type_i, "*")) %>%
-    map(~ readRDS(file.path(mod_fit_dir, step_type_i, .))) %>%
+  ssf_fits_step_type_i <- list.files(path = file.path(mod_fit_dir,
+      "original_fits", step_type_i), pattern = paste0("ssf_fit_", step_type_i,
+      "*")) %>%
+    map(~ readRDS(file.path(mod_fit_dir, "original_fits", step_type_i, .))) %>%
     reduce(bind_rows) %>%
     as_tibble(.)
   print(paste0("Models evaluated: n = ", nrow(ssf_fits_step_type_i)))
@@ -141,30 +144,25 @@ for (i in seq_along(step_types)) {
   dplyr::select(step_type, model_num, opt_fit, fit_aicc, preds)
   print(paste0("Models with fits: n = ", nrow(compiled_ssf_fits_step_type_i)))
   # Save files (not needed if all of this script is working and run)
-  saveRDS(compiled_ssf_fits_step_type_i, file.path(mod_fit_dir, paste0(
-    "compiled_ssf_fits_", step_type_i, ".rds")))
+  saveRDS(compiled_ssf_fits_step_type_i, file.path(mod_fit_dir, "compiled_fits",
+    paste0("compiled_ssf_fits_", step_type_i, ".rds")))
 }
 rm(step_type_i, ssf_fits_step_type_i, compiled_ssf_fits_step_type_i)
 
-############## COMPILE ALL OF THE STEP TYPES BEST FIT MODELS ###################
+############# COMPILE TOP 10 BEST FIT MODELS FOR EACH STEP TYPE  ###############
 
-# Find all of the best fit models for each step_type
-best_fit_models <- list.files(path = file.path(mod_fit_dir),
+# Find the 10 best fit models for each step_type
+best_ten_fit_models <- list.files(path = file.path(mod_fit_dir, "compiled_fits"),
     pattern = "^compiled_ssf_fits_*")  %>%
-  map(~ readRDS(file.path(mod_fit_dir, .))) %>%
+  map(~ readRDS(file.path(mod_fit_dir, "compiled_fits", .))) %>%
   reduce(bind_rows) %>%
   group_by(step_type) %>%
   arrange(fit_aicc) %>%
-  slice(which.min(fit_aicc)) %>%
-  #slice(1:10) %>%
+  mutate(delta_aicc = fit_aicc - first(fit_aicc)) %>%
+  slice(1:10) %>%
   ungroup(.) %>%
   arrange(step_type) %>%
-  dplyr::select(step_type, model_num, opt_fit, fit_aicc, preds)
-
-# Delete files (no longer needed if this script works and is run to completion)
-compiled_files <- list.files(path = file.path(mod_fit_dir),
-  pattern = "^compiled_ssf_fits_*", full.names = TRUE)
-sapply(compiled_files, unlink)
+  dplyr::select(step_type, model_num, opt_fit, fit_aicc, delta_aicc, preds)
 
 # Match ua_step data with the best fit models
 ua_steps_sigma <- list.files(path = ua_data_dir,
@@ -182,11 +180,11 @@ ua_steps_nested <- ua_steps %>%
   nest(.) %>%
   ungroup(.)
 
-best_fit_models_data <- best_fit_models %>%
-  dplyr::select(step_type, fit_aicc, preds) %>%
+best_ten_fit_models_data <- best_ten_fit_models %>%
+  dplyr::select(step_type, fit_aicc, delta_aicc, preds) %>%
   left_join(., ua_steps_nested, by = "step_type") %>%
   rename(ua_steps = data)
-rm(best_fit_models, ua_steps_sigma, ua_steps, ua_steps_nested)
+rm(best_ten_fit_models, ua_steps_sigma, ua_steps, ua_steps_nested)
 
 # Re-checking model fits -------------------------------------------------------
 # Directly recalculate the fit to ensure that the optimization and
@@ -195,53 +193,154 @@ rm(best_fit_models, ua_steps_sigma, ua_steps, ua_steps_nested)
 
 # Use the best-aic predictors and original data to refit clogit model
 iter_max <- 200
-best_fit_models_final <- best_fit_models_data %>% #slice(11) %>%
+best_ten_fit_models_refit <- best_ten_fit_models_data %>%
   mutate(clogit_preds = paste0("case ~ ", preds, " + strata(step_id)")) %>%
-  dplyr::select(step_type, fit_aicc, clogit_preds, ua_steps, preds) %>%
+  mutate(clogit_preds_null = paste0("case ~ 0 + strata(step_id)")) %>%
+  dplyr::select(step_type, fit_aicc, delta_aicc, clogit_preds,
+    clogit_preds_null, ua_steps, preds) %>%
   mutate(clogit_fit = map2(.x = clogit_preds, .y = ua_steps,
     .f = FitClogit)) %>%
+  mutate(clogit_fit_null = map2(.x = clogit_preds_null, .y = ua_steps,
+     .f = FitClogit)) %>%
   mutate(fit_aicc_refit = map_dbl(clogit_fit, AICc)) %>%
   dplyr::select(-ua_steps)
-  # Got a Warning about nest_roost did not converg, but it appears to be refit.
+  # Got a Warning about nest_roost didn't converge, but it appears to be refit.
 
-glimpse(best_fit_models_final)
+glimpse(best_ten_fit_models_refit)
 
-# Check for consistency between optimization fit and refit (should be TRUE)
-identical(round(best_fit_models_final %>% pull(fit_aicc), 5),
-  round(best_fit_models_final %>% pull(fit_aicc_refit), 5))
+# Check for consistency between optimization fit and refit
+identical(round(best_ten_fit_models_refit %>% pull(fit_aicc), 5),
+  round(best_ten_fit_models_refit %>% pull(fit_aicc_refit), 5)) # Should be TRUE
 
-# Save 'best_ssf_fits_all'
+######################## EXTRACT COEFFICIENTS ##################################
 
-for (i in seq_len(nrow(best_fit_models_final))){
-  ssf_fit_i <- best_fit_models_final %>% slice(i)
+ExtractClogitCoefs <- function(clogit_fit){
+  clogit_fit_i <- clogit_fit %>% pluck(coef)
+  return(clogit_fit_i)
+}
+
+ExtractClogitFitTerms <- function(clogit_fit){
+  terms_i <- clogit_fit %>% pluck(terms, attr_getter("term.labels"))
+  return(terms_i)
+}
+
+best_ten_fit_models_coefs <- best_ten_fit_models_refit %>%
+  mutate(clogit_fit_coefs = map(.x = clogit_fit, .f = ExtractClogitCoefs)) %>%
+  mutate(clogit_fit_terms = map(.x = clogit_fit, .f = ExtractClogitFitTerms))%>%
+  dplyr::select(step_type, fit_aicc, delta_aicc, clogit_fit, clogit_fit_null,
+    clogit_fit_coefs, clogit_fit_terms, preds)
+
+###################### CALCULATE EXTRACT CONCORDANCE ###########################
+
+best_ten_fit_models_concord <- best_ten_fit_models_coefs %>%
+  mutate(concordance_list = map(.x = clogit_fit, .f = concordance)) %>%
+  mutate(concordance_value = map2_dbl(concordance_list, "concordance",
+    pluck)) %>%
+  mutate(concordance_var = map2_dbl(concordance_list, "var", pluck)) %>%
+  mutate(concordance_se = sqrt(concordance_var))
+
+# Check concordance stats
+best_ten_fit_models_concord %>%
+  dplyr::select(step_type, concordance_value, concordance_var,
+    concordance_se) %>%
+  group_by(., step_type) %>%
+  skim()
+
+################## CALCULATE DEVIANCE EXPLAINED ################################
+
+best_ten_fit_models_deviance <- best_ten_fit_models_concord %>%
+  mutate(deviance_values = map(.x = clogit_fit, .f = residuals,
+    type = "deviance")) %>%
+  mutate(deviance_squared = map(deviance_values, ~.^2)) %>%
+  mutate(deviance_sum_of_squares = map_dbl(deviance_squared, sum)) %>%
+  mutate(deviance_values_null = map(.x = clogit_fit_null, .f = residuals,
+    type = "deviance")) %>%
+  mutate(deviance_squared_null = map(deviance_values_null, ~.^2)) %>%
+  mutate(deviance_sum_of_squares_null = map_dbl(deviance_squared_null, sum)) %>%
+  mutate(deviance_explained = 1 -
+      (deviance_sum_of_squares/deviance_sum_of_squares_null)) #%>%
+
+# Check deviance stats
+best_ten_fit_models_deviance %>%
+  dplyr::select(step_type, deviance_values, deviance_squared,
+    deviance_squared_null, deviance_sum_of_squares,
+    deviance_sum_of_squares_null, deviance_explained) %>%
+  group_by(., step_type) %>%
+  skim()
+
+# # This gets the loglik comparisons, but I don't think that's what I want.
+# fit <- coxph(Surv(futime, fustat) ~ resid.ds *rx + ecog.ps, data = ovarian)
+# anova(fit)
+# fit_null <- coxph(Surv(futime, fustat) ~ 0, data=ovarian)
+# anova(fit_null, fit)
+
+##################### SAVE BEST_TEN_FITS FILE ##################################
+
+# Save file with best 10 fit models for each step-type
+best_ten_fits <- best_ten_fit_models_deviance %>%
+  dplyr::select(step_type, fit_aicc, delta_aicc, preds,
+    concordance_value, concordance_var, concordance_se,
+    deviance_values, deviance_squared, deviance_squared_null,
+    deviance_sum_of_squares, deviance_sum_of_squares_null, deviance_explained)
+saveRDS(best_ten_fits, file.path(mod_fit_dir, "best_ten_fits",
+  "best_ten_fits.rds"))
+rm(best_ten_fits)
+
+############## FIND AND SAVE BEST FIT MODEL FOR EACH STEP TYPE #################
+
+# Find the best fit models for each step_type
+best_fits <- best_ten_fit_models_deviance %>%
+  group_by(step_type) %>%
+  arrange(fit_aicc) %>%
+  slice(which.min(fit_aicc)) %>%
+  ungroup(.) %>%
+  arrange(step_type) %>%
+  dplyr::select(step_type, clogit_fit, clogit_fit_null, fit_aicc, preds,
+    concordance_value, concordance_var, concordance_se,
+    deviance_sum_of_squares, deviance_sum_of_squares_null, deviance_explained)
+
+# Save each 'best_ssf_fits_i'
+for (i in seq_len(nrow(best_fits))){
+  ssf_fit_i <- best_fits %>% slice(i)
   step_type_i <- ssf_fit_i %>% pull(step_type)
-  saveRDS(ssf_fit_i, file.path(mod_fit_dir, paste0("best_ssf_fits_",
+  saveRDS(ssf_fit_i, file.path(mod_fit_dir, "best_fits", paste0("best_ssf_fit_",
     step_type_i, ".rds")))
 }
 
+############## COMPILE AND SAVE BEST_SSF_FITS FILE #############################
 
-################# COMPILE ALL BEST NO-MAX-SIGMA FIT MODELS #####################
+best_fit_all <- list.files(path = file.path(mod_fit_dir, "best_fits"),
+    pattern = paste0("^best_ssf_fit_[^all]"))  %>%
+  map(~ readRDS(file.path(mod_fit_dir, "best_fits", .))) %>%
+  reduce(bind_rows)
 
-# Determine the best fit models that do not have a "maximum sigma" variable,
-# specifically 100 or 50 sigma values (depending on class).
-best_fit_models_no_max_variables <- list.files(path = file.path(mod_fit_dir),
-    pattern = paste0("^compiled_ssf_fits_*"))  %>%
-  map(~ readRDS(file.path(mod_fit_dir, .))) %>%
-  reduce(bind_rows) %>%
-  group_by(step_type) %>%
-  arrange(fit_aicc) %>%
-  mutate(mod_rank = 1:n()) %>%
-  filter(!str_detect(preds, paste0("developed100|forest100|open_water100|",
-    "pasture100|shrub_herb100|eastness100|northness100|wind_class100"))) %>%
-  filter(!str_detect(preds, "tpi50|tri50|roughness50")) %>%
-  slice(which.min(fit_aicc)) %>%
-  ungroup() %>%
-  arrange(step_type) %>%
-  mutate(ua_steps = list(NA))
+saveRDS(best_fit_all, file.path(mod_fit_dir, "best_fits",
+  "best_ssf_fit_all.rds")) # File is >100Mb, so it is included in .gitignore
+
 
 ### ------------------------------------------------------------------------ ###
 ############################### OLD CODE #######################################
 ### ------------------------------------------------------------------------ ###
+
+
+# ################# COMPILE ALL BEST NO-MAX-SIGMA FIT MODELS ###################
+#
+# # Determine the best fit models that do not have a "maximum sigma" variable,
+# # specifically 100 or 50 sigma values (depending on class).
+# best_fit_models_no_max_variables <- list.files(path = file.path(mod_fit_dir),
+#     pattern = paste0("^compiled_ssf_fits_*"))  %>%
+#   map(~ readRDS(file.path(mod_fit_dir, .))) %>%
+#   reduce(bind_rows) %>%
+#   group_by(step_type) %>%
+#   arrange(fit_aicc) %>%
+#   mutate(mod_rank = 1:n()) %>%
+#   filter(!str_detect(preds, paste0("developed100|forest100|open_water100|",
+#     "pasture100|shrub_herb100|eastness100|northness100|wind_class100"))) %>%
+#   filter(!str_detect(preds, "tpi50|tri50|roughness50")) %>%
+#   slice(which.min(fit_aicc)) %>%
+#   ungroup() %>%
+#   arrange(step_type) %>%
+#   mutate(ua_steps = list(NA))
 
 # # Find all of the step_type mods_sum in fit_file_dir
 # all_fit_sums <- list.files(path = file.path(mod_fit_dir),

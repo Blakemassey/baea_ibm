@@ -92,7 +92,10 @@ MovementSubModelBAEA2 <- function(sim = sim,
     maine_outline_kernel <- raster::extend(maine_outline_kernel, move_kernel,
       value = 0)
 
-    ### SSF LAYERS
+    # SSF Layer
+    ssf_org <- sim$spatial$ssf_layers[[behavior_trans]][[agent_states$nest_id]]
+    ssf_kernel <- raster::crop(ssf_org, move_kernel, snap = "in")
+    ssf_kernel <- raster::extend(ssf_crop, move_kernel, value = NA)
 
     # Restrictions for different next_behavior
     # 1 (cruise), 2 (flight) = no restrictions
@@ -108,25 +111,20 @@ MovementSubModelBAEA2 <- function(sim = sim,
     land_kernel <- raster::crop(land, move_kernel, snap = "in")
     land_kernel <- raster::extend(land_kernel, move_kernel, value = 0)
 
-#    forest <- sim$spatial$landscape$forest[[agent_states$nest_id]]
-#    landcover_crop <- crop(landcover, move_shift, snap="out")
-#    hydro_dist_crop <- crop(hydro_dist, move_shift, snap="out")
-
-    ### FINAL PROBABILITY LAYER
-
-    # USE GEOMETRIC MEAN for final probability layer
+    ### FINAL PROBABILITY LAYER (use geometric mean for final probability layer)
 
     move_kernel_log <- log(move_kernel)
     con_nest_kernel_log <- log(con_nest_kernel)
     land_log <- log(land_kernel)
     maine_outline_log <- log(maine_outline_kernel)
+    ssf_kernel_log <- log(ssf_kernel)
     # print(paste0("move_kernel_log:", raster::extent(move_kernel_log)))
     # print(paste0("con_nest_kernel_log:", raster::extent(con_nest_kernel)))
     # print(paste0("land_log:", raster::extent(land_log)))
     # print(paste0("maine_outline_log:", raster::extent(maine_outline_log)))
 
     kernel_stack <- raster::stack(list(move_kernel_log, con_nest_kernel_log,
-      land_log, maine_outline_log))
+      land_log, maine_outline_log, ssf_kernel_log))
     kernel_stack_mean <- raster::calc(kernel_stack, fun = mean, na.rm = TRUE)
     prob_raster <- exp(kernel_stack_mean)
     prob_raster <- prob_raster/raster::cellStats(prob_raster, stat = "sum")

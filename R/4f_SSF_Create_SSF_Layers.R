@@ -5,8 +5,8 @@ pacman::p_load(AICcmodavg, plyr, dplyr, future, furrr, optimx, ggplot2,
   ggthemes, glmulti, lubridate, optimx, purrr, raster, reproducible, rgenoud,
   stringr, survival, surveybootstrap, tibble, tictoc, tidyr)
 library(gisr)
-options(stringsAsFactors = FALSE)
-
+rasterOptions(maxmem = Inf, progress = "text", timer = TRUE, chunksize=1e9,
+  memfrac=.9)
 ############################ IMPORT RASTERS ####################################
 
 # Source data directories
@@ -63,9 +63,10 @@ rm(base_file,
   shrub_herb_file, wetland_file, eastness_file, northness_file, wind_class_file,
   elev_file)
 
-############################## DONE IMPORT RASTERS #############################
+ext <- extent(elev_org) # all of Maine
+#ext <- extent(c(510000, 560000, 5025000, 5065000)) # middle of ME
+#ext <- extent(c(322640, 412670, 4901590, 4991620)) # Around Ellis
 
-ext <- extent(c(510000, 560000, 5025000, 5065000))
 developed <- crop(developed_org, ext, snap = "near")
 forest <- crop(forest_org, ext, snap = "near")
 open_water <- crop(open_water_org, ext, snap = "near")
@@ -100,14 +101,21 @@ raster_classes <- c(developed = "kernel_class",
   tri = "terrain_class",
   roughness = "terrain_class")
 
-# Output Directory
+## Get SSF FITS ----------------------------------------------------------------
+
+# Directory of fits
 mod_fit_dir = "Output/Analysis/SSF/Models"
-best_ssf_fits_org <- readRDS(file.path(mod_fit_dir, "best_ssf_fits_all.rds"))
 
-best_ssf_fits_org$step_type
-best_ssf_fits_org$preds
+best_ssf_fits_org <- readRDS(file.path(mod_fit_dir, "best_fits",
+  "best_ssf_fit_all.rds"))
 
-best_ssf_fits <- best_ssf_fits_org %>% slice(c(3, 5, 8, 13))
+best_ssf_fits_org %>% dplyr::select(step_type, preds)
+
+best_ssf_fits <- best_ssf_fits_org # all
+#best_ssf_fits <- best_ssf_fits_org %>% slice(c(1,4,8,12)) # all '-> Cruise'
+#best_ssf_fits <- best_ssf_fits_org %>% slice(c(2,5,9,13,16)) # all '-> Flight'
+#best_ssf_fits <- best_ssf_fits_org %>% slice(c(3,6,10,14,17)) # all '-> Perch'
+#best_ssf_fits <- best_ssf_fits_org %>% slice(c(7,11,15)) # all '-> Roost'
 
 # Determine all the raster_sigma layers
 preds_all <- paste0(best_ssf_fits$preds, collapse = " + ")
@@ -118,8 +126,9 @@ preds_tbl <- tibble(preds_unique) %>%
   mutate(sigma = as.integer(str_extract(preds_unique, "[0-9]{1,3}"))) %>%
   mutate(covar = str_replace_all(preds_unique, "[0-9]", "")) %>%
   dplyr::select(covar, sigma) %>%
+  mutate(covar_sigma = paste0(covar, sigma)) %>%
   mutate(raster_class = recode(covar, !!!raster_classes)) %>%
-  mutate(raster_layer = vector(mode = "list", length = n())) %>%
+  mutate(raster_layer = vector(mode = "list", length = nrow(.))) %>%
   arrange(covar, sigma)
 
 CalculateTerrainMetricWithSigma <- function(sigma, metric){
@@ -151,19 +160,43 @@ CalculateTerrainMetricWithSigma <- function(sigma, metric){
   return(out_matrix)
 }
 
-# Split btwn groups because I couldn't get case_when() to work inside mutate()
-preds_rasters_terrain <- preds_tbl %>%
-  filter(raster_class == "terrain_class") %>% #slice(1) %>%
-  mutate(raster_layer = map2(.x = sigma, .y = covar,
-    .f = CalculateTerrainMetricWithSigma))
+# Had to split out types b/c I couldn't get case_when() to work inside mutate()
+
+preds_terrain <- preds_tbl %>%
+  filter(raster_class == "terrain_class") %>%
+  slice(c(7,10,11))
+for (i in 1:nrow(preds_terrain)){
+  preds_terrain_i <- preds_terrain %>%
+    slice(i)
+  raster_terrain_i <- preds_terrain_i %>%
+    mutate(raster_layer = map2(.x = sigma, .y = covar,
+      .f = CalculateTerrainMetricWithSigma)) %>%
+    pluck("raster_layer", 1)
+  raster_terrain_i_name <- preds_terrain_i %>% pull(covar_sigma)
+  names(raster_terrain_i) <- raster_terrain_i_name
+  writeRaster(raster_terrain_i, file.path(file_dir, "SSF_Rasters", paste0(
+    raster_terrain_i_name, ".tif")), format = "raster", overwrite = TRUE)
+  rm(raster_terrain_i)
+}
+
+preds_kernel <- preds_tbl %>%
+  filter(raster_class == "kernel_class")
+for (i in 1:nrow(preds_kernel)){
+  preds_kernel_i <- preds_kernel %>%
+    slice(i)
+  raster_kernel_i <- preds_kernel_i %>%
+    mutate(raster_layer = map2(.x = sigma, .y = covar, .f = SmoothRaster)) %>%
+    pluck("raster_layer", 1)
+  raster_kernel_i_name <- preds_kernel_i %>% pull(covar_sigma)
+  names(raster_kernel_i) <- raster_kernel_i_name
+  writeRaster(raster_kernel_i, file.path(file_dir, "SSF_Rasters", paste0(
+    raster_kernel_i_name, ".tif")), format = "raster", overwrite = TRUE)
+  rm(raster_kernel_i)
+}
 
 preds_rasters_extract <- preds_tbl %>%
   filter(raster_class == "extract_class") %>% #slice(1) %>%
   mutate(raster_layer = map(.x = covar, ~ get(.x)))
-
-preds_rasters_kernel <- preds_tbl %>%
-  filter(raster_class == "kernel_class") %>% #slice(1) %>%
-  mutate(raster_layer = map2(.x = sigma, .y = covar, .f = SmoothRaster))
 
 preds_rasters <- bind_rows(preds_rasters_terrain, preds_rasters_extract,
   preds_rasters_kernel) %>%
@@ -175,20 +208,14 @@ preds_rasters <- bind_rows(preds_rasters_terrain, preds_rasters_extract,
 
 glimpse(preds_rasters)
 
-for (i in seq_len(nrow(preds_rasters))){
-  plot(preds_rasters %>% slice(i) %>% pull("raster_layer") %>% pluck(1),
-    main = preds_rasters[i ,"covar_sigma"])
-  invisible(readline(prompt="Press [enter] to continue; [esc] to exit"))
-}
-
 # Compile covars into a RasterBrick
 covars_stack <- raster::stack(preds_rasters %>% pull("raster_layer"))
 names(covars_stack) <- preds_rasters %>% pull(covar_sigma)
 covars_brick <- writeRaster(covars_stack, file.path(file_dir,
   "ssf_covars_stack"), format = "raster", overwrite = TRUE)
 
-for (i in seq_len(nrow(preds_rasters))){
-  plot(covars_brick[[i]])
+for (i in seq_len(nlayers(covars_brick))){
+  plot(covars_brick[[i]], main = names(covars_brick[[i]]))
   invisible(readline(prompt="Press [enter] to continue; [esc] to exit"))
 }
 
@@ -211,10 +238,12 @@ for (i in seq_len(nrow(best_ssf_fits))){
   ssf_formula <- paste0("(", paste(paste0("covars_brick[['", names(coefs_i),
     "']]"), paste0("coefs_i['", names(coefs_i),"']"), sep = "*",
     collapse = ") + ("), ")")
-  ssf_raster <- eval(parse(text=ssf_formula))
-  # Rescale each layer from 0-1
-  ssf_rescale <- rescale0to1(ssf_raster)
-  ssf_raster_list[[i]] <- ssf_rescale
+  ssf_raster <- eval(parse(text = ssf_formula))
+  ssf_raster_inv_log <- calc(ssf_raster, fun = boot::inv.logit)
+  # plot histogram
+  hist(ssf_raster_inv_log, col = "springgreen", breaks = seq(0,1, by = .05))
+
+  ssf_raster_list[[i]] <- ssf_raster_inv_log
   step_type_i_numeric <- step_type_i %>% str_replace_all(c("cruise" = "1",
     "flight" = "2", "nest" = "3", "perch" = "4", "roost" = "5"))
   # Names are "step_#_#" because raster stack names can't start with a number
@@ -224,7 +253,62 @@ for (i in seq_len(nrow(best_ssf_fits))){
 ssf_stack <- raster::stack(ssf_raster_list)
 names(ssf_stack)
 ssf_brick <- writeRaster(ssf_stack, file.path(file_dir,
-  "ssf_step_types_stack"), format = "raster", overwrite = TRUE)
+  "ssf_stack_raw"), format = "raster", overwrite = TRUE)
+
+for (i in seq_len(nlayers(ssf_brick))){
+  plot(ssf_brick[[i]], main = names(ssf_brick[[i]]))
+  invisible(readline(prompt = "Press [enter] to continue; [esc] to exit"))
+}
+
+# Empty list
+ssf_raster_list <- vector(mode = "list", length = nrow(best_ssf_fits))
+
+inverse_logit <- TRUE
+# Generate layer for each ssf
+for (i in seq_len(nrow(best_ssf_fits))){
+  print(i)
+  clogit_fit_i <- best_ssf_fits %>% slice(i) %>% pull(clogit_fit) %>% pluck(1)
+  step_type_i <- best_ssf_fits %>% slice(i) %>% pull(step_type)
+  # Extract terms(not including 'strata(step_id)')
+  terms_i <- clogit_fit_i %>% pluck(terms, attr_getter("term.labels")) %>%
+    .[!. %in% c("strata(step_id)")]
+  # Extract coefficients
+  coefs_i <- clogit_fit_i %>% pluck(coef)
+  # Generate formulas
+  ssf_formula <- paste0("(", paste(paste0("covars_brick[['", names(coefs_i),
+    "']]"), paste0("coefs_i['", names(coefs_i),"']"), sep = "*",
+    collapse = ") + ("), ")")
+  ssf_raster <- eval(parse(text=ssf_formula))
+  if (isTRUE(inverse_logit)){
+    ssf_raster_final <- calc(ssf_raster, fun = boot::inv.logit)
+    } else {
+    ssf_raster_final <- ssf_raster
+  }
+  ssf_raster_list[[i]] <- ssf_raster_final
+  step_type_i_numeric <- step_type_i %>% str_replace_all(c("cruise" = "1",
+    "flight" = "2", "nest" = "3", "perch" = "4", "roost" = "5"))
+  # Names are "step_#_#" because raster stack names can't start with a number
+  names(ssf_raster_list[[i]]) <- paste0("step_", step_type_i_numeric)
+}
+
+ssf_stack <- raster::stack(ssf_raster_list)
+names(ssf_stack)
+ssf_brick <- writeRaster(ssf_stack, file.path(file_dir,
+  "ssf_stack_inverse_logit"), format = "raster", overwrite = TRUE)
+
+for (i in seq_len(nlayers(ssf_brick))){
+  plot(ssf_brick[[i]], main = names(ssf_brick[[i]]))
+  invisible(readline(prompt = "Press [enter] to continue; [esc] to exit"))
+}
+
+boot::inv.logit(10)
+gtools::inv.logit(10)
+
+boot::inv.logit(0)
+gtools::inv.logit(0)
+
+boot::inv.logit(-10)
+gtools::inv.logit(-10)
 
 
 

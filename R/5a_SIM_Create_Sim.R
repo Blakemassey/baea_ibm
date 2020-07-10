@@ -145,50 +145,25 @@ maine_outline_file <- "C:/ArcGIS/Data/BlankPolygon/MaineOutline.shp"
 # Source data directories
 file_dir <- "C:/ArcGIS/Data/R_Input/BAEA"
 
-# Terrain class
+# Raster files
 elev_file <- file.path(file_dir, "elev_30mc.tif")
-# Extract class
-developed_dist_file <- file.path(file_dir, "developed_dist_30mc.tif")
-hydro_dist_file <- file.path(file_dir, "hydro_dist_30mc.tif")
-turbine_dist_file <- file.path(file_dir, "turbine_dist_30mc.tif")
-# Kernel class
-developed_file <- file.path(file_dir, "developed_30mc.tif")
-forest_file <- file.path(file_dir, "forest_30mc.tif")
 open_water_file <- file.path(file_dir, "open_water_30mc.tif")
-pasture_file <- file.path(file_dir, "pasture_30mc.tif")
-shrub_herb_file <- file.path(file_dir, "shrub_herb_30mc.tif")
-wetland_file <- file.path(file_dir, "wetland_30mc.tif")
-eastness_file <- file.path(file_dir, "eastness_30mc.tif")
-northness_file <- file.path(file_dir, "northness_30mc.tif")
-wind_class_file <- file.path(file_dir, "wind_class_30mc.tif")
 
-## Import Rasters ------------------------------------------------------------
-
-# Terrain class
-elev <- raster(elev_file) # all other layers' extent are set to this layer
-# Extract class
-# developed_dist <- crop(raster(developed_dist_file), elev)
-# hydro_dist <- crop(raster(hydro_dist_file), elev)
-# turbine_dist <- crop(raster(turbine_dist_file), elev)
-# Kernel class
-# developed <- crop(raster(developed_file), elev)
-forest <- crop(raster(forest_file), elev)
+# Import Rasters
+elev <- raster(elev_file) # other rasters' extents are set to this layer
 open_water <- crop(raster(open_water_file), elev)
-# pasture <- crop(raster(pasture_file), elev)
-# shrub_herb <- crop(raster(shrub_herb_file), elev)
-# wetland <- crop(raster(wetland_file), elev)
-# eastness <- crop(raster(eastness_file), elev)
-# northness <- crop(raster(northness_file), elev)
-# wind_class <- crop(raster(wind_class_file), elev)
 
+# Create empty raster of Maine outline
 maine_outline <- sf::st_read(maine_outline_file)
 maine_outline_raster <- fasterize(maine_outline, base, field = "DATA_SECUR",
   fun = "any")
 maine_outline_raster[is.na(maine_outline_raster)] <- 0
 
+# Create empty maine_outline list for each nest site (using the con_nest_dist)
 maine_outline_list <- purrr::map(unique(names(con_nest_dist)), ~ NULL)
 names(maine_outline_list) <- unique(names(con_nest_dist))
 
+# Create maine_outline raster for each nest site
 for (i in unique(names(con_nest_dist))){
   con_nest_dist_i <- con_nest_dist[[i]]
   maine_outline_i <- crop(maine_outline_raster, con_nest_dist_i)
@@ -199,40 +174,59 @@ for (i in unique(names(con_nest_dist))){
 }
 maine_outline <- maine_outline_list
 
-open_water_list <- purrr::map(unique(names(con_nest_dist)), ~ NULL)
-names(open_water_list) <- unique(names(con_nest_dist))
+# Create empty land list for each nest site (using the con_nest_dist)
 land_list <- purrr::map(unique(names(con_nest_dist)), ~ NULL)
 names(land_list) <- unique(names(con_nest_dist))
 
+# Create open_water raster for each nest site
 for (i in unique(names(con_nest_dist))){
   con_nest_dist_i <- con_nest_dist[[i]]
   open_water_i <- crop(open_water, con_nest_dist_i)
-  plot(open_water_i)
   open_water_i <- extend(open_water_i, con_nest_dist_i, value = NA)
   open_water_mask_i <- mask(open_water_i, con_nest_dist_i)
   land_i <- open_water_mask_i
-  land_i[land_i == 1] <- 99
-  land_i[land_i == 0] <- 1
-  land_i[land_i == 99] <- 0
-  open_water_list[[which(names(open_water_list) == i)]] <- open_water_mask_i
+  land_i[land_i == 1] <- 99 # had to make water different number beside 1
+  land_i[land_i == 0] <- 1 # setting land to 1
+  land_i[land_i == 99] <- 0 # setting water (99) to 0
   land_list[[which(names(land_list) == i)]] <- land_i
 }
-open_water <- open_water_list
 land <- land_list
 
-forest_list <- purrr::map(unique(names(con_nest_dist)), ~ NULL)
-names(forest_list) <- unique(names(con_nest_dist))
-for (i in unique(names(con_nest_dist))){
-  con_nest_dist_i <- con_nest_dist[[i]]
-  forest_i <- crop(forest, con_nest_dist_i)
-  forest_i <- extend(forest_i, con_nest_dist_i, value = NA)
-  forest_mask_i <- mask(forest_i, con_nest_dist_i)
-  forest_list[[which(names(forest_list) == i)]] <- forest_mask_i
-}
-forest <- forest_list
-landscape <- NamedList(forest, land, maine_outline, open_water)
+landscape <- NamedList(forest, land, maine_outline)
 
-spatial <- NamedList(base, nests, con_nest_dist, landscape)
+## SSF Layers ------------------------------------------------------------------
+
+# Source data directories
+ssf_file_dir <- "C:/ArcGIS/Data/R_Input/BAEA/SSF_Rasters"
+
+ssf_step_types <- c("1_1", "1_2","1_4", "2_1", "2_2", "2_4", "2_5", "3_1",
+  "3_2", "3_4", "3_5", "4_1", "4_2", "4_5", "5_2", "5_4")
+
+ssf_list <- purrr::map(ssf_step_types, ~ NULL)
+names(ssf_list) <- ssf_step_types
+
+for i in seq_along(ssf_step_types){
+  ssf_i <- crop(raster(file.path(ssf_file_dir, paste0("SSF_", i, ".grd")), elev)
+
+  # Create ssf_layer raster for each nest site
+  ssf_i_list <- purrr::map(unique(names(con_nest_dist)), ~ NULL)
+  names(ssf_i_list) <- unique(names(con_nest_dist))
+
+  for (j in unique(names(con_nest_dist))){
+    con_nest_dist_j <- con_nest_dist[[j]]
+    ssf_i_j <- crop(ssf_i, con_nest_dist_j)
+    ssf_i_j <- extend(ssf_i_j, con_nest_dist_j, value = NA)
+    ssf_i_j <- mask(forest_i, con_nest_dist_j)
+    ssf_i_list[[which(names(ssf_i_list) == j)]] <- ssf_i_j
+  }
+  ssf_list[[which(names(ssf_list) == i)]] <- ssf_i_list
+}
+
+ssf_layers <- ssf_list
+
+## Combine all Spatial Layers --------------------------------------------------
+
+spatial <- NamedList(base, nests, con_nest_dist, landscape, ssf_layers)
 
 ## Clean up environment --------------------------------------------------------
 RemoveExcept(c("agents", "pars", "spatial"))

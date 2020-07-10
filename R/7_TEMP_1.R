@@ -1,40 +1,37 @@
+best_fits_models_refit <- best_fits_models_data %>%
+  mutate(clogit_preds = paste0("case ~ ", preds, " + strata(step_id)")) %>%
+  mutate(clogit_preds_null = paste0("case ~ 0 + strata(step_id)")) %>%
+  dplyr::select(step_type, fit_aicc, delta_aicc, clogit_preds, ua_steps,
+    preds) %>%
+  mutate(clogit_fit = map2(.x = clogit_preds, .y = ua_steps,
+    .f = FitClogit)) %>%
+  mutate(clogit_fit_null = map2(.x = clogit_preds, .y = ua_steps,
+    .f = FitClogit)) %>%
+  mutate(fit_aicc_refit = map_dbl(clogit_fit, AICc)) %>%
+  dplyr::select(-ua_steps)
+
+
+
+
+test <- tibble(deviance_values = list(c(1, 2), c(4, 5), c(6, 6, 8))) %>%
+  mutate(deviance_squared = map(deviance_values, ~.^2)) %>%
+  mutate(deviance_sum_of_squares = map_dbl(deviance_squared, sum))
+
+
+
+
+best_ssf_fits_deviance %>% dplyr::select(deviance_values) %>% slice(1) %>% pluck(1) %>% slice(1:10)
+
+  mutate(deviance_squared = map(deviance_values, ~.^2)) %>%
+  mutate(deviance_sum_of_squares = map_dbl(deviance_squared, sum)) %>%
+  mutate(deviance_values_null = map(.x = clogit_fit_null, .f = residuals,
+    type = "deviance")) %>%
+  mutate(deviance_null = map_dbl(deviance_values, sum)) %>%
+
+
 CreateSimLandscapeRasters <- function(con_nest_dist){
-
-
   return(landscape)
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 # UpdateAgentStates <- function(agent_states = NULL,

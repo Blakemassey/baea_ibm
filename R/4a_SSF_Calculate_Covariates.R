@@ -41,7 +41,7 @@ move_pars_file <- "Output/Analysis/Movements/move_pars.rds"
 subsetting_bandwidths <- FALSE
 subsetting_covars <- FALSE
 subsetting_ids <- FALSE
-subsetting_step_types <- TRUE
+subsetting_step_types <- FALSE
 
 ## Import Base Raster, Steps Data, and Movement Parameters ---------------------
 
@@ -276,7 +276,6 @@ for (i in seq_along(unique(baea_steps$behavior_behavior))){
           ## was writtend so the function would still work if sigma = 0 (it is
           ## internally converted to sigma = 1) because that was needed for
           ## other steps in the analysis.
-          ## starting at line ~355.
           ## ################################################################# #
         } else {
           if (covar_type_k %in% kernel_class){
@@ -341,7 +340,7 @@ for (i in seq_along(unique(baea_steps$behavior_behavior))){
   tic.clearlog()
 }
 
-# This section is replaces the terrain raster layers at bandwidth = 0 with the
+# This section replaces the terrain raster layers at bandwidth = 0 with the
 # bandwidth = 1 values. Needed to fix issue from procedure above (see note).
 # This section is used to replace the terrain_raster bandwidth = 0, with the
 # bandwidth = 1 values.
