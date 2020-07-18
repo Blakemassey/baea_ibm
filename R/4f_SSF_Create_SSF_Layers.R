@@ -221,6 +221,11 @@ for (i in seq_len(nlayers(covars_brick))){
 
 # Generate ssf_layers ----------------------------------------------------------
 
+# Base all of the calculations on the con_nest_dist rasters???
+CreateSimLandscapeRasters <- function(con_nest_dist){
+  return(landscape)
+}
+
 # Empty list
 ssf_raster_list <- vector(mode = "list", length = nrow(best_ssf_fits))
 

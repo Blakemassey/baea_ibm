@@ -1,273 +1,130 @@
-library(pacman)
-p_load(DT, lubridate, tidyverse, ggplot2, readr, xtable)
-suppressMessages(extrafont::loadfonts(device="win"))
-options(stringsAsFactors = FALSE)
+# This script checks the sim run output and assesses the calibration metrics
+# ---------------------------------------------------------------------------- #
+# Load packages
+pacman::p_load(plyr, dplyr, future, furrr, ggplot2, ggthemes, raster,
+  stringr, tibble, tictoc, tidyr, whitebox)
+whitebox::wbt_init() # required for WhiteboxTools to work
+wbt_version() # check WhiteboxTools version
+library(gisr)
 
-pkg_dir <- "C:/Users/Blake/OneDrive/Work/R/Projects/multiscale_optim"
-tex_dir <- "C:/Users/Blake/OneDrive/Work/LaTeX/BMassey_Dissertation"
+# Set options
+rasterOptions(maxmem = Inf, progress = "text", timer = TRUE, chunksize=1e9,
+  memfrac=.9)
 
-BoldText <- function(x) {paste0('{\\textbf{',x,'}}')}
-BoldTextCentered <- function(x) {paste0('\\multicolumn{1}{c}{\\textbf{', x,
-  '}}')}
+############################ IMPORT RASTERS ####################################
 
-# Theme (for LaTeX font)
-theme_latex <- theme(text = element_text(family = "Latin Modern Roman")) +
-  theme(axis.text = element_text(size = 10)) +
-  theme(axis.title = element_text(size = 12)) +
-  theme(plot.title = element_text(size = 14))
+# Ridgeline delineation arguments
+agg_factor <- 5
+rtp_filter <- 51
+reclass_break <- .3
+clump_cell_min <- 4
+ridge_cell_min <- 2
 
-for (i in start_step_types){
-  best_fit_i <- best_fit_all %>% filter(start_behavior == i)
-  xtable_list <- vector(mode = "list", length = nrow(best_fit_i))
-  for (j in seq_len(nrow(best_fit_i))){
-    fit_ij <- best_fit_i %>% slice(j) %>% pull(clogit_fit) %>% pluck(1)
-    start_ij <- best_fit_i %>% slice(j) %>% pull(start_behavior)
-    end_ij <- best_fit_i %>% slice(j) %>% pull(end_behavior)
-    xtable_fit_ij <- as.data.frame(xtable(fit_ij)) %>%
-      rownames_to_column(., var = "term") %>%
-      mutate(step_type = NA)
-    xtable_fit_ij[1, "step_type"] <- paste(str_to_title(start_ij),
-      "$\\rightarrow$", str_to_title(end_ij))
-    xtable_list[[j]] <- xtable_fit_ij
-  }
-  ssf_best_fits_xtable <- xtable_list %>%
-    reduce(bind_rows) %>%
-    mutate(term = str_replace_all(term, "_", " ")) %>%
-    mutate(term = str_replace_all(str_to_title(term),
-      "(?<=[:alpha:]) (?=[:alpha:])", "")) %>%
-    mutate(term = str_replace_all(term, "DevelopedDist0", "DevelopedDist"))%>%
-    mutate(term = str_replace_all(term, "HydroDist0", "HydroDist")) %>%
-    mutate(term = str_replace_all(term, "TurbineDist0", "TurbineDist")) %>%
-    rename("Step Type" = step_type,
-           "Term" = term,
-           "Coefficient" = coef,
-           "Exp(Coef)" = "exp(coef)",
-           "SE(Coef)" = "se(coef)",
-           "Z Statistic" = "z",
-           "p-value" = "p") %>%
-    dplyr::select("Step Type", "Term", "Coefficient", "Exp(Coef)",
-      "SE(Coef)", "Z Statistic", "p-value")
+# Convert arguments
+clump_cell_min_area <- ((30*agg_factor)^2)*clump_cell_min
+ridge_cell_min_area <- ((30*agg_factor)^2)*ridge_cell_min
+reclass_break_str <- str_replace_all(reclass_break, "0\\.", "")
 
-  ssf_best_fits_xtable <- xtable(ssf_best_fits_xtable,
-    digits = c(0, 0, 2, 3, 2, 2, 2, 2))
-  display(ssf_best_fits_xtable) = c("s", "s", "s", "g", "g", "g", "g", "g")
+# Source data directories
+file_dir <- "C:/ArcGIS/Data/R_Input/BAEA"
 
-  #L{1.6}L{1.25}R{1}R{1}R{1}R{.4}R{.75} # Without vertical col name
-  #L{1.8}H{1.25}R{1}R{.9}R{.8}R{.45}R{.8} # With veritcal col name
-  align(ssf_best_fits_xtable) <- c("L{0}", "L{1.8}", "H{1.25}", "R{1}",
-    "R{.9}", "R{.8}", "R{.45}", "R{.8}")
-  str_replace_all(align(ssf_best_fits_xtable), "[^[//.||0-9]]", "") %>%
-    str_subset(., "[0-9]") %>% as.numeric(.) %>% sum()
+# Raster files
+elev_file <- file.path(file_dir, "elev_30mc.tif")
+elev_agg_file <- file.path(file_dir, paste0("Ridgelines/elev_agg_", agg_factor,
+  ".tif"))
 
-  hline <- (which(str_detect(ssf_best_fits_xtable$`Step Type`,
-   "[:alpha:]"))-1)[-1]
-  htype <- c(rep("\\midrule ", times = length(hline)))
+rtp_1_file <- file.path(file_dir, "Ridgelines", "rtp_1.tif")
+rtp_2_file <- file.path(file_dir, "Ridgelines", "rtp_2.tif")
+rtp_3_file <- file.path(file_dir, "Ridgelines", "rtp_3.tif")
+rtp_4_file <- file.path(file_dir, "Ridgelines", "rtp_4.tif")
+rtp_5_file <- file.path(file_dir, "Ridgelines", "rtp_5.tif")
+rtp_6_file <- file.path(file_dir, "Ridgelines", "rtp_6.tif")
+rtp_7_file <- file.path(file_dir, "Ridgelines", "rtp_7.tif")
+rtp_final_file <- file.path(file_dir, "Ridgelines", paste0("rtp_",
+  agg_factor, "_", rtp_filter, "_", reclass_break_str, "_clump_poly.tif"))
 
-  ssf_xtable_list_tex <- print(ssf_best_fits_xtable,
-    add.to.row = list(pos = as.list(hline), command = htype),
-    floating = FALSE, width = "\\textwidth",
-    tabular.environment = "tabularx",
-    booktabs = TRUE, # thick top/bottom line, Preamble: "\usepackage{booktabs}"
-    include.rownames = FALSE,
-    rotate.colnames = TRUE,
-    size = "\\fontsize{11pt}{12pt}\\selectfont",
-    sanitize.colnames.function = BoldText,
-    sanitize.text.function = identity,
-    print.results = FALSE)
+ridge_1_file <- file.path(file_dir, "Ridgelines", "ridge_1.tif")
+ridge_2_file <- file.path(file_dir, "Ridgelines", "ridge_2.tif")
+ridge_3_file <- file.path(file_dir, "Ridgelines", "ridge_3.tif")
+ridge_4_file <- file.path(file_dir, "Ridgelines", "ridge_4.tif")
+ridge_5_file <- file.path(file_dir, "Ridgelines", "ridge_5.tif")
+ridge_6_file <- file.path(file_dir, "Ridgelines", "ridge_6.tif")
+ridge_poly_file <- file.path(file_dir, "Ridgelines", "ridge_poly.shp")
+ridge_line_file <- file.path(file_dir, "Ridgelines", "ridge_line.shp")
 
-  # Make column header ("Step Type") horizontal, italices 'p' in p-value
-  ssf_xtable_list_tex_final <- ssf_xtable_list_tex %>%
-    str_replace_all(., paste0("\\\\begin\\{sideways\\} ",
-      "\\{\\\\textbf\\{Step Type\\}\\} \\\\end\\{sideways\\}"),
-      "\\{\\\\textbf\\{Step Type\\}\\}") %>%
-    str_replace_all(., "\\{\\\\textbf\\{p-value\\}\\}",
-    "\\{\\\\textit\\{\\\\textbf\\{p\\}\\}\\\\textbf\\{-value\\}\\}")
-
-  write_lines(ssf_xtable_list_tex_final, path = file.path("C:/Users/blake",
-    "OneDrive/Work/LaTeX/BMassey_Dissertation/Tables/Ch2",
-    paste0("SSF_Fits_Terms_", str_to_title(i),".tex")))
-
+# Elevation raster aggregation
+if(!file.exists(elev_agg_file)){
+  wbt_aggregate_raster(elev_file, elev_agg_file, agg_factor = agg_factor,
+    type = "mean")
 }
 
-# Test align vector equals 7
-align_vec <- "L{1.8}R{1.25}R{1}R{.9}R{.8}R{.45}R{.8}"
+# Relative Topographic Position ------------------------------------------------
+# RTP calculations
+wbt_relative_topographic_position(elev_agg_file, rtp_1_file,
+  filterx = rtp_filter, filtery = rtp_filter)
 
-str_split(align_vec, "\\}", simplify = TRUE) %>%
-  str_replace_all(., "[^[//.||0-9]]", "") %>%
-  str_subset(., "[0-9]") %>% as.numeric(.) %>% sum()
+# Reclass raster based on break point
+wbt_reclass(rtp_1_file, rtp_2_file, paste0("0.0;-1.0;", reclass_break, ";1;",
+  reclass_break, ";1.0"))
 
+# Clump cells
+wbt_clump(rtp_2_file, rtp_3_file, zero_back = TRUE)
 
+# Calculate area (in cell size)
+wbt_raster_area(rtp_3_file, rtp_4_file, out_text = FALSE, units = "map units",
+  zero_back = TRUE)
 
+# Reclass clumps by min cell size
+clump_stats <- wbt_raster_summary_stats(rtp_4_file, verbose_mode = TRUE)
+clump_max_value <- readr::parse_number(clump_stats[which(str_detect(clump_stats,
+  "Image maximum"))])
+wbt_reclass(rtp_4_file, rtp_5_file, reclass_vals = paste0("0;0;",
+  clump_cell_min_area, ";1;", clump_cell_min_area, ";", clump_max_value + 100))
 
+# Reclass clumps below threshold to NoData
+wbt_set_nodata_value(input = rtp_5_file, output = rtp_final_file,
+  back_value = "0.0")
 
+# Clean up files
+file.remove(rtp_1_file, rtp_2_file, rtp_3_file, rtp_4_file, rtp_5_file)
 
+# Find Ridges ------------------------------------------------------------------
+# Find ridges
+wbt_find_ridges(elev_agg_file, ridge_1_file, line_thin = FALSE)
 
+# Find ridges within clumps
+wbt_multiply(ridge_1_file, rtp_final_file, ridge_2_file)
 
+# Clump ridge cells
+wbt_clump(ridge_2_file, ridge_3_file, zero_back = TRUE)
 
+# Calculate area of ridge cells
+wbt_raster_area(ridge_3_file, ridge_4_file, out_text = FALSE,
+  units = "map units", zero_back = TRUE)
 
+ridge_stats <- wbt_raster_summary_stats(ridge_4_file, verbose_mode = TRUE)
+ridge_max_value <- readr::parse_number(ridge_stats[which(str_detect(ridge_stats,
+  "Image maximum"))])
 
+# Reclass clumps by min cell size
+wbt_reclass(ridge_4_file, ridge_5_file, reclass_vals = paste0("0;0;",
+  ridge_cell_min_area, ";1;", ridge_cell_min_area, ";", ridge_max_value + 100))
 
+# Reclass clumps below threshold to NoData
+wbt_set_nodata_value(ridge_5_file, ridge_6_file, back_value = "0.0")
 
+# Convert to polygons (for easier spatial analysis regarding flight lines)
+wbt_raster_to_vector_polygons(ridge_6_file, ridge_poly_file, wd = NULL,
+  verbose_mode = FALSE)
 
+# Clean up ridge files
+file.remove(ridge_1_file, ridge_2_file, ridge_3_file, ridge_4_file,
+  ridge_5_file, ridge_6_file)
 
-
-
-#
-# xtable_i <- as.data.frame(xtable(fit_i)) %>%
-#     rownames_to_column(.) %>%
-#     mutate(term = str_replace_all(rowname, "_", " ")) %>%
-#     mutate(term = str_replace_all(str_to_title(term),
-#       "(?<=[:alpha:]) (?=[:alpha:])", "")) %>%
-#     mutate(term = str_replace_all(term, "DevelopedDist0", "DevelopedDist"))%>%
-#     mutate(term = str_replace_all(term, "HydroDist0", "HydroDist")) %>%
-#     mutate(term = str_replace_all(term, "TurbineDist0", "TurbineDist")) %>%
-#     mutate("Step Type" = c(step_type_i, rep(NA, n()-1))) %>%
-#     rename("Term" = "term",
-#            "Coefficient" = coef,
-#            "Exp(Coef)" = "exp(coef)",
-#            "SE(Coef)" = "se(coef)",
-#            "Z" = "z",
-#            "P" = "p") %>%
-#     dplyr::select("Step Type", "Term", "Coefficient", "exp(Coef)",
-#       "Std. Err. (Coef)", "Z", "P")
-#   xtable_list[[i]] <- xtable_i
-#
-#     }
-# }
-#   step_type_i <- best_fit_all %>% slice(i) %>% pull(step_type) %>%
-#     str_replace(., "_", " ") %>%
-#     str_to_title(.) %>%
-#     str_replace_all(., " ", " $\\\\rightarrow$ ")
-#   fit_i <- best_fit_all %>% slice(i) %>% pull(clogit_fit) %>% pluck(1)
-#   xtable_i <- as.data.frame(xtable(fit_i)) %>%
-#     rownames_to_column(.) %>%
-#     mutate(term = str_replace_all(rowname, "_", " ")) %>%
-#     mutate(term = str_replace_all(str_to_title(term),
-#       "(?<=[:alpha:]) (?=[:alpha:])", "")) %>%
-#     mutate(term = str_replace_all(term, "DevelopedDist0", "DevelopedDist"))%>%
-#     mutate(term = str_replace_all(term, "HydroDist0", "HydroDist")) %>%
-#     mutate(term = str_replace_all(term, "TurbineDist0", "TurbineDist")) %>%
-#     mutate("Step Type" = c(step_type_i, rep(NA, n()-1))) %>%
-#     rename("Term" = "term",
-#            "Coefficient" = coef,
-#            "Exp(Coef)" = "exp(coef)",
-#            "SE(Coef)" = "se(coef)",
-#            "Z" = "z",
-#            "P" = "p") %>%
-#     dplyr::select("Step Type", "Term", "Coefficient", "exp(Coef)",
-#       "Std. Err. (Coef)", "Z", "P")
-#   xtable_list[[i]] <- xtable_i
-# }
-#
-# ssf_best_fits_xtable <- xtable_list %>%
-#   reduce(bind_rows)
-#
-#
-# ssf_best_fits_xtable <- xtable(ssf_best_fits_xtable,
-#   digits = c(0, 0, 2, 2, 2, 2, 2, 2))
-# display(ssf_best_fits_xtable) = c("s", "s", "s", "g", "g", "g", "g", "g")
-# align(ssf_best_fits_xtable) <- c("L{0}", "C{2}", "C{1.5}", "C{.75}",
-#   "L{.75}", "L{1}", "L{.5}", "L{.5}")
-# str_replace_all(align(ssf_best_fits_xtable), "[^[//.||0-9]]", "") %>%
-#   str_subset(., "[0-9]") %>% as.numeric(.) %>% sum()
-# # translates to relative column widths (first value, rownames, is ignored)
-# # should sum to 7 for the 7 columns
-# # "L" indicates left-aligned, ragged-right, no hypenation (see LaTeX preamble)
-# # "H" indicates left-aligned, ragged-right, hypenation (see LaTeX preamble)
-# # For LaTeX Folder
-# print(ssf_best_fits_xtable,
-#   floating = FALSE, width = "\\textwidth",
-#   tabular.environment = "tabularx",
-#   booktabs = TRUE, # thick top/bottom line, Preamble: "\usepackage{booktabs}"
-#   include.rownames = FALSE,
-#   size = "\\fontsize{11pt}{12pt}\\selectfont",
-#   sanitize.colnames.function = BoldTextCentered,
-#   sanitize.text.function = identity,
-#   file = file.path("C:/Users/blake/OneDrive/Work/LaTeX/BMassey_Dissertation",
-#     "Tables/Ch2/SSF_Fits.tex")
-# )
-#
+# Set crs for ridge polys
+elev <- raster(elev_file)
+ridge_poly <- sf::read_sf(ridge_poly_file)
+sf::st_crs(ridge_poly) <- crs(elev)
+sf::st_write(ridge_poly, ridge_poly_file, append=FALSE)
 
 
-# require(broom)
-#
-# for (i in seq_len(nrow(best_fit_all))){
-#   fit_i <- best_fit_all %>% slice(i) %>% pull(clogit_fit) %>% pluck(1)
-#   xtable_list[[i]] <- tidy(fit_i)
-# }
-#
-# attr(xtable_list, "subheadings") <- best_fit_all$step_type %>%
-#     str_replace_all(., "_", " ") %>%
-#     str_to_title(.) %>%
-#     str_replace_all(., " ", " $\\\\rightarrow$ ")
-#
-# ssf_xtable_list <- xtableList(xtable_list)
-#
-# xtable_list_align <- c("L{0} C{1} C{1} C{1} C{1} C{1} C{1} C{1}")
-# str_replace_all(xtable_list_align, "[^[//.||0-9]]", "") %>%
-#   str_subset(., "[0-9]") %>% as.numeric(.) %>% sum()
-#
-# # For LaTeX Folder
-# ssf_xtable_list_tex <- print.xtableList(ssf_xtable_list,
-#   align = xtable_list_align,
-#   floating = FALSE, width = "\\textwidth",
-#   tabular.environment = "tabularx",
-#   booktabs = TRUE, # thick top/bottom line, Preamble add "\usepackage{booktabs}"
-#   include.rownames = FALSE,
-#   size = "\\fontsize{11pt}{12pt}\\selectfont",
-#   sanitize.colnames.function = BoldTextCentered,
-#   sanitize.text.function = identity,
-#   file = file.path("C:/Users/blake/OneDrive/Work/LaTeX/BMassey_Dissertation",
-#                     "Tables/Ch2/SSF_Fits.tex")
-#   )
-
-
-
-
-# write_lines(ssf_xtable_list_tex, path = file.path("C:/Users/blake/OneDrive",
-#   "Work/LaTeX/BMassey_Dissertation", "Tables/Ch2/SSF_Fits.tex"))
-#
-# ssf_fits_df  <- best_ssf_fit_all_org %>%
-#   dplyr::select(step_type, fit_aicc, preds) %>%
-#   mutate(step_type = str_replace_all(step_type, "_", "  ")) %>%
-#   mutate(step_type = str_to_title(step_type)) %>%
-#   mutate(step_type = str_replace_all(step_type, "  ", " $\\\\rightarrow$ ")) %>%
-#   mutate(preds = str_replace_all(preds, "_", " ")) %>%
-#   mutate(preds = str_to_title(preds)) %>%
-#   mutate(preds = str_replace_all(preds, "(?<=[:alpha:]) (?=[:alpha:])", "")) %>%
-#   mutate(preds = str_replace_all(preds, "DevelopedDist0", "DevelopedDist")) %>%
-#   mutate(preds = str_replace_all(preds, "HydroDist0", "HydroDist")) %>%
-#   mutate(preds = str_replace_all(preds, "TurbineDist0", "TurbineDist"))
-#
-# colnames(ssf_fits_df) <- colnames(ssf_fits_df) %>%
-#   str_replace(., "step_type", "Step Type") %>%
-#   str_replace(., "fit_aicc", "Fit AICc") %>%
-#   str_replace(., "preds", "Predictor Variables with Sigma")
-#
-# print(xtable(ssf_fits_df, digits = c(0, 0, 2, 0)),
-#   sanitize.text.function = identity, latex.environments = "",
-#   include.rownames = FALSE)
-#
-# ssf_fits_xtable <- xtable(ssf_fits_df, digits = c(0, 0, 2, 0))
-# #  only.contents = FALSE, floating = FALSE)
-#
-# align(ssf_fits_xtable) <- c("L{0}", "L{.75}", "C{.25}", "L{2}")
-#
-# str_replace_all(align(ssf_fits_xtable), "[^[//.||0-9]]", "") %>%
-#   str_subset(., "[0-9]") %>% as.numeric(.) %>% sum()
-# # translates to relative column widths (first value, rownames, is ignored)
-# # should sum to 3 for the 3 columns
-# # "L" indicates left-aligned, ragged-right, no hypenation (check LaTeX preamble)
-# # "H" indicates left-aligned, ragged-right, hypenation (check LaTeX preamble)
-#
-# # For LaTeX Folder
-# print(ssf_fits_xtable,
-#   floating = FALSE, width = "\\textwidth",
-#   tabular.environment = "tabularx",
-#   booktabs = TRUE, # thick top/bottom line, Preamble add "\usepackage{booktabs}"
-#   include.rownames = FALSE,
-#   size="\\fontsize{11pt}{12pt}\\selectfont",
-#   sanitize.colnames.function=BoldTextCentered,
-#   sanitize.text.function=identity,
-#   file = file.path("C:/Users/blake/OneDrive/Work/LaTeX/BMassey_Dissertation",
-#                    "Tables/Ch2/SSF_Fits.tex"))

@@ -1,124 +1,132 @@
-best_fits_models_refit <- best_fits_models_data %>%
-  mutate(clogit_preds = paste0("case ~ ", preds, " + strata(step_id)")) %>%
-  mutate(clogit_preds_null = paste0("case ~ 0 + strata(step_id)")) %>%
-  dplyr::select(step_type, fit_aicc, delta_aicc, clogit_preds, ua_steps,
-    preds) %>%
-  mutate(clogit_fit = map2(.x = clogit_preds, .y = ua_steps,
-    .f = FitClogit)) %>%
-  mutate(clogit_fit_null = map2(.x = clogit_preds, .y = ua_steps,
-    .f = FitClogit)) %>%
-  mutate(fit_aicc_refit = map_dbl(clogit_fit, AICc)) %>%
-  dplyr::select(-ua_steps)
+# Load libraries, scripts, and input parameters
+pacman::p_load(AICcmodavg, plyr, dplyr, future, furrr, optimx, ggplot2,
+  ggthemes, glmulti, lubridate, optimx, purrr, raster, reproducible, rgenoud,
+  stringr, survival, surveybootstrap, tibble, tictoc, tidyr)
+library(gisr)
+rasterOptions(maxmem = Inf, progress = "text", timer = TRUE, chunksize=1e9,
+  memfrac=.9)
+############################ IMPORT RASTERS ####################################
 
+# Source data directories
+base_file <- "C:/ArcGIS/Data/BlankRaster/maine_30mc.tif"
+file_dir <- "C:/ArcGIS/Data/R_Input/BAEA"
 
+# Terrain class
+elev_file <- file.path(file_dir, "elev_30mc.tif")
 
+## Import Covariate Rasters ----------------------------------------------------
 
-test <- tibble(deviance_values = list(c(1, 2), c(4, 5), c(6, 6, 8))) %>%
-  mutate(deviance_squared = map(deviance_values, ~.^2)) %>%
-  mutate(deviance_sum_of_squares = map_dbl(deviance_squared, sum))
+# Base
+base <- raster(base_file)
 
+# Terrain class
+elev_org <- raster(elev_file) # all other layers' extent are set to this layer
 
+rm(base_file)
 
+x_min <- xmin(elev_org)
+x_max <- xmax(elev_org)
+y_min <- ymin(elev_org)
+y_max <- ymax(elev_org)
+(y_half <- (ymax(elev_org) - ymin(elev_org))*(1/2))
+(y_third <- (ymax(elev_org) - ymin(elev_org))*(1/3))
 
-best_ssf_fits_deviance %>% dplyr::select(deviance_values) %>% slice(1) %>% pluck(1) %>% slice(1:10)
+#elev_1 <- crop(elev_org, extent(x_min, x_max, y_min, y_max - y_half))
+#elev_2 <- crop(elev_org, extent(x_min, x_max, y_min + y_third,
+#   y_min + y_third + y_half))
+elev_3 <- crop(elev_org, extent(x_min, x_max, y_min + y_half, y_max))
 
-  mutate(deviance_squared = map(deviance_values, ~.^2)) %>%
-  mutate(deviance_sum_of_squares = map_dbl(deviance_squared, sum)) %>%
-  mutate(deviance_values_null = map(.x = clogit_fit_null, .f = residuals,
-    type = "deviance")) %>%
-  mutate(deviance_null = map_dbl(deviance_values, sum)) %>%
+elev <- elev_3
 
+rm(elev_org, elev_3)
+removeTmpFiles(h=0)
 
-CreateSimLandscapeRasters <- function(con_nest_dist){
-  return(landscape)
+raster_classes <- c(developed = "kernel_class",
+  forest = "kernel_class",
+  open_water = "kernel_class",
+  pasture = "kernel_class",
+  shrub_herb = "kernel_class",
+  wetland = "kernel_class",
+  eastness = "kernel_class",
+  northness = "kernel_class",
+  wind_class = "kernel_class",
+  developed_dist = "extract_class",
+  hydro_dist = "extract_class",
+  turbine_dist = "extract_class",
+  tpi = "terrain_class",
+  tri = "terrain_class",
+  roughness = "terrain_class")
+
+## Get SSF FITS ----------------------------------------------------------------
+
+# Directory of fits
+mod_fit_dir = "Output/Analysis/SSF/Models"
+
+best_ssf_fits_org <- readRDS(file.path(mod_fit_dir, "best_fits",
+  "best_ssf_fit_all.rds"))
+
+best_ssf_fits_org %>% dplyr::select(step_type, preds)
+best_ssf_fits <- best_ssf_fits_org
+
+# Determine all the raster_sigma layers
+preds_all <- paste0(best_ssf_fits$preds, collapse = " + ")
+preds_unique <- unique(str_split(preds_all, " \\+ ") %>% pluck(1))
+preds_rasters <- unique(str_replace_all(preds_unique, "[0-9]", ""))
+
+preds_tbl <- tibble(preds_unique) %>%
+  mutate(sigma = as.integer(str_extract(preds_unique, "[0-9]{1,3}"))) %>%
+  mutate(covar = str_replace_all(preds_unique, "[0-9]", "")) %>%
+  dplyr::select(covar, sigma) %>%
+  mutate(covar_sigma = paste0(covar, sigma)) %>%
+  mutate(raster_class = recode(covar, !!!raster_classes)) %>%
+  mutate(raster_layer = vector(mode = "list", length = nrow(.))) %>%
+  arrange(covar, sigma)
+
+CalculateTerrainMetricWithSigma <- function(sigma, metric){
+  print(paste0("Starting: ", metric, sigma))
+  if(sigma == 0) sigma <- 1
+  size <- (sigma*2) + 1
+  x <- elev
+  weight_matrix <- matrix(1, nrow = size, ncol = size)
+  center <- ceiling(0.5 * length(weight_matrix))
+  window <- length(weight_matrix)-1
+  if (metric == "tri"){
+    tri <- focal(x, w = weight_matrix,
+      fun = function(x, ...) sum(abs(x[-center] - x[center]))/window,
+      pad = TRUE, padValue = NA)
+      out_matrix <- tri
+  } else if (metric == "tpi"){
+    tpi <- focal(x, w = weight_matrix,
+      fun = function(x, ...) x[center] - mean(x[-center]),
+      pad = TRUE, padValue = NA)
+    out_matrix <- tpi
+  } else if (metric == "roughness"){
+    rough <- focal(x, w = weight_matrix,
+      fun = function(x, ...) max(x) - min(x),
+      pad = TRUE, padValue = NA, na.rm = TRUE)
+    out_matrix <- rough
+  } else {
+    stop("'metric' must equal 'tpi', 'tri', or 'roughness'", call. = FALSE)
+  }
+  return(out_matrix)
 }
 
+# Had to split out types b/c I couldn't get case_when() to work inside mutate()
 
-# UpdateAgentStates <- function(agent_states = NULL,
-#                               sim = sim,
-#                               init = FALSE) {
-#   if (init == TRUE) {
-#     input <- sim$agents$input
-#     input <- CreateBirthDate(input)
-#     input_columns <- colnames(input)
-#     na_columns <- c("start_datetime", "died")
-#     all <- list()
-#     for (i in 1:nrow(input)) {
-#       states <- list()
-#       for (j in input_columns) states <- append(states, input[i, j])
-#       for (k in 1:length(na_columns)) states <- append(states, NA)
-#       states <- setNames(states, c(input_columns, na_columns))
-#       agent <- NamedList(states)
-#       all <- append(all, NamedList(agent))
-#     }
-#     sim$agents <- append(sim$agents, NamedList(all))
-#     return(sim)
-#   } else {
-#     agent_states <- agent_states
-#     return(agent_states)
-#   }
-# }
-#
-#
-# library(raster)
-# x <- raster(matrix(1:(15*25), nrow = 15), xmn = -1000, xmx = 1000,
-# ymn = -1000, ymx = 1000)
-# crs(x) <-
-# plot(x, main="Original")
-#  plot(RotateRaster(x, 30, 10), main = paste("Rotated by 30 degrees"))
-#  plot(RotateRaster(x, 75, 10), main = paste("Rotated by 75 degrees"))
-#  plot(RotateRaster(x, 180, 10), main = paste("Rotated by 180 degrees"))
-#  plot(RotateRaster(x, 300, 10), main = paste("Rotated by 300 degrees"))
+preds_terrain <- preds_tbl %>%
+  filter(raster_class == "terrain_class") %>%
+  slice(c(7,10,11))
 
-# con_nest_raster = con_nest_raster
-# raster_extent = extent(move_kernel_final)
-# pars_gamma = pars_gamma
-# pars_rescale = pars_rescale
-# x = step_data$x[i]
-# y = step_data$y[i]
-# x = 370000
-# y = 4948000
-# base = base
-
-# CreateRasterConNestDistProb <- function(con_nest_raster,
-#                                         raster_extent,
-#                                         pars_gamma,
-#                                         pars_rescale,
-#                                         x,
-#                                         y,
-#                                         base){
-#   gamma_shape <- as.numeric(pars_gamma$shape)
-#   gamma_rate <- as.numeric(pars_gamma$rate)
-#   y_min <- pars_rescale$y_min
-#   y_max <- pars_rescale$y_max
-#   y_min_new <- pars_rescale$y_min_new
-#   y_max_new <- pars_rescale$y_max_new
-#
-#   cellsize <- raster::res(base)[1]
-#
-#   #plot(con_nest_raster)
-#   con_nest_crop <- raster::crop(con_nest_raster, raster_extent, snap = 'in')
-#   #plot(con_nest_crop)
-#
-#   xy <- CenterXYInCell(x, y, raster::xmin(base), raster::ymin(base),
-#     raster::res(base)[1])  # May be unnecessary
-#   xy_pt <- data.frame(x = xy[1], y = xy[2])
-#   xy_con_nest <- raster::extract(con_nest_crop, xy_pt)
-#
-#   con_nest_centered <- raster::calc(con_nest_crop,
-#     fun = function(x){(x - xy_con_nest)/1000})
-#   #plot(con_nest_centered)
-#   y_diff_new <- y_max_new - y_min_new
-#
-#   print(paste("xy_con_nest:", xy_con_nest))
-#
-#   y_pgamma <- pgamma(xy_con_nest/1000, shape = gamma_shape, rate = gamma_rate)
-#   y_log_scale <- y_min_new + (((y_pgamma-y_min)/(y_max-y_min)) * (y_diff_new))
-#
-# #  curve(LogisticByInflection(x, inflection=0, scale=xy_log_scale), -15, 15)
-#   LogisticByInflection2 <- function(x){
-#     x <- LogisticByInflection(x, inflection = 0, scale = y_log_scale)
-#   }
-#   con_nest_prob <- raster::calc(con_nest_centered, fun = LogisticByInflection2)
-#   return(con_nest_prob)
-# }
+for (i in 1:nrow(preds_terrain)){
+  preds_terrain_i <- preds_terrain %>%
+    slice(i)
+  raster_terrain_i <- preds_terrain_i %>%
+    mutate(raster_layer = map2(.x = sigma, .y = covar,
+      .f = CalculateTerrainMetricWithSigma)) %>%
+    pluck("raster_layer", 1)
+  raster_terrain_i_name <- preds_terrain_i %>% pull(covar_sigma)
+  names(raster_terrain_i) <- raster_terrain_i_name
+  writeRaster(raster_terrain_i, file.path(file_dir, "SSF_Rasters", paste0(
+    raster_terrain_i_name, "_3")), format = "raster", overwrite = TRUE)
+  rm(raster_terrain_i)
+}
