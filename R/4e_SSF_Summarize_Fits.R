@@ -20,7 +20,7 @@ step_types <- list.dirs(file.path(mod_fit_dir, "original_fits"),
   full.names = FALSE, recursive = FALSE)
 
 ######################## MODELS DATA MANAGEMENT ################################
-# Files can't be larger than 100mb on GitHub, so I had to split up them up
+# Files can't be larger than 100 MB on GitHub, so I had to split up them up
 
 rerun_data_management <- FALSE
 if (isTRUE(rerun_data_management)){
@@ -317,13 +317,12 @@ best_fit_all <- list.files(path = file.path(mod_fit_dir, "best_fits"),
 saveRDS(best_fit_all, file.path(mod_fit_dir, "best_fits",
   "best_ssf_fit_all.rds")) # File is >100Mb, so it is included in .gitignore
 
-
 ### ------------------------------------------------------------------------ ###
 ############################### OLD CODE #######################################
 ### ------------------------------------------------------------------------ ###
 
 
-# ################# COMPILE ALL BEST NO-MAX-SIGMA FIT MODELS ###################
+# ## COMPILE ALL BEST NO-MAX-SIGMA FIT MODELS
 #
 # # Determine the best fit models that do not have a "maximum sigma" variable,
 # # specifically 100 or 50 sigma values (depending on class).
