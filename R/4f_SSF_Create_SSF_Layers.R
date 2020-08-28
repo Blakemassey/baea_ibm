@@ -1,15 +1,16 @@
 ## THIS IS A TEST FOR CONVERTING THE SSF MODELS TO SSF SURFACES
 
 # Load libraries, scripts, and input parameters
-pacman::p_load(plyr, dplyr, future, furrr, optimx, ggplot2, ggthemes, glmulti,
-  lubridate, optimx, purrr, raster, reproducible, rgenoud, stringr, survival,
-  surveybootstrap, tibble, tictoc, tidyr, whitebox)
+pacman::p_load(plyr, dplyr, fasterize, future, furrr, optimx, ggplot2, ggthemes,
+  glmulti, lubridate, optimx, purrr, raster, reproducible, rgenoud, stringr,
+  survival, surveybootstrap, tibble, tictoc, tidyr, whitebox)
 library(gisr)
 
 whitebox::wbt_init() # required for WhiteboxTools to work
 wbt_version() # check WhiteboxTools version
 rasterOptions(maxmem = Inf, progress = "text", timer = TRUE,
   memfrac = .75)
+
 ############################ IMPORT RASTERS ####################################
 
 ## Get SSF FITS ----------------------------------------------------------------
@@ -260,106 +261,19 @@ developed_dist_file <- file.path(input_dir, "developed_dist_30mc.tif")
 hydro_dist_file <- file.path(input_dir, "hydro_dist_30mc.tif")
 turbine_dist_file <- file.path(input_dir, "turbine_dist_30mc.tif")
 
+# Change turbine dist raster cells with NA to 60000 (max dist calculated)
+turbine_dist_org <- raster(turbine_dist_file)
+turbine_dist_max <- cellStats(turbine_dist_org, stat = "max")
+turbine_dist <- turbine_dist_org
+turbine_dist[is.na(turbine_dist)] <- turbine_dist_max
+plot(turbine_dist)
+
 writeRaster(raster(developed_dist_file), file.path(covars_full_dir,
   "developed_dist0.tif"), format = "GTiff", overwrite = TRUE)
 writeRaster(raster(hydro_dist_file), file.path(covars_full_dir,
   "hydro_dist0.tif"), format = "GTiff", overwrite = TRUE)
-writeRaster(raster(turbine_dist_file), file.path(covars_full_dir,
+writeRaster(turbine_dist, file.path(covars_full_dir,
   "turbine_dist0.tif"), format = "GTiff", overwrite = TRUE)
-
-# ONE-OFF FILE MOVE
-# tri50_file <- file.path(ssf_raster_dir, "Terrain/Final_Raster",
-#   "tri50.tif")
-# writeRaster(raster(tri50_file), file.path(ssf_raster_dir,
-#   "tri50.tif"), format = "GTiff", overwrite = TRUE)
-
-
-################### GENERATE SSF_LAYERS FOR MAINE ##############################
-
-# Directory of fits
-mod_fit_dir = "Output/Analysis/SSF/Models"
-covars_full_dir = "C:/ArcGIS/Data/R_Input/BAEA/SSF_Rasters/Covars_Full"
-maine_raster_trim_file = "C:/ArcGIS/Data/BlankRaster/maine_trim.tif"
-
-best_ssf_fits <- readRDS(file.path(mod_fit_dir, "best_fits",
-  "best_ssf_fit_all.rds"))
-maine_raster_trim <- raster(maine_raster_trim_file)
-
-# Generate layer for each ssf
-for (i in 4:nrow(best_ssf_fits)){
-  print(i)
-  clogit_fit_i <- best_ssf_fits %>% slice(i) %>% pull(clogit_fit) %>% pluck(1)
-  step_type_i <- best_ssf_fits %>% slice(i) %>% pull(step_type)
-  # Extract terms(not including 'strata(step_id)')
-  terms_i <- clogit_fit_i %>% pluck(terms, attr_getter("term.labels")) %>%
-    .[!. %in% c("strata(step_id)")]
-  # Extract coefficients
-  coefs_i <- clogit_fit_i %>% pluck(coef)
-
-  # Create Raster_Brick
-  covars_list <- vector(mode = "list", length = length(terms_i))
-  for (j in seq_along(terms_i)){
-    terms_i_j <- terms_i[j]
-    print(terms_i_j)
-    raster_file <- file.path(covars_full_dir, paste0(terms_i_j, ".tif"))
-    covars_list[[j]] <- raster(raster_file)
-  }
-  covars_brick <- raster::brick(covars_list)
-
-  # Generate formulas
-  ssf_formula <- paste0("(", paste(paste0("covars_brick[['", names(coefs_i),
-    "']]"), paste0("coefs_i['", names(coefs_i),"']"), sep = "*",
-    collapse = ") + ("), ")")
-
-  # Create raster, then crop and mask
-  ssf_raster <- eval(parse(text = ssf_formula))
-  ssf_raster_crop <- crop(ssf_raster, maine_raster_trim)
-  ssf_raster_mask <- mask(ssf_raster_crop, maine_raster_trim)
-
-  # Write Raster to output dir
-  step_type_i_numeric <- step_type_i %>% str_replace_all(c("cruise" = "1",
-    "flight" = "2", "nest" = "3", "perch" = "4", "roost" = "5"))
-  writeRaster(ssf_raster_mask, file.path(ssf_raster_dir, "Step_Types",
-    step_type_i_numeric), format = "GTiff", overwrite = TRUE)
-  rm(ssf_formula, ssf_raster, ssf_raster_crop, ssf_raster_mask,
-    step_type_i_numeric)
-  gc()
-}
-
-# Generate probability surface for each ssf_layer
-
-ssf_layers <- list.files(file.path(ssf_raster_dir, "Step_Types"),
-  pattern = ".tif$")
-for (i in seq_along(ssf_layers)){
-  ssf_layer_i <- ssf_layers[i]
-  print(ssf_layer_i)
-  ssf_raster <- raster(file.path(ssf_raster_dir, "Step_Types", ssf_layer_i))
-  ssf_raster_inv_logit <- calc(ssf_raster, fun = boot::inv.logit)
-  writeRaster(ssf_raster_inv_logit, file.path(ssf_raster_dir, "Step_Types_Prob",
-    ssf_layer_i), format = "GTiff", overwrite = TRUE)
-  rm(ssf_layer_i, ssf_raster, ssf_raster_inv_logit)
-}
-
-ssf_prob_layers <- list.files(file.path(ssf_raster_dir, "Step_Types_Prob"),
-  pattern = ".tif$")
-for (i in seq_along(ssf_prob_layers)){
-  ssf_prob_layer_i <- ssf_prob_layers[i]
-  print(ssf_prob_layer_i)
-  ssf_raster <- raster(file.path(ssf_raster_dir, "Step_Types_Prob",
-    ssf_prob_layer_i))
-
-  f <- hist(ssf_raster, breaks=30)
-  dat <- data.frame(counts= f$counts,breaks = f$mids)
-  ggplot(dat, aes(x = breaks, y = counts)) +
-  geom_bar(stat = "identity", fill='blue',alpha = 0.8)+
-  xlab("Logit")+ ylab("Value")+
-  scale_x_continuous(breaks = seq(-1,1,0.25),
-    labels = seq(-1,1,0.25))
-
-  writeRaster(ssf_raster_inv_logit, file.path(ssf_raster_dir, "Step_Types_Prob",
-    ssf_layer_i), format = "GTiff", overwrite = TRUE)
-  rm(ssf_layer_i, ssf_raster, ssf_raster_inv_logit)
-}
 
 ################### MASK COVARIATE RASTERS TO MAINE ONLY #######################
 
@@ -387,9 +301,199 @@ for (i in seq_len(nrow(preds_tbl))){
   writeRaster(covar_raster_mask, out_file, format = "GTiff", overwrite = TRUE)
 }
 
+################### GENERATE SSF_LAYERS FOR MAINE ##############################
+
+# Directory of fits
+mod_fit_dir = "Output/Analysis/SSF/Models"
+ssf_raster_dir = "C:/ArcGIS/Data/R_Input/BAEA/SSF_Rasters"
+covars_crop_dir = file.path(ssf_raster_dir, "Covars_Crop")
+step_type_dir = file.path(ssf_raster_dir, "Step_Type")
+maine_raster_trim_file = "C:/ArcGIS/Data/BlankRaster/maine_trim.tif"
+
+best_ssf_fits <- readRDS(file.path(mod_fit_dir, "best_fits",
+  "best_ssf_fit_all.rds"))
+maine_raster_trim <- raster(maine_raster_trim_file)
+
+# Generate layer for each ssf based on original fits
+for (i in 1:nrow(best_ssf_fits)){
+  print(paste0("i:", i))
+  clogit_fit_i <- best_ssf_fits %>% slice(i) %>% pull(clogit_fit) %>% pluck(1)
+  step_type_i <- best_ssf_fits %>% slice(i) %>% pull(step_type)
+  # Extract terms(not including 'strata(step_id)')
+  terms_i <- clogit_fit_i %>% pluck(terms, attr_getter("term.labels")) %>%
+    .[!. %in% c("strata(step_id)")]
+  # Extract coefficients
+  coefs_i <- clogit_fit_i %>% pluck(coef)
+
+  # Create Raster_Brick
+  covars_list <- vector(mode = "list", length = length(terms_i))
+  for (j in seq_along(terms_i)){
+    terms_i_j <- terms_i[j]
+    print(paste0("covariates: ", terms_i_j))
+    raster_file <- file.path(covars_crop_dir, paste0(terms_i_j, ".tif"))
+    covars_list[[j]] <- raster(raster_file)
+  }
+  covars_brick <- raster::brick(covars_list)
+  #plot(covars_brick)
+  rm(clogit_fit_i, covars_list)
+
+  # Generate formulas
+  ssf_formula <- paste0("(", paste(paste0("covars_brick[['", names(coefs_i),
+    "']]"), paste0("coefs_i['", names(coefs_i),"']"), sep = "*",
+    collapse = ") + ("), ")")
+
+  # Create raster, then crop and mask
+  ssf_raster <- eval(parse(text = ssf_formula))
+  plot(ssf_raster, main = step_type_i)
+
+  # Write Raster to output dir
+  step_type_i_numeric <- step_type_i %>% str_replace_all(c("cruise" = "1",
+    "flight" = "2", "nest" = "3", "perch" = "4", "roost" = "5"))
+  writeRaster(ssf_raster, file.path(ssf_raster_dir, "Step_Types",
+    step_type_i_numeric), format = "GTiff", overwrite = TRUE)
+  rm(coefs_i, covars_brick, raster_file, ssf_formula, ssf_raster,
+    step_type_i_numeric, terms_i, terms_i_j)
+  gc()
+}
+
+
+# Generate UPDATE_01 layers based on PERCH using only hydro_dist and open_water
+for (i in 1:nrow(best_ssf_fits)){
+  print(paste0("i:", i))
+  clogit_fit_i <- best_ssf_fits %>% slice(i) %>% pull(clogit_fit) %>% pluck(1)
+  step_type_i <- best_ssf_fits %>% slice(i) %>% pull(step_type)
+  step_type_i_numeric <- step_type_i %>% str_replace_all(c("cruise" = "1",
+    "flight" = "2", "nest" = "3", "perch" = "4", "roost" = "5"))
+  start_behavior <- str_split(step_type_i_numeric, "_") %>% pluck(1, 1) %>%
+    as.numeric(.)
+  end_behavior <- str_split(step_type_i_numeric, "_") %>% pluck(1, 2) %>%
+    as.numeric(.)
+
+  if(end_behavior != 4){
+
+    # Extract terms(not including 'strata(step_id)')
+    terms_i <- clogit_fit_i %>% pluck(terms, attr_getter("term.labels")) %>%
+      .[!. %in% c("strata(step_id)")]
+    # Extract coefficients
+    coefs_i <- clogit_fit_i %>% pluck(coef)
+
+  } else {
+
+    # Extract terms associated with water only
+    terms_logical_i <- clogit_fit_i %>% pluck(terms,
+      attr_getter("term.labels")) %>%str_detect(., "hydro_dist0|open_water")
+    terms_i <- clogit_fit_i %>% pluck(terms, attr_getter("term.labels")) %>%
+      .[terms_logical_i]
+    # Extract coefficients
+    coefs_i <- clogit_fit_i %>% pluck(coef) %>%
+      .[terms_logical_i]
+
+  }
+
+  # Create Raster_Brick
+  covars_list <- vector(mode = "list", length = length(terms_i))
+  for (j in seq_along(terms_i)){
+    terms_i_j <- terms_i[j]
+    print(paste0("covariates: ", terms_i_j))
+    raster_file <- file.path(covars_crop_dir, paste0(terms_i_j, ".tif"))
+    covars_list[[j]] <- raster(raster_file)
+  }
+  covars_brick <- raster::brick(covars_list)
+  #plot(covars_brick)
+  rm(clogit_fit_i, covars_list)
+
+  # Generate formulas
+  ssf_formula <- paste0("(", paste(paste0("covars_brick[['", names(coefs_i),
+    "']]"), paste0("coefs_i['", names(coefs_i),"']"), sep = "*",
+    collapse = ") + ("), ")")
+
+  # Create raster, then crop and mask
+  ssf_raster <- eval(parse(text = ssf_formula))
+  plot(ssf_raster, main = step_type_i)
+
+  # Write Raster to output dir
+
+  writeRaster(ssf_raster, file.path(ssf_raster_dir, "Step_Types_Update_01",
+    step_type_i_numeric), format = "GTiff", overwrite = TRUE)
+  rm(coefs_i, covars_brick, raster_file, ssf_formula, ssf_raster,
+    step_type_i_numeric, terms_i, terms_i_j)
+  gc()
+}
+
+
 ### ------------------------------------------------------------------------ ###
 ############################### OLD CODE #######################################
 ### ------------------------------------------------------------------------ ###
+
+# # Generate probability surface for each ssf_layer
+#
+# ssf_layers <- list.files(file.path(ssf_raster_dir, "Step_Types"),
+#   pattern = ".tif$")
+# for (i in seq_along(ssf_layers)){
+#   ssf_layer_i <- ssf_layers[i]
+#   print(ssf_layer_i)
+#   ssf_raster <- raster(file.path(ssf_raster_dir, "Step_Types", ssf_layer_i))
+#   ssf_raster_inv_logit <- calc(ssf_raster, fun = boot::inv.logit)
+#   writeRaster(ssf_raster_inv_logit, file.path(ssf_raster_dir, "Step_Types_Prob",
+#     ssf_layer_i), format = "GTiff", overwrite = TRUE)
+#   rm(ssf_layer_i, ssf_raster, ssf_raster_inv_logit)
+# }
+#
+# # Create histogram of the probability surfaces
+# ssf_prob_layers <- list.files(file.path(ssf_raster_dir, "Step_Types_Prob"),
+#   pattern = ".tif$")
+# for (i in seq_along(ssf_prob_layers)){
+#   ssf_prob_layer_i <- ssf_prob_layers[i]
+#   print(ssf_prob_layer_i)
+#   ssf_raster <- raster(file.path(ssf_raster_dir, "Step_Types_Prob",
+#     ssf_prob_layer_i))
+#
+#   f <- hist(ssf_raster, breaks=30)
+#   dat <- data.frame(counts= f$counts,breaks = f$mids)
+#   ggplot(dat, aes(x = breaks, y = counts)) +
+#   geom_bar(stat = "identity", fill='blue',alpha = 0.8)+
+#   xlab("Logit")+ ylab("Value")+
+#   scale_x_continuous(breaks = seq(-1,1,0.25),
+#     labels = seq(-1,1,0.25))
+#
+#   writeRaster(ssf_raster_inv_logit, file.path(ssf_raster_dir, "Step_Types_Prob",
+#     ssf_layer_i), format = "GTiff", overwrite = TRUE)
+#   rm(ssf_layer_i, ssf_raster, ssf_raster_inv_logit)
+# }
+#
+# # Rescale surfaces to new range (-10 - 10)
+# ssf_layers <- list.files(file.path(ssf_raster_dir, "Step_Types"),
+#   pattern = ".tif$", full.names = TRUE)
+# for (i in seq_along(ssf_layers)){
+#   ssf_layer_i <- basename(ssf_layers[i])
+#   print(ssf_layer_i)
+#   ssf_layer_i_file <- ssf_layers[i]
+#   ssf_layer_rescale_i_file <- file.path(ssf_raster_dir, "Step_Types_Rescale",
+#     ssf_layer_i)
+#   wbt_rescale_value_range(ssf_layer_i_file, ssf_layer_rescale_i_file,
+#     -10, 10, clip_min = NULL, clip_max = NULL, wd = NULL, verbose_mode = TRUE
+#   )
+#   ssf_raster <- raster(file.path(ssf_raster_dir, "Step_Types", ssf_layer_i))
+#   ssf_raster_inv_logit <- calc(ssf_raster, fun = boot::inv.logit)
+#   writeRaster(ssf_raster_inv_logit, file.path(ssf_raster_dir, "Step_Types_Prob",
+#     ssf_layer_i), format = "GTiff", overwrite = TRUE)
+#   rm(ssf_layer_i, ssf_raster, ssf_raster_inv_logit)
+# }
+#
+# # Generate probability surface for each rescaled ssf_layer
+# ssf_layers <- list.files(file.path(ssf_raster_dir, "Step_Types_Rescale"),
+#   pattern = ".tif$")
+# for (i in seq_along(ssf_layers)){
+#   ssf_layer_i <- ssf_layers[i]
+#   print(ssf_layer_i)
+#   ssf_raster <- raster(file.path(ssf_raster_dir, "Step_Types_Rescale",
+#     ssf_layer_i))
+#   ssf_raster_inv_logit <- calc(ssf_raster, fun = boot::inv.logit)
+#   ssf_raster_mask <- mask(ssf_raster_inv_logit, mask, updatevalue=NA)
+#   writeRaster(ssf_raster_mask, file.path(ssf_raster_dir,
+#     "Step_Types_Rescale_Prob", ssf_layer_i), format = "GTiff", overwrite = TRUE)
+#   rm(ssf_layer_i, ssf_raster, ssf_raster_inv_logit)
+# }
 
 #   ssf_raster_inv_log <- calc(ssf_raster, fun = boot::inv.logit)
 #   # plot histogram
@@ -420,31 +524,7 @@ for (i in seq_len(nrow(preds_tbl))){
 #
 # inverse_logit <- TRUE
 # # Generate layer for each ssf
-# for (i in seq_len(nrow(best_ssf_fits))){
-#   print(i)
-#   clogit_fit_i <- best_ssf_fits %>% slice(i) %>% pull(clogit_fit) %>% pluck(1)
-#   step_type_i <- best_ssf_fits %>% slice(i) %>% pull(step_type)
-#   # Extract terms(not including 'strata(step_id)')
-#   terms_i <- clogit_fit_i %>% pluck(terms, attr_getter("term.labels")) %>%
-#     .[!. %in% c("strata(step_id)")]
-#   # Extract coefficients
-#   coefs_i <- clogit_fit_i %>% pluck(coef)
-#   # Generate formulas
-#   ssf_formula <- paste0("(", paste(paste0("covars_brick[['", names(coefs_i),
-#     "']]"), paste0("coefs_i['", names(coefs_i),"']"), sep = "*",
-#     collapse = ") + ("), ")")
-#   ssf_raster <- eval(parse(text=ssf_formula))
-#   if (isTRUE(inverse_logit)){
-#     ssf_raster_final <- calc(ssf_raster, fun = boot::inv.logit)
-#     } else {
-#     ssf_raster_final <- ssf_raster
-#   }
-#   ssf_raster_list[[i]] <- ssf_raster_final
-#   step_type_i_numeric <- step_type_i %>% str_replace_all(c("cruise" = "1",
-#     "flight" = "2", "nest" = "3", "perch" = "4", "roost" = "5"))
-#   # Names are "step_#_#" because raster stack names can't start with a number
-#   names(ssf_raster_list[[i]]) <- paste0("step_", step_type_i_numeric)
-# }
+
 #
 # ssf_stack <- raster::stack(ssf_raster_list)
 # names(ssf_stack)

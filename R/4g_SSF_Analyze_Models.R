@@ -2,18 +2,19 @@
 
 ########################### LOAD PACKAGES AND DATA  ############################
 # Load libraries, scripts, and input parameters
-pacman::p_load(plyr, dplyr, optimx, ggplot2, ggthemes, lubridate,
-  optimx, purrr, reproducible, rgenoud, stringr, summarytools, survival,
+pacman::p_load(plyr, dplyr, optimx, ggplot2, ggthemes, lubridate, optimx, purrr,
+  raster, readr, reproducible, rgenoud, stringr, summarytools, survival,
   surveybootstrap, tibble, tictoc, tidyr, xtable)
 library(baear, gisr)
 options(stringsAsFactors=FALSE)
 
-# Calculate the quantiles for the Covariates -----------------------------------
-preds_tbl_file = "Output/Analysis/SSF/Models/best_fits/preds_tbl.rds"
-quantile_tbl_file = "Output/Analysis/SSF/Models/best_fits/covar_quantiles.rds"
+# Calculate the percentiles for the covariates ---------------------------------
+model_dir = "Output/Analysis/SSF/Models/best_fits"
+preds_tbl_file = file.path(model_dir, "preds_tbl.rds")
+quantile_tbl_file = file.path(model_dir, "covar_quantiles.rds")
 covars_crop_dir = "C:/ArcGIS/Data/R_Input/BAEA/SSF_Rasters/Covars_Crop"
 
-preds_tbl <- readRDS("Output/Analysis/SSF/Models/best_fits/preds_tbl.rds")
+preds_tbl <- readRDS(preds_tbl_file)
 
 probs_char <- c("0.01",
                 "0.05", "0.10",
@@ -33,6 +34,7 @@ prob_tbl <- probs_names %>% purrr::map_dfc(setNames, object = list(numeric()))
 covar_tbl <- tibble(covar = vector(mode = "character", 0))
 quantile_tbl <- bind_cols(covar_tbl, prob_tbl)
 
+# Calculate the covariate quantiles
 for (i in seq_len(nrow(preds_tbl))){
   preds_tbl_i <- preds_tbl %>% slice(i)
   covar_sigma <- preds_tbl_i %>% pull(covar_sigma)
@@ -69,7 +71,7 @@ best_fit_all <- best_ssf_fit_all_org %>%
 
 start_step_types <- best_fit_all %>% pull(start_behavior) %>% unique(.)
 
-#i <- start_step_types[3]; j <- 1  # for testing
+# Extract model data using a for loop of each starting behaviors
 for (i in start_step_types){
   best_fit_i <- best_fit_all %>% filter(start_behavior == i)
   fit_list <- vector(mode = "list", length = nrow(best_fit_i))
@@ -88,17 +90,18 @@ for (i in start_step_types){
   if(i == start_step_types[1]){
     model_data <- ssf_best_fits_table_i
   } else {
-    model_data <- ssf_best_fits_xtable %>%
+    model_data <- model_data %>%
       bind_rows(ssf_best_fits_table_i)
   }
 }
 
 saveRDS(model_data, model_data_file)
 
-# Combine the model fit data with the raster quantile data ---------------------
+# Combine the model fit data with the raster quantile data and preict margins --
 mod_fit_dir = "Output/Analysis/SSF/Models"
 model_data_file = "Output/Analysis/SSF/Models/best_fits/model_data.rds"
 quantile_tbl_file = "Output/Analysis/SSF/Models/best_fits/covar_quantiles.rds"
+predictions_file = "Output/Analysis/SSF/Models/best_fits/covar_predictions.rds"
 
 best_fit_all <- readRDS(file.path(mod_fit_dir, "best_fits",
   "best_ssf_fit_all.rds"))
@@ -106,39 +109,145 @@ model_data <- readRDS(model_data_file)
 quantile_tbl <- readRDS(quantile_tbl_file)
 
 fits_quantile_tbl <- model_data %>%
-  left_join(., quantile_tbl, c("term" = "covar"))
+  left_join(., quantile_tbl, c("term" = "covar")) %>%
+  dplyr::select(-c("exp(coef)":"p"))
 
+## NEEDS:
+## Finish creating lists that store data and then compile all data into one tbl
+
+pred_list_all <- vector(mode = "list", length = nrow(best_fit_all))
+i <- j <- 1
 for (i in seq_len(nrow(best_fit_all))){
   best_fit_i <- best_fit_all %>% slice(i)
   step_type_i <- best_fit_i %>% pull(step_type)
+  print(paste0("step_type = ", step_type_i))
   clogit_i <- best_fit_i %>% pull(clogit_fit) %>% pluck(1)
   fits_quantile_i <- fits_quantile_tbl %>% filter(step_type == step_type_i)
-  for (j in seq_len(nrow(fits_quantile_tbl))){
+  pred_list_i <- vector(mode = "list", length = nrow(fits_quantile_i))
+  for (j in seq_len(nrow(fits_quantile_i))){
     fits_quantile_ij <- fits_quantile_i %>% slice(j)
     term_ij <- fits_quantile_ij %>% pull(term)
-    p_05_ij <- fits_quantile_ij %>% pull(p_05)
-    term_tbl_ij <- tibble(value = p_05_ij) %>%
+    print(paste0("term_ij = ", i,"-", j, " ", term_ij))
+    term_tbl_ij <- fits_quantile_ij %>%
+      pivot_longer(starts_with("p_"), names_to = "percentile") %>%
+      mutate(percentile = parse_number(percentile)) %>%
+      mutate(covar_value = value) %>%
       rename(!!term_ij := value)
-    other_terms_ij  <- fits_quantile_i %>% slice(-c(j)) %>%
+    other_terms_tbl_ij  <- fits_quantile_i %>% slice(-c(j)) %>%
       dplyr::select(term, p_50) %>%
-      rename(value = p_50)
-    other_wide_ij <- other_terms_ij %>%
+      rename(value = p_50) %>%
       pivot_wider(names_from = term, values_from = value)
-    terms_tbl_ij <- bind_cols(term_tbl_ij, other_wide_ij)
+    if(nrow(other_terms_tbl_ij) > 0){
+      terms_tbl_ij <- bind_cols(term_tbl_ij, other_terms_tbl_ij)
+    } else {
+      terms_tbl_ij <- term_tbl_ij
+    }
+    coefs_i <- clogit_i$coefficients
+    ssf_formula <- paste0("pred = (", paste(coefs_i, names(coefs_i), sep = "*",
+      collapse = " ) + ("), ")")
+    AddPredictions = function(df, s){
+        q = quote(mutate(df, z = s))
+        eval(parse(text = sub("z = s", s, deparse(q))))
+    }
+    preds_tbl_ij <- AddPredictions(terms_tbl_ij, ssf_formula)
+    pred_list_i[[j]] <- preds_tbl_ij
+    print("done")
+  }
+  pred_list_all[[i]] <- pred_list_i %>%
+    reduce(bind_rows)
+}
 
-    clogit_i$terms
-    # HOW DO I FORMULATE MODEL AND RUN A PREDICTION?
-    formula_i <- summary(clogit_i)
-    risk <- predict(clogit_i, newdata = terms_tbl_ij, type = "risk")
+predictions_tbl_all <- pred_list_all %>%
+  reduce(bind_rows) %>%
+  mutate(prob = boot::inv.logit(pred)) %>%
+  dplyr::select(step_type, term, coef, percentile, covar_value, pred, prob)
 
+saveRDS(predictions_tbl_all, predictions_file)
 
+# Demonstrate Plotting of Marginal Predicted Fits ------------------------------
+
+# Theme (for LaTeX font)
+tex_dir <- "C:/Users/Blake/OneDrive/Work/LaTeX/BMassey_Dissertation"
+suppressMessages(extrafont::loadfonts(device="win"))
+theme_latex <- theme(text = element_text(family = "Latin Modern Roman")) +
+  theme(axis.text = element_text(size = 10)) +
+  theme(axis.title = element_text(size = 12)) +
+  theme(plot.title = element_text(size = 14))
+pointSize = 2; textSize = 5; spaceLegend = 1
+
+predictions_file <- "Output/Analysis/SSF/Models/best_fits/covar_predictions.rds"
+predictions_tbl_all <- readRDS(predictions_file)
+
+step_types <- unique(predictions_tbl_all$step_type)
+i <- step_types[1]
+for (i in step_types) {
+  predictions_step_type_i <- predictions_tbl_all %>%
+    filter(step_type == i)
+  terms_i <- unique(predictions_step_type_i$term)
+  i_name <- paste0(i) %>% str_replace_all(., "_", "-") %>%
+      str_to_title(.) %>% str_replace_all(., "-", "_")
+
+  for (j in terms_i){
+    j_name <- paste0(j) %>% str_replace_all(., "_", "-") %>%
+      str_to_title(.) %>%  str_replace_all(., "-", "")
+    ij_name <- paste0(i_name, "_", j_name, ".png")
+    predictions_ij <- predictions_step_type_i %>%
+      filter(term == j)
+
+    # Predicted Value (not converted to inverse logit)
+    gg_predict_ij <- ggplot(predictions_ij, aes(x = covar_value, y = pred)) +
+      geom_line(color = "blue", size = 1.5) +
+      #geom_smooth() +
+      xlab(j_name) +
+      ylab("Value") +
+      ggtitle("") + guides(NA) + theme_latex + theme(legend.position = "none") +
+      theme_minimal() +
+      theme_latex +
+      theme(axis.text = element_text(size = 7)) +
+      theme(axis.title = element_text(size = 9)) +
+      theme(plot.title = element_text(size = 11)) +
+      guides(shape = guide_legend(override.aes = list(size = pointSize)),
+        color = guide_legend(override.aes = list(size = pointSize))) +
+      theme(legend.title = element_text(size = textSize),
+        legend.text  = element_text(size = textSize),
+        legend.key.size = unit(spaceLegend, "lines")) +
+      theme(panel.grid.major.x = element_blank()) +
+      scale_x_continuous(expand = expansion(mult = c(0.01, 0.01)))
+    ggsave(filename = paste0("Predict_", ij_name, ".png"), plot = gg_predict_ij,
+      path = file.path(tex_dir, "Figures/Ch2/Step_Type_Covar_Predict"),
+      scale = 1, width = 6, height = 4, units = "in",
+      dpi = 300)
+
+    # Probability Value (after converted using inverse logit)
+    gg_prob_ij <- ggplot(predictions_ij, aes(x = covar_value, y = prob)) +
+      geom_line(color = "blue", size = 1.5) +
+      #geom_smooth() +
+      xlab(j_name) +
+      ylab("Probability") +
+      ggtitle("") + guides(NA) + theme_latex + theme(legend.position = "none") +
+      theme_minimal() +
+      theme_latex +
+      theme(axis.text = element_text(size = 7)) +
+      theme(axis.title = element_text(size = 9)) +
+      theme(plot.title = element_text(size = 11)) +
+      guides(shape = guide_legend(override.aes = list(size = pointSize)),
+        color = guide_legend(override.aes = list(size = pointSize))) +
+      theme(legend.title = element_text(size = textSize),
+        legend.text  = element_text(size = textSize),
+        legend.key.size = unit(spaceLegend, "lines")) +
+      theme(panel.grid.major.x = element_blank()) +
+      scale_x_continuous(expand = expansion(mult = c(0.01, 0.01))) +
+      ylim(c(0, 1))
+    ggsave(filename = paste0("Prob_", ij_name, ".png"), plot = gg_prob_ij,
+      path = file.path(tex_dir, "Figures/Ch2/Step_Type_Covar_Prob"),
+      scale = 1, width = 6, height = 4, units = "in",
+      dpi = 300)
   }
 }
 
-
 # Demonstrate Inverse Logit and Rescale ----------------------------------------
 
-values = -10:10
+values = seq(from = -8, to = 8, by = .5) #-10:10
 inv_logit <- boot::inv.logit(values)
 logit_df <- tibble(values, inv_logit)
 

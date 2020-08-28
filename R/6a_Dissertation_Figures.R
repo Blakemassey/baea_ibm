@@ -83,11 +83,11 @@ gg_hr_size_1 <- ggplot(data = hr_metrics_terrain %>%
     theme(axis.text = element_text(size = 7)) +
     theme(axis.title = element_text(size = 9)) +
     theme(plot.title = element_text(size = 11)) +
-        guides(shape = guide_legend(override.aes = list(size = pointSize)),
-               color = guide_legend(override.aes = list(size = pointSize))) +
-        theme(legend.title = element_text(size = textSize),
-              legend.text  = element_text(size = textSize),
-              legend.key.size = unit(spaceLegend, "lines")) +
+    guides(shape = guide_legend(override.aes = list(size = pointSize)),
+      color = guide_legend(override.aes = list(size = pointSize))) +
+    theme(legend.title = element_text(size = textSize),
+      legend.text  = element_text(size = textSize),
+      legend.key.size = unit(spaceLegend, "lines")) +
       theme(panel.grid.major.x = element_blank())
 
 gg_hr_size_2 <- ggplot(data = hr_metrics_terrain %>% filter(variable == "TRI"),
@@ -103,11 +103,11 @@ gg_hr_size_2 <- ggplot(data = hr_metrics_terrain %>% filter(variable == "TRI"),
     theme(axis.text = element_text(size = 7)) +
     theme(axis.title = element_text(size = 9)) +
     theme(plot.title = element_text(size = 11)) +
-        guides(shape = guide_legend(override.aes = list(size = pointSize)),
-               color = guide_legend(override.aes = list(size = pointSize))) +
-        theme(legend.title = element_text(size = textSize),
-              legend.text  = element_text(size = textSize),
-              legend.key.size = unit(spaceLegend, "lines")) +
+    guides(shape = guide_legend(override.aes = list(size = pointSize)),
+      color = guide_legend(override.aes = list(size = pointSize))) +
+      theme(legend.title = element_text(size = textSize),
+        legend.text  = element_text(size = textSize),
+        legend.key.size = unit(spaceLegend, "lines")) +
       theme(panel.grid.major.x = element_blank())
 
 gg_hr_size_3 <- ggplot(data = hr_metrics_terrain %>% filter(variable == "TPI"),
@@ -123,11 +123,11 @@ gg_hr_size_3 <- ggplot(data = hr_metrics_terrain %>% filter(variable == "TPI"),
     theme(axis.text = element_text(size = 7)) +
     theme(axis.title = element_text(size = 9)) +
     theme(plot.title = element_text(size = 11)) +
-        guides(shape = guide_legend(override.aes = list(size = pointSize)),
-               color = guide_legend(override.aes = list(size = pointSize))) +
-        theme(legend.title = element_text(size = textSize),
-              legend.text  = element_text(size = textSize),
-              legend.key.size = unit(spaceLegend, "lines")) +
+    guides(shape = guide_legend(override.aes = list(size = pointSize)),
+      color = guide_legend(override.aes = list(size = pointSize))) +
+    theme(legend.title = element_text(size = textSize),
+      legend.text  = element_text(size = textSize),
+      legend.key.size = unit(spaceLegend, "lines")) +
       theme(panel.grid.major.x = element_blank())
 
 gg_hr_size_4 <- ggplot(data = hr_metrics_terrain %>%
@@ -138,17 +138,16 @@ gg_hr_size_4 <- ggplot(data = hr_metrics_terrain %>%
   ylab("Index Value") +
   guides(fill = guide_legend(title = "Utilization\nDistribution")) +
   ggtitle("") + guides(NA) + theme_latex + theme(legend.position = "none") +
-  theme_minimal() +
-  theme_latex +
-    theme(axis.text = element_text(size = 7)) +
-    theme(axis.title = element_text(size = 9)) +
-    theme(plot.title = element_text(size = 11)) +
-        guides(shape = guide_legend(override.aes = list(size = pointSize)),
-               color = guide_legend(override.aes = list(size = pointSize))) +
-        theme(legend.title = element_text(size = textSize),
-              legend.text  = element_text(size = textSize),
-              legend.key.size = unit(spaceLegend, "lines")) +
-      theme(panel.grid.major.x = element_blank())
+  theme_minimal() + theme_latex +
+  theme(axis.text = element_text(size = 7)) +
+  theme(axis.title = element_text(size = 9)) +
+  theme(plot.title = element_text(size = 11)) +
+  guides(shape = guide_legend(override.aes = list(size = pointSize)),
+    color = guide_legend(override.aes = list(size = pointSize))) +
+  theme(legend.title = element_text(size = textSize),
+    legend.text  = element_text(size = textSize),
+    legend.key.size = unit(spaceLegend, "lines")) +
+  theme(panel.grid.major.x = element_blank())
 
 gg_hr_size_all <- gg_hr_size_1 + gg_hr_size_2 + gg_hr_size_3 + gg_hr_size_4
 

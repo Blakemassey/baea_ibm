@@ -1,130 +1,107 @@
-# This script checks the sim run output and assesses the calibration metrics
-# ---------------------------------------------------------------------------- #
-# Load packages
-pacman::p_load(plyr, dplyr, future, furrr, ggplot2, ggthemes, raster,
-  stringr, tibble, tictoc, tidyr, whitebox)
-whitebox::wbt_init() # required for WhiteboxTools to work
-wbt_version() # check WhiteboxTools version
-library(gisr)
-
-# Set options
-rasterOptions(maxmem = Inf, progress = "text", timer = TRUE, chunksize=1e9,
-  memfrac=.9)
-
-############################ IMPORT RASTERS ####################################
-
-# Ridgeline delineation arguments
-agg_factor <- 5
-rtp_filter <- 51
-reclass_break <- .3
-clump_cell_min <- 4
-ridge_cell_min <- 2
-
-# Convert arguments
-clump_cell_min_area <- ((30*agg_factor)^2)*clump_cell_min
-ridge_cell_min_area <- ((30*agg_factor)^2)*ridge_cell_min
-reclass_break_str <- str_replace_all(reclass_break, "0\\.", "")
-
-# Source data directories
-file_dir <- "C:/ArcGIS/Data/R_Input/BAEA"
-
-# Raster files
-elev_file <- file.path(file_dir, "elev_30mc.tif")
-elev_agg_file <- file.path(file_dir, paste0("Ridgelines/elev_agg_", agg_factor,
-  ".tif"))
-
-rtp_1_file <- file.path(file_dir, "Ridgelines", "rtp_1.tif")
-rtp_2_file <- file.path(file_dir, "Ridgelines", "rtp_2.tif")
-rtp_3_file <- file.path(file_dir, "Ridgelines", "rtp_3.tif")
-rtp_4_file <- file.path(file_dir, "Ridgelines", "rtp_4.tif")
-rtp_5_file <- file.path(file_dir, "Ridgelines", "rtp_5.tif")
-rtp_6_file <- file.path(file_dir, "Ridgelines", "rtp_6.tif")
-rtp_7_file <- file.path(file_dir, "Ridgelines", "rtp_7.tif")
-rtp_final_file <- file.path(file_dir, "Ridgelines", paste0("rtp_",
-  agg_factor, "_", rtp_filter, "_", reclass_break_str, "_clump_poly.tif"))
-
-ridge_1_file <- file.path(file_dir, "Ridgelines", "ridge_1.tif")
-ridge_2_file <- file.path(file_dir, "Ridgelines", "ridge_2.tif")
-ridge_3_file <- file.path(file_dir, "Ridgelines", "ridge_3.tif")
-ridge_4_file <- file.path(file_dir, "Ridgelines", "ridge_4.tif")
-ridge_5_file <- file.path(file_dir, "Ridgelines", "ridge_5.tif")
-ridge_6_file <- file.path(file_dir, "Ridgelines", "ridge_6.tif")
-ridge_poly_file <- file.path(file_dir, "Ridgelines", "ridge_poly.shp")
-ridge_line_file <- file.path(file_dir, "Ridgelines", "ridge_line.shp")
-
-# Elevation raster aggregation
-if(!file.exists(elev_agg_file)){
-  wbt_aggregate_raster(elev_file, elev_agg_file, agg_factor = agg_factor,
-    type = "mean")
+pacman::p_load(baear, gisr, ibmr)
+pacman::p_load(rgdal, tictoc, tidyverse, lubridate)
+#devtools::reload("C:/Users/blake/OneDrive/Work/R/Packages/ibmr")
+toc_msg <- function(tic, toc, msg, info){
+  outmsg <- paste(seconds_to_period(round(toc - tic)))
 }
 
-# Relative Topographic Position ------------------------------------------------
-# RTP calculations
-wbt_relative_topographic_position(elev_agg_file, rtp_1_file,
-  filterx = rtp_filter, filtery = rtp_filter)
+source('R/5c_SIM_MovementSubmodelBAEA.R')
 
-# Reclass raster based on break point
-wbt_reclass(rtp_1_file, rtp_2_file, paste0("0.0;-1.0;", reclass_break, ";1;",
-  reclass_break, ";1.0"))
+sim <- readRDS("C:/Work/R/Data/Simulation/sim_01.rds")
 
-# Clump cells
-wbt_clump(rtp_2_file, rtp_3_file, zero_back = TRUE)
-
-# Calculate area (in cell size)
-wbt_raster_area(rtp_3_file, rtp_4_file, out_text = FALSE, units = "map units",
-  zero_back = TRUE)
-
-# Reclass clumps by min cell size
-clump_stats <- wbt_raster_summary_stats(rtp_4_file, verbose_mode = TRUE)
-clump_max_value <- readr::parse_number(clump_stats[which(str_detect(clump_stats,
-  "Image maximum"))])
-wbt_reclass(rtp_4_file, rtp_5_file, reclass_vals = paste0("0;0;",
-  clump_cell_min_area, ";1;", clump_cell_min_area, ";", clump_max_value + 100))
-
-# Reclass clumps below threshold to NoData
-wbt_set_nodata_value(input = rtp_5_file, output = rtp_final_file,
-  back_value = "0.0")
-
-# Clean up files
-file.remove(rtp_1_file, rtp_2_file, rtp_3_file, rtp_4_file, rtp_5_file)
-
-# Find Ridges ------------------------------------------------------------------
-# Find ridges
-wbt_find_ridges(elev_agg_file, ridge_1_file, line_thin = FALSE)
-
-# Find ridges within clumps
-wbt_multiply(ridge_1_file, rtp_final_file, ridge_2_file)
-
-# Clump ridge cells
-wbt_clump(ridge_2_file, ridge_3_file, zero_back = TRUE)
-
-# Calculate area of ridge cells
-wbt_raster_area(ridge_3_file, ridge_4_file, out_text = FALSE,
-  units = "map units", zero_back = TRUE)
-
-ridge_stats <- wbt_raster_summary_stats(ridge_4_file, verbose_mode = TRUE)
-ridge_max_value <- readr::parse_number(ridge_stats[which(str_detect(ridge_stats,
-  "Image maximum"))])
-
-# Reclass clumps by min cell size
-wbt_reclass(ridge_4_file, ridge_5_file, reclass_vals = paste0("0;0;",
-  ridge_cell_min_area, ";1;", ridge_cell_min_area, ";", ridge_max_value + 100))
-
-# Reclass clumps below threshold to NoData
-wbt_set_nodata_value(ridge_5_file, ridge_6_file, back_value = "0.0")
-
-# Convert to polygons (for easier spatial analysis regarding flight lines)
-wbt_raster_to_vector_polygons(ridge_6_file, ridge_poly_file, wd = NULL,
-  verbose_mode = FALSE)
-
-# Clean up ridge files
-file.remove(ridge_1_file, ridge_2_file, ridge_3_file, ridge_4_file,
-  ridge_5_file, ridge_6_file)
-
-# Set crs for ridge polys
-elev <- raster(elev_file)
-ridge_poly <- sf::read_sf(ridge_poly_file)
-sf::st_crs(ridge_poly) <- crs(elev)
-sf::st_write(ridge_poly, ridge_poly_file, append=FALSE)
+sim$pars$global$sim_end <- as.POSIXct("2015-05-15", tz = "UTC")
+sim$agents$input <- sim$agents$input %>% slice(c(1,3))
 
 
+
+
+init = TRUE
+
+
+#
+tic("Original version")
+  sim <- sim
+    spatial <- sim$spatial
+    base <- spatial$base
+    nests <- spatial$nests
+    landscape <- spatial$landscape
+    con_nest_dist <- spatial$con_nest_dist
+    ssf_layers <- spatial$ssf_layers
+    behavior_levels <- c("Cruise", "Flight", "Nest", "Perch", "Roost")
+    # male and female same for now
+    move_pars <- sim$pars$classes$male$constant$fixed$move_pars %>%
+      mutate(
+        behavior_num = as.numeric(factor(behavior, levels = behavior_levels)),
+        behavior_next_num = as.numeric(factor(behavior_next,
+          levels = behavior_levels))) %>%
+      mutate(ids = paste0(behavior_num, "_", behavior_next_num))
+    move_pars_ids <- move_pars$ids
+    move_kernels <- as.list(setNames(rep(NA, nrow(move_pars)),
+      move_pars_ids), move_pars_ids)
+    for (i in 1:nrow(move_pars)){
+      move_pars_i <- move_pars[i, ]
+      ignore_von_mises <- ifelse(move_pars_i$behavior[1] %in% c("Cruise",
+        "Flight"), FALSE, TRUE)
+      kernel_i <- CreateMoveKernelWeibullVonMises(
+          max_r = NULL,
+          cellsize = 30,
+          mu1 = move_pars_i$mvm_mu1[1],
+          mu2 = move_pars_i$mvm_mu2[1],
+          kappa1 = move_pars_i$mvm_kappa1[1],
+          kappa2 = move_pars_i$mvm_kappa2[1],
+          mix = move_pars_i$mvm_prop[1],
+          shape = move_pars_i$weibull_shape[1],
+          scale = move_pars_i$weibull_scale[1],
+          ignore_von_mises = ignore_von_mises)
+      r <- (30*((nrow(kernel_i)-1)/2))+(30/2)
+      kernel_raster <- raster::raster(kernel_i, xmn=-r, xmx=r, ymn=-r, ymx=r)
+      move_kernels[[i]] <- kernel_raster
+      names(move_kernels[[i]]) <- paste0(move_pars_i$behavior_behavior[1])
+    }
+    male <- NamedList(move_kernels)
+    female <- NamedList(move_kernels)
+    classes <- NamedList(male, female)
+    spatial <- NamedList(base, nests, classes, con_nest_dist, landscape,
+      ssf_layers)
+    sim$spatial <- spatial
+toc()
+
+
+tic("Updated version")
+    behavior_levels <- c("Cruise", "Flight", "Nest", "Perch", "Roost")
+    # male and female same for now
+    move_pars <- sim$pars$classes$male$constant$fixed$move_pars %>%
+      mutate(
+        behavior_num = as.numeric(factor(behavior, levels = behavior_levels)),
+        behavior_next_num = as.numeric(factor(behavior_next,
+          levels = behavior_levels))) %>%
+      mutate(ids = paste0(behavior_num, "_", behavior_next_num))
+    move_pars_ids <- move_pars$ids
+    move_kernels <- as.list(setNames(rep(NA, nrow(move_pars)),
+      move_pars_ids), move_pars_ids)
+    for (i in 1:nrow(move_pars)){
+      move_pars_i <- move_pars[i, ]
+      ignore_von_mises <- ifelse(move_pars_i$behavior[1] %in% c("Cruise",
+        "Flight"), FALSE, TRUE)
+      kernel_i <- CreateMoveKernelWeibullVonMises(
+          max_r = NULL,
+          cellsize = 30,
+          mu1 = move_pars_i$mvm_mu1[1],
+          mu2 = move_pars_i$mvm_mu2[1],
+          kappa1 = move_pars_i$mvm_kappa1[1],
+          kappa2 = move_pars_i$mvm_kappa2[1],
+          mix = move_pars_i$mvm_prop[1],
+          shape = move_pars_i$weibull_shape[1],
+          scale = move_pars_i$weibull_scale[1],
+          ignore_von_mises = ignore_von_mises)
+      r <- (30*((nrow(kernel_i)-1)/2))+(30/2)
+      kernel_raster <- raster::raster(kernel_i, xmn=-r, xmx=r, ymn=-r, ymx=r)
+      move_kernels[[i]] <- kernel_raster
+      names(move_kernels[[i]]) <- paste0(move_pars_i$behavior_behavior[1])
+    }
+    male <- NamedList(move_kernels)
+    female <- NamedList(move_kernels)
+    classes <- NamedList(male, female)
+    sim$spatial[["classes"]] <- classes
+
+toc()

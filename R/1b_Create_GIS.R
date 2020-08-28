@@ -319,6 +319,12 @@ hydro_dist_output <- "C:/ArcGIS/Data/R_Input/BAEA/hydro_dist_30mc.tif"
 writeRaster(hydro_dist_30mc, hydro_dist_output, progress = "text",
   datatype = 'INT2U', overwrite = TRUE)
 
+## Land Layer ----
+hydro_dist_file <- "C:/ArcGIS/Data/R_Input/BAEA/hydro_dist_30mc.tif"
+land_file <- "C:/ArcGIS/Data/R_Input/BAEA/land_30mc.tif"
+
+wbt_reclass(hydro_dist_file, land_file, "0.0;0.0;0.0;1.0;0.1;100000000000",
+  verbose_mode = TRUE)
 
 ## ----------------------------- WIND LAYERS ------------------------------ ####
 

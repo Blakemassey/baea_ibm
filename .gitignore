@@ -1,5 +1,7 @@
 .Rproj.user
 .Ruserdata
+.RData
+.RHistory
 
 rosm.cache
 Data/CTT/Deployed/Recent

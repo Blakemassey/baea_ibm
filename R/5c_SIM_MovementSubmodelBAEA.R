@@ -1,14 +1,13 @@
 # sim
 # agent_states
-# step_data[2, "behavior"] <- 2
+# step_data[i + 1, "behavior"] <- 4
 # step
-
 
 MovementSubModelBAEA2 <- function(sim = sim,
                                   agent_states = agent_states,
                                   step_data = step_data,
                                   step = step) {
-  sim <- sim
+  plotting <- FALSE
   base <- sim$spatial$base
   cellsize <- raster::res(sim$spatial$base)[1]
   i <- which(step_data$datetime == step)
@@ -64,14 +63,19 @@ MovementSubModelBAEA2 <- function(sim = sim,
 
     # Move Kernel
     move_org <- sim$spatial$classes[[sex]][["move_kernels"]][[behavior_trans]]
-    move_rotated <- RotateRaster(move_org, Rad2Deg(step_data$exp_angle[i]),
-      resolution=raster::res(base))
+    move_org_shift <- raster::shift(move_org, dx = step_data$x[i],
+      dy = step_data$y[i])
+    move_rotated <- suppressWarnings(RotateRaster(move_org,
+      Rad2Deg(step_data$exp_angle[i]), resolution=raster::res(base)))
     move_crop <- raster::crop(move_rotated, move_org, snap = "near")
     move_resample <- raster::resample(move_rotated, move_org, method = "ngb")
     move_shift <- raster::shift(move_resample, dx = step_data$x[i],
       dy = step_data$y[i])
     raster::crs(move_shift) <- raster::crs(base)
-    move_kernel <- raster::crop(move_shift, base, snap="in")
+
+    move_shift_ext <- raster::extend(move_shift, move_org_shift, value = NA)
+    move_shift_crop <- raster::crop(move_shift_ext, move_org_shift, snap="in")
+    move_kernel <- raster::mask(move_shift_crop, move_org_shift, value=NA)
 
     # Con_Nest Kernel
     con_nest_raster <- sim$spatial$con_nest_dist[[agent_states$nest_id]]
@@ -82,20 +86,43 @@ MovementSubModelBAEA2 <- function(sim = sim,
       pars_rescale = pars_rescale, x=step_data$x[i], y=step_data$y[i],
       base= base)
     raster::crs(con_nest_prob) <- raster::crs(base)
-    con_nest_kernel <- raster::crop(con_nest_prob, move_kernel, snap = "in")
-    con_nest_kernel <- raster::extend(con_nest_kernel, move_kernel, value = NA)
+    con_nest_ext <- raster::extend(con_nest_prob, move_kernel, value = NA)
+    con_nest_crop <- raster::crop(con_nest_ext, move_kernel, snap = "in")
+    con_nest_kernel <- raster::mask(con_nest_crop, move_kernel, value=NA)
+    if(plotting) plot(con_nest_kernel)
 
     # Maine_Outline Kernel
     maine_outline <- sim$spatial$landscape$maine_outline[[agent_states$nest_id]]
-    maine_outline_kernel <- raster::crop(maine_outline, move_kernel,
+    maine_outline_ext <- raster::extend(maine_outline, move_kernel, value = 0)
+    maine_outline_crop <- raster::crop(maine_outline_ext, move_kernel,
       snap = "in")
-    maine_outline_kernel <- raster::extend(maine_outline_kernel, move_kernel,
-      value = 0)
+    maine_outline_kernel <- raster::mask(maine_outline_crop, move_kernel,
+      value = NA)
+    if(plotting) plot(maine_outline_kernel)
+
+    #print(paste0("nest_id: ", agent_states$nest_id))
 
     # SSF Layer
-    ssf_org <- sim$spatial$ssf_layers[[behavior_trans]][[agent_states$nest_id]]
-    ssf_kernel <- raster::crop(ssf_org, move_kernel, snap = "in")
-    ssf_kernel <- raster::extend(ssf_crop, move_kernel, value = NA)
+    ssf_org <-sim$spatial$ssf_layers[[`behavior_trans`]][[agent_states$nest_id]]
+    ssf_ext <- raster::extend(ssf_org, move_kernel, value = NA)
+    ssf_crop <- raster::crop(ssf_ext, move_kernel, snap = "in")
+    ssf_mask <- raster::mask(ssf_crop, move_kernel, snap = "in")
+    if(plotting) plot(ssf_mask)
+
+    # ORIGINAL WAY TO CALCULATE THE KERNEL
+    #ssf_kernel <- raster::extend(ssf_mask, move_kernel, value = NA)
+
+    # NEW SECTION THAT DOES A RESCALE AT EVERY STEP
+    ssf_rescale <- ssf_mask
+    ssf_rescale[] <- scales::rescale(ssf_mask[], to = c(-4, 4)) # Tried 4, 4
+    if(plotting) plot(ssf_rescale)
+
+    if(behavior_trans == "3_4"){
+      ssf_rescale <- ssf_mask
+    }
+    ssf_kernel <- raster::calc(ssf_rescale, fun = boot::inv.logit)
+    if(plotting) plot(ssf_kernel)
+    #raster::writeRaster(ssf_kernel, "C:/Temp/Sim6/ssf_kernel.tif")
 
     # Restrictions for different next_behavior
     # 1 (cruise), 2 (flight) = no restrictions
@@ -108,45 +135,61 @@ MovementSubModelBAEA2 <- function(sim = sim,
      land <- move_kernel
      land[land > 0] <- 1
     }
-    land_kernel <- raster::crop(land, move_kernel, snap = "in")
-    land_kernel <- raster::extend(land_kernel, move_kernel, value = 0)
+    land_ext <- raster::extend(land, move_kernel, value = 0)
+    land_crop <- raster::crop(land_ext, move_kernel, snap = "in")
+    land_kernel <- raster::mask(land_crop, move_kernel, snap = "in")
+    if(plotting) plot(land_kernel)
 
     ### FINAL PROBABILITY LAYER (use geometric mean for final probability layer)
 
     move_kernel_log <- log(move_kernel)
+    if(plotting) plot(move_kernel_log)
     con_nest_kernel_log <- log(con_nest_kernel)
+    if(plotting) plot(con_nest_kernel_log)
     land_log <- log(land_kernel)
+    if(plotting) plot(land_log)
     maine_outline_log <- log(maine_outline_kernel)
+    if(plotting) plot(maine_outline_log)
     ssf_kernel_log <- log(ssf_kernel)
+    if(plotting) plot(ssf_kernel_log)
     # print(paste0("move_kernel_log:", raster::extent(move_kernel_log)))
     # print(paste0("con_nest_kernel_log:", raster::extent(con_nest_kernel)))
     # print(paste0("land_log:", raster::extent(land_log)))
     # print(paste0("maine_outline_log:", raster::extent(maine_outline_log)))
 
+    # COMPLETE VERSION
     kernel_stack <- raster::stack(list(move_kernel_log, con_nest_kernel_log,
       land_log, maine_outline_log, ssf_kernel_log))
+
+    # MOVE ONLY VERSION
+    # kernel_stack <- raster::stack(list(land_log, move_kernel_log))
+
+    # SSF ONLY VERSION
+    # kernel_stack <- raster::stack(list(land_log, maine_outline_log,
+    #   ssf_kernel_log))
+
     kernel_stack_mean <- raster::calc(kernel_stack, fun = mean, na.rm = TRUE)
     prob_raster <- exp(kernel_stack_mean)
     prob_raster <- prob_raster/raster::cellStats(prob_raster, stat = "sum")
-    prob_raster[prob_raster <= .000001] <- 0
     prob_raster[is.na(prob_raster)] <- 0
 
     raster::crs(prob_raster) <- raster::crs(sim$spatial$base)
-#    ExportKMLRasterOverlayWithTime(raster = prob_raster, time = step,
-#      alpha = .8, color_pal= jet2.col(20),
-#      outfile = paste0(agent_states$id, "_", i),
-#      output_dir= file.path(getwd(), "Prob_Rasters"))
+    if(plotting) plot(prob_raster)
+    ExportKMLRasterOverlayWithTime(raster = prob_raster, time = step_interval,
+      alpha = .8, color_pal= viridis::viridis(20),
+      outfile = paste0(agent_states$id, "_", i),
+      output_dir = file.path("C:/Temp/Sim6/Prob_Rasters"))
+      #output_dir= file.path(getwd(), "Prob_Rasters"))
 
     ### END OF OTHER PROBABILITY LAYERS
 
-    destination_cell <- suppressWarnings(sampling::strata(data=data.frame(cell=
-      1:raster::ncell(prob_raster)), stratanames=NULL, size=1,
-      method="systematic", pik=prob_raster@data@values))
-
+    destination_cell <- suppressWarnings(sampling::strata(data = data.frame(
+      cell = 1:raster::ncell(prob_raster)), stratanames = NULL, size=1,
+      method = "systematic", pik = prob_raster@data@values))
     while(is.na(destination_cell[1,1])) {
       destination_cell <- suppressWarnings(sampling::strata(data=data.frame(
-        cell=1:ncell(prob_raster)), stratanames=NULL, size=1,
-        method="systematic", pik=prob_raster@data@values))
+        cell = 1:raster::ncell(prob_raster)), stratanames = NULL, size = 1,
+        method="systematic", pik = prob_raster@data@values))
     }
     destination_xy <- raster::xyFromCell(prob_raster, destination_cell[1,1])
     step_data[i+1, "x"] <- destination_xy[1]
@@ -155,7 +198,47 @@ MovementSubModelBAEA2 <- function(sim = sim,
       step_data$y[i], step_data$x[i+1], step_data$y[i+1])
     step_data$step_length[i] <- as.integer(sqrt((step_data[i, "x"] -
       step_data[i+1, "x"])^2 + (step_data[i, "y"] - step_data[i+1, "y"])^2))
-
   }
   return(step_data)
 }
+
+SimplifySimSpatialBAEA <- function(sim){
+    ssf_source <- sim %>%
+      pluck('spatial', 'ssf_layers') %>%
+      keep(., is.character)
+    sim$spatial <- NULL
+    sim[["spatial"]][["ssf_layers"]] <- ssf_source
+    return(sim)
+}
+
+# IMPORTANT - Process to plot probability plot
+# sample_n <- 50000
+# destination_xy <- tibble(x = vector(mode = "numeric", sample_n),
+#   y = vector(mode = "numeric", sample_n))
+#
+# for (i in seq_len(sample_n)){
+#   destination_cell <- suppressWarnings(sampling::strata(data = data.frame(cell =
+#       1:raster::ncell(prob_raster)), stratanames = NULL, size = 1,
+#     method = "systematic", pik=prob_raster@data@values))
+#     while(is.na(destination_cell[1,1])) {
+#       destination_cell <- suppressWarnings(sampling::strata(data=data.frame(
+#         cell = 1:raster::ncell(prob_raster)), stratanames = NULL, size = 1,
+#         method="systematic", pik = prob_raster@data@values))
+#     }
+#   destination_xy[i, ] <- raster::xyFromCell(prob_raster, destination_cell[,1])
+# }
+# destination_raster <- rasterize(destination_xy, prob_raster, field = 1,
+#   fun = 'sum', background = NA, mask = FALSE, update = FALSE,
+#   updateValue = 'all', filename = "", na.rm = TRUE)
+#
+# plot(prob_raster)
+# plot(destination_raster)
+# Plot3DRaster(destination_raster, col = viridis::viridis(20),
+#   main = "Probability Plot")
+
+
+
+
+
+
+

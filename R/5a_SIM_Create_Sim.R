@@ -1,11 +1,10 @@
 ########################## CREATE SIM ##########################################
-
-#-------------------------------------------------------------------------------
 ### This script is used to create a 'sim' list object, consisting of 'agents',
 ### 'pars', and 'spatial' lists.
-#-------------------------------------------------------------------------------
+
+pacman::p_load(fasterize, dplyr, lubridate, momentuHMM, raster, rgdal,
+  tidyverse)
 pacman::p_load(baear, gisr, ibmr)
-pacman::p_load(momentuHMM, raster, rgdal, tidyverse, lubridate)
 
 ######################## REAL BAEA AGENTS ######################################
 
@@ -17,7 +16,7 @@ nests_agents <- baea_terr %>%
   slice(1) %>%
   dplyr::select(id, nest_site, nest_long_utm, nest_lat_utm) %>%
   mutate(nest_id = nest_site) %>%
-  rename(name = id, long_utm = nest_long_utm, lat_utm = nest_lat_utm) %>%
+  dplyr::rename(name = id, long_utm = nest_long_utm, lat_utm = nest_lat_utm) %>%
   ungroup() %>%
   ConvertNestIdToNum(.) %>%
   mutate(x = CenterXYInCell(long_utm, lat_utm, xmin(base), ymin(base),
@@ -47,7 +46,7 @@ rm(age, baea_terr, id, input, n, nest_id, sex, start_x, start_y)
 ## Create "global" parameters --------------------------------------------------
 sim_start <- as.POSIXct("2015-03-15", tz = "UTC")
 sim_period <- NULL #period(4, "days")
-sim_end <- as.POSIXct("2015-06-30", tz = "UTC")
+sim_end <- as.POSIXct("2015-08-15", tz = "UTC")
 rep_period <- period(1, "month")
 rep_interval <- c("01Jan", "01Jul")
 rep_interval_custom <- NULL
@@ -120,6 +119,7 @@ pars <- NamedList(global, classes)
 
 ## Clean up environment --------------------------------------------------------
 RemoveExcept(c("agents", "pars", "nests_agents"))
+gc()
 
 ################################# SPATIAL ######################################
 
@@ -147,11 +147,11 @@ file_dir <- "C:/ArcGIS/Data/R_Input/BAEA"
 
 # Raster files
 elev_file <- file.path(file_dir, "elev_30mc.tif")
-open_water_file <- file.path(file_dir, "open_water_30mc.tif")
+land_file <- file.path(file_dir, "land_30mc.tif")
 
 # Import Rasters
 elev <- raster(elev_file) # other rasters' extents are set to this layer
-open_water <- crop(raster(open_water_file), elev)
+land <- crop(raster(land_file), elev)
 
 # Create empty raster of Maine outline
 maine_outline <- sf::st_read(maine_outline_file)
@@ -169,6 +169,7 @@ for (i in unique(names(con_nest_dist))){
   maine_outline_i <- crop(maine_outline_raster, con_nest_dist_i)
   maine_outline_i <- extend(maine_outline_i, con_nest_dist_i, value = 0)
   maine_outline_mask_i <- mask(maine_outline_i, con_nest_dist_i)
+  plot(maine_outline_mask_i)
   maine_outline_list[[which(names(maine_outline_list) == i)]] <-
     maine_outline_mask_i
 }
@@ -178,17 +179,14 @@ maine_outline <- maine_outline_list
 land_list <- purrr::map(unique(names(con_nest_dist)), ~ NULL)
 names(land_list) <- unique(names(con_nest_dist))
 
-# Create open_water raster for each nest site
+# Create land raster for each nest site
 for (i in unique(names(con_nest_dist))){
   con_nest_dist_i <- con_nest_dist[[i]]
-  open_water_i <- crop(open_water, con_nest_dist_i)
-  open_water_i <- extend(open_water_i, con_nest_dist_i, value = NA)
-  open_water_mask_i <- mask(open_water_i, con_nest_dist_i)
-  land_i <- open_water_mask_i
-  land_i[land_i == 1] <- 99 # had to make water different number beside 1
-  land_i[land_i == 0] <- 1 # setting land to 1
-  land_i[land_i == 99] <- 0 # setting water (99) to 0
-  land_list[[which(names(land_list) == i)]] <- land_i
+  land_i <- crop(land, con_nest_dist_i)
+  land_ext_i <- extend(land_i, con_nest_dist_i, value = NA)
+  land_mask_i <- mask(land_ext_i, con_nest_dist_i)
+  plot(land_mask_i)
+  land_list[[which(names(land_list) == i)]] <- land_mask_i
 }
 land <- land_list
 
@@ -196,46 +194,96 @@ landscape <- NamedList(forest, land, maine_outline)
 
 ## SSF Layers ------------------------------------------------------------------
 
-# Source data directories
-ssf_file_dir <- "C:/ArcGIS/Data/R_Input/BAEA/SSF_Rasters"
+# Directories
+ssf_raster_dir = "C:/ArcGIS/Data/R_Input/BAEA/SSF_Rasters"
 
-ssf_step_types <- c("1_1", "1_2","1_4", "2_1", "2_2", "2_4", "2_5", "3_1",
-  "3_2", "3_4", "3_5", "4_1", "4_2", "4_5", "5_2", "5_4")
+ssf_source <- "Step_Types_Update_01" # THIS CONTROLS SSF LAYERS INPUT
 
-ssf_list <- purrr::map(ssf_step_types, ~ NULL)
-names(ssf_list) <- ssf_step_types
+if(!exists("con_nest_dist")){
+  sim <- readRDS(file="C:/Work/R/Data/Simulation/sim_01.rds")
+  con_nest_dist <- sim %>% pluck("spatial", "con_nest_dist")
+}
 
-for i in seq_along(ssf_step_types){
-  ssf_i <- crop(raster(file.path(ssf_file_dir, paste0("SSF_", i, ".grd")), elev)
+ssf_layers <- list.files(file.path(ssf_raster_dir, ssf_source),
+  pattern = ".tif$")
+
+ssf_step_types <- str_replace_all(ssf_layers, ".tif", "")
+ssf_list <- purrr::map(unique(ssf_step_types), ~ NULL)
+names(ssf_list) <- unique(ssf_step_types)
+
+for (i in seq_along(ssf_layers)){
+  ssf_layer_i <- ssf_layers[i]
+  ssf_step_type_i <- str_replace_all(ssf_layer_i, ".tif", "")
+  print(ssf_layer_i)
+
+  # Create Raster
+  ssf_i <- raster(file.path(ssf_raster_dir, "Step_Types_Update_01", ssf_layer_i))
 
   # Create ssf_layer raster for each nest site
   ssf_i_list <- purrr::map(unique(names(con_nest_dist)), ~ NULL)
   names(ssf_i_list) <- unique(names(con_nest_dist))
 
   for (j in unique(names(con_nest_dist))){
-    con_nest_dist_j <- con_nest_dist[[j]]
-    ssf_i_j <- crop(ssf_i, con_nest_dist_j)
-    ssf_i_j <- extend(ssf_i_j, con_nest_dist_j, value = NA)
-    ssf_i_j <- mask(forest_i, con_nest_dist_j)
-    ssf_i_list[[which(names(ssf_i_list) == j)]] <- ssf_i_j
-  }
-  ssf_list[[which(names(ssf_list) == i)]] <- ssf_i_list
-}
+    #j <- unique(names(con_nest_dist))[1] # FOR TESTING
+    con_nest_dist_j <- con_nest_dist[[which(names(con_nest_dist) == j)]]
+    #plot(con_nest_dist_j)
+    ssf_i_j_ext <- extend(ssf_i, con_nest_dist_j, value = NA)
+    #plot(ssf_i_j_ext)
+    ssf_i_j_crop <- crop(ssf_i_j_ext, con_nest_dist_j)
+    #plot(ssf_i_j_crop)
+    ssf_i_j_mask <- mask(ssf_i_j_crop, con_nest_dist_j)
+    plot(ssf_i_j_mask, main = paste0(i, ": ", j))
 
-ssf_layers <- ssf_list
+    # ORIGINAL METHOD - RESCALING GLOBALLY
+    # ssf_i_j_rescale <- ssf_i_j_ext
+    # ssf_i_j_rescale[] <- scales::rescale(ssf_i_j_ext[], to = c(-9, 9))
+    # plot(ssf_i_j_rescale)
+    # ssf_i_j_inv_logit <- calc(ssf_i_j_rescale, fun = boot::inv.logit)
+    # ssf_i_j_final <- mask(ssf_i_j_inv_logit, con_nest_dist_j)
+    # plot(ssf_i_j_final)
+    # writeRaster(ssf_i_j_final, file.path(ssf_raster_dir,
+    #   "Step_Types_Rescale_Prob", paste0(j, "_", ssf_layer_i)),
+    #   format = "GTiff", overwrite = TRUE)
+
+    # NEW SECTION - NO TRANSFORMATION (RESCALING DONE AT STEP-LEVEL)
+    ssf_i_j_final <- ssf_i_j_mask
+    writeRaster(ssf_i_j_final, file.path(ssf_raster_dir,
+      "Step_Types_Crop", paste0(j, "_", ssf_layer_i)),
+      format = "GTiff", overwrite = TRUE)
+    ssf_i_list[[which(names(ssf_i_list) == j)]] <- ssf_i_j_final
+  }
+  ssf_list[[which(names(ssf_list) == ssf_step_type_i)]] <- ssf_i_list
+}
+gc()
+
+ssf_layers <- c(NamedList(ssf_source), ssf_list)
 
 ## Combine all Spatial Layers --------------------------------------------------
 
-spatial <- NamedList(base, nests, con_nest_dist, landscape, ssf_layers)
+spatial <- list()
+spatial[["base"]] <- base
+spatial[["nests"]] <- nests
+spatial[["con_nest_dist"]] <- con_nest_dist
+spatial[["landscape"]] <- landscape
+spatial[["ssf_layers"]] <- ssf_layers
+
+#spatial <- NamedList(base, nests, con_nest_dist, landscape, ssf_layers)
+#agents <- sim$agents
+#pars <- sim$pars
 
 ## Clean up environment --------------------------------------------------------
 RemoveExcept(c("agents", "pars", "spatial"))
 
 ################################## SIM #########################################
 
+sim <- list()
+sim[["agents"]] <- agents
+sim[["pars"]] <- pars
+sim[["spatial"]] <- spatial
+
 sim <- NamedList(agents, pars, spatial)
 #RemoveExcept("sim")
-saveRDS(sim, file="C:/Work/R/Data/Simulation/sim_01.rds")
+saveRDS(sim, file="C:/Work/R/Data/Simulation/sim_20200823.rds")
 
 # Recompile sim
 sim <- readRDS(file="C:/Work/R/Data/Simulation/sim_01.rds")
