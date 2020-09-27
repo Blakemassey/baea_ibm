@@ -18,20 +18,9 @@ file_dir <- "C:/ArcGIS/Data/R_Input/BAEA"
 elev_file <- file.path(file_dir, "elev_30mc.tif")
 
 # Extract class
-developed_dist_file <- file.path(file_dir, "developed_dist_30mc.tif")
-hydro_dist_file <- file.path(file_dir, "hydro_dist_30mc.tif")
-turbine_dist_file <- file.path(file_dir, "turbine_dist_30mc.tif")
+road_dist_file <- file.path(file_dir, "road_dist_30mc.tif")
 
 # Kernel class
-developed_file <- file.path(file_dir, "developed_30mc.tif")
-forest_file <- file.path(file_dir, "forest_30mc.tif")
-open_water_file <- file.path(file_dir, "open_water_30mc.tif")
-pasture_file <- file.path(file_dir, "pasture_30mc.tif")
-shrub_herb_file <- file.path(file_dir, "shrub_herb_30mc.tif")
-wetland_file <- file.path(file_dir, "wetland_30mc.tif")
-eastness_file <- file.path(file_dir, "eastness_30mc.tif")
-northness_file <- file.path(file_dir, "northness_30mc.tif")
-wind_class_file <- file.path(file_dir, "wind_class_30mc.tif")
 
 # BAEA and Movement Parameters
 baea_steps_file <- "Data/BAEA/baea_steps.rds"
@@ -58,27 +47,12 @@ rm(baea_steps_file, move_pars_file) #base_file
 elev <- raster(elev_file) # all other layers' extent are set to this layer
 
 # Extract class
-developed_dist <- crop(raster(developed_dist_file), elev)
-hydro_dist <- crop(raster(hydro_dist_file), elev)
-turbine_dist <- crop(raster(turbine_dist_file), elev)
+road_dist <- crop(raster(road_dist_file), elev)
 
 # Kernel class
-developed <- crop(raster(developed_file), elev)
-forest <- crop(raster(forest_file), elev)
-open_water <- crop(raster(open_water_file), elev)
-pasture <- crop(raster(pasture_file), elev)
-shrub_herb <- crop(raster(shrub_herb_file), elev)
-wetland <- crop(raster(wetland_file), elev)
-eastness <- crop(raster(eastness_file), elev)
-northness <- crop(raster(northness_file), elev)
-wind_class <- crop(raster(wind_class_file), elev)
 
 # plot(developed$as.RasterLayer(band = 1))
-rm(base_file, file_dir,
-  developed_dist_file, hydro_dist_file, turbine_dist_file,
-  developed_file, forest_file, open_water_file, pasture_file,
-  shrub_herb_file, wetland_file, eastness_file, northness_file, wind_class_file,
-  elev_file)
+rm(base_file, file_dir, road_dist, elev_file)
 
 ## Specify Landscape Covariates and Bandwidths ---------------------------------
 
@@ -86,21 +60,14 @@ cell_size <- 30
 kernel_bandwidths <- c(seq(0, 3000, by = 30))  # radius (meters)
 terrain_bandwidths <- c(seq(0, 1500, by = 30))
 
-extract_class <- c("developed_dist", "hydro_dist", "turbine_dist")
-kernel_class <- c("developed", "forest", "open_water", "pasture", "shrub_herb",
-  "wetland", "eastness", "northness", "wind_class")
-terrain_class <- c("tpi", "tri", "roughness")
+extract_class <- c("road_dist")
+kernel_class <- c()
+terrain_class <- c()
 
-covar_stack <- stack(developed_dist, hydro_dist, turbine_dist,
-  developed, forest, open_water, pasture, shrub_herb, wetland, eastness,
-  northness, wind_class, elev)
+covar_stack <- stack("road_dist")
 names(covar_stack) <- str_replace_all(names(covar_stack), "_30mc", "")
-covar_types <- c(extract_class, kernel_class, terrain_class)
-covariate_cols <- c(paste0(rep(extract_class, each=1), 0),
-  paste0(rep(kernel_class, each=length(kernel_bandwidths)),
-    rep(kernel_bandwidths, times=length(kernel_class))),
-  paste0(rep(terrain_class, each=length(terrain_bandwidths)),
-    rep(terrain_bandwidths, times=length(terrain_class))))
+covar_types <- c(extract_class)
+covariate_cols <- c(paste0(rep(extract_class, each=1), 0))
 
 if (subsetting_bandwidths == TRUE){  # subset data for testing
   rm(kernel_bandwidths, terrain_bandwidths)

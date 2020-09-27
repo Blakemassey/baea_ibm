@@ -554,6 +554,46 @@ for(i in seq_along(tri_windows)){
     filename=tri_30mc, overwrite = TRUE)
 }
 
+## ---------------------------- ROADS LAYERS ------------------------------ ####
+
+## Input Files
+base_file <- "C:/ArcGIS/Data/BlankRaster/maine_30mc.tif"
+outline_file <- "C:/ArcGIS/Data/BlankPolygon/MaineOutline.shp"
+roads_file <- "C:/ArcGIS/Data/Transportation/Maine_State_GDB.gdb"
+
+wgs84n19 <- 32619 # WGS84 UTM 19N
+ext <- extent(335000, 668000, 4750000, 5257000)
+
+# Create smaller ext (for testing)
+# x_buffer <- 150000
+# y_buffer <- 210000
+# ext <- extent(335000 + x_buffer, 668000 - x_buffer, 4750000 + y_buffer,
+#   5257000 - y_buffer)
+
+## Output Files
+road_output <- "C:/ArcGIS/Data/R_Input/BAEA/road_30mc.tif"
+road_dist_output <- "C:/ArcGIS/Data/R_Input/BAEA/road_dist_30mc.tif"
+
+## Import Raster layers
+base <- raster(base_file)
+ogrListLayers(roads_file)
+
+## Roads ----
+roads <- st_read(dsn = roads_file, layer = "Trans_RoadSegment") %>%
+  filter(TNMFRC %in% c(1, 2, 3, 4)) %>%
+  st_transform(wgs84n19) %>%
+  dplyr::select(TNMFRC, FULL_STREET_NAME) %>%
+  mutate(road = 1)
+
+st_write(roads, file.path(dirname(roads_file), "roads.shp"), overwrite = TRUE)
+
+wbt_vector_lines_to_raster(file.path(dirname(roads_file), "roads.shp"),
+  road_output, field = "road", nodata = 0, base = base_file,
+  verbose_mode = TRUE)
+
+## Distance to Roads ----
+wbt_euclidean_distance(road_output, road_dist_output, verbose_mode = FALSE)
+
 ######## ----------------------- RIDGE LINES ----------------------- ###########
 # Set options
 rasterOptions(maxmem = Inf, progress = "text", timer = TRUE, chunksize=1e9,
@@ -584,8 +624,6 @@ rtp_2_file <- file.path(file_dir, "Ridgelines", "rtp_2.tif")
 rtp_3_file <- file.path(file_dir, "Ridgelines", "rtp_3.tif")
 rtp_4_file <- file.path(file_dir, "Ridgelines", "rtp_4.tif")
 rtp_5_file <- file.path(file_dir, "Ridgelines", "rtp_5.tif")
-rtp_6_file <- file.path(file_dir, "Ridgelines", "rtp_6.tif")
-rtp_7_file <- file.path(file_dir, "Ridgelines", "rtp_7.tif")
 rtp_final_file <- file.path(file_dir, "Ridgelines", paste0("rtp_",
   agg_factor, "_", rtp_filter, "_", reclass_break_str, "_clump_poly.tif"))
 

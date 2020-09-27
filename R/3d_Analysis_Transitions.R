@@ -6,7 +6,7 @@ theme_update(plot.title = element_text(hjust = 0.5))
 
 pacman::p_load(baear, gisr, ibmr)
 
-baea_behavior_org <- readRDS(file="Data/Baea/baea_behavior.rds")
+baea_behavior_org <- readRDS(file = "Data/Baea/baea_behavior.rds")
 
 baea_behavior <- baea_behavior_org %>%
 #  filter(id == "Norway" | id == "Ellis") %>%
@@ -20,13 +20,13 @@ baea_behavior <- baea_behavior_org %>%
     behavior_num = as.numeric(behavior),
     ID = as.factor(id)) %>%
   dplyr::select(id, ID, datetime, behavior, behavior_num, julian_date, long_utm,
-    lat_utm,
+    lat_utm, sex,
     step_length, step_time, speed, alt, agl, turn_angle, time_proportion)
 
 # Cruise = 1, Flight = 2, Nest = 3, Perch = 4, Roost = 5
 
-PlotLocationSunriseSunset(df=baea_behavior %>% as.data.frame %>%
-  filter(id == "Norway"),
+PlotLocationSunriseSunset(df = baea_behavior %>% as.data.frame %>%
+    filter(id == "Norway"),
   by = "id", color_factor = "behavior",
   individual = "", start = "", end = "", breaks = "3 days", tz = "Etc/GMT+5",
   addsolartimes = TRUE, wrap = TRUE)
@@ -119,7 +119,7 @@ redist_pars <- full_join(weibull_pars, von_mises_pars, by=c("behavior"))
 RemoveExcept(c("baea_behavior", "redist_pars"))
 
 baea_behavior_prep <- prepData(baea_behavior %>% dplyr::select(-c(id,
-  turn_angle)), type="UTM", coordNames = c("long_utm", "lat_utm"),
+  turn_angle)), type = "UTM", coordNames = c("long_utm", "lat_utm"),
   covNames = c("julian_date", "time_proportion", "nest_dist"))
 
 if (min(baea_behavior_prep$step, na.rm = TRUE) == 0){
@@ -212,7 +212,6 @@ rownames(beta_est2) <- rownames(beta_est2) %>%
 
 beta_est
 
-
 (nbStates <- length(baea_hmm_full$stateNames))
 (dist <- baea_hmm_full$conditions$dist)
 (distnames <- names(dist))
@@ -231,7 +230,6 @@ beta_est
 (parindex <- c(0, cumsum(unlist(lapply(baea_hmm_full$conditions$fullDM,
   ncol)))[-length(baea_hmm_full$conditions$fullDM)]))
 (names(parindex) <- distnames)
-
 
 library(shiny)
 library(cosinor)

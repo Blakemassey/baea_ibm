@@ -6,10 +6,9 @@ pacman::p_load(plyr, dplyr, optimx, ggplot2, ggthemes, lubridate, optimx, purrr,
   raster, readr, reproducible, rgenoud, stringr, summarytools, survival,
   surveybootstrap, tibble, tictoc, tidyr, xtable)
 library(baear, gisr)
-options(stringsAsFactors=FALSE)
 
 # Calculate the percentiles for the covariates ---------------------------------
-model_dir = "Output/Analysis/SSF/Models/best_fits"
+model_dir = "Output/Analysis/SSF/Models/best_simpler_fits"
 preds_tbl_file = file.path(model_dir, "preds_tbl.rds")
 quantile_tbl_file = file.path(model_dir, "covar_quantiles.rds")
 covars_crop_dir = "C:/ArcGIS/Data/R_Input/BAEA/SSF_Rasters/Covars_Crop"
@@ -60,10 +59,10 @@ rm(covars_crop_dir, covar_quantile, covar_raster_file, covar_raster,
 
 # Extract model data (terms, coefs, etc.) from best_ssf_fit_models -------------
 mod_fit_dir = "Output/Analysis/SSF/Models"
-model_data_file = "Output/Analysis/SSF/Models/best_fits/model_data.rds"
+model_data_file = "Output/Analysis/SSF/Models/best_simpler_fits/model_data.rds"
 
-best_ssf_fit_all_org <- readRDS(file.path(mod_fit_dir, "best_fits",
-  "best_ssf_fit_all.rds"))
+best_ssf_fit_all_org <- readRDS(file.path(mod_fit_dir, "best_simpler_fits",
+  "best_ssf_simpler_fit_all.rds"))
 
 best_fit_all <- best_ssf_fit_all_org %>%
   mutate(start_behavior = word(step_type, 1, sep = "_")) %>%
@@ -97,21 +96,22 @@ for (i in start_step_types){
 
 saveRDS(model_data, model_data_file)
 
-# Combine the model fit data with the raster quantile data and preict margins --
+# Combine the model fit data w/ raster quantile data and predict margins -------
 mod_fit_dir = "Output/Analysis/SSF/Models"
-model_data_file = "Output/Analysis/SSF/Models/best_fits/model_data.rds"
-quantile_tbl_file = "Output/Analysis/SSF/Models/best_fits/covar_quantiles.rds"
-predictions_file = "Output/Analysis/SSF/Models/best_fits/covar_predictions.rds"
+model_data_file = "Output/Analysis/SSF/Models/best_simpler_fits/model_data.rds"
+quantile_tbl_file = file.path("Output/Analysis/SSF/Models/best_simpler_fits",
+  "covar_quantiles.rds")
+predictions_file = file.path("Output/Analysis/SSF/Models/best_simpler_fits",
+  "covar_predictions.rds")
 
-best_fit_all <- readRDS(file.path(mod_fit_dir, "best_fits",
-  "best_ssf_fit_all.rds"))
+best_fit_all <- readRDS(file.path(mod_fit_dir, "best_simpler_fits",
+  "best_ssf_simpler_fit_all.rds"))
 model_data <- readRDS(model_data_file)
 quantile_tbl <- readRDS(quantile_tbl_file)
 
 fits_quantile_tbl <- model_data %>%
   left_join(., quantile_tbl, c("term" = "covar")) %>%
   dplyr::select(-c("exp(coef)":"p"))
-
 
 pred_list_all <- vector(mode = "list", length = nrow(best_fit_all))
 i <- j <- 1
@@ -166,6 +166,7 @@ saveRDS(predictions_tbl_all, predictions_file)
 
 # Theme (for LaTeX font)
 tex_dir <- "C:/Users/Blake/OneDrive/Work/LaTeX/BMassey_Dissertation"
+file_dir <- "C:/ArcGIS/Data/R_Input/BAEA/SSF_Rasters/Step_Types_Simpler"
 suppressMessages(extrafont::loadfonts(device="win"))
 theme_latex <- theme(text = element_text(family = "Latin Modern Roman")) +
   theme(axis.text = element_text(size = 10)) +
@@ -173,7 +174,8 @@ theme_latex <- theme(text = element_text(family = "Latin Modern Roman")) +
   theme(plot.title = element_text(size = 14))
 pointSize = 2; textSize = 5; spaceLegend = 1
 
-predictions_file <- "Output/Analysis/SSF/Models/best_fits/covar_predictions.rds"
+predictions_file = file.path("Output/Analysis/SSF/Models/best_simpler_fits",
+  "covar_predictions.rds")
 predictions_tbl_all <- readRDS(predictions_file)
 
 step_types <- unique(predictions_tbl_all$step_type)
@@ -237,9 +239,14 @@ for (i in step_types) {
       scale_x_continuous(expand = expansion(mult = c(0.01, 0.01))) +
       ylim(c(0, 1))
     ggsave(filename = paste0("Prob_", ij_name, ".png"), plot = gg_prob_ij,
-      path = file.path(tex_dir, "Figures/Ch2/Step_Type_Covar_Prob"),
+      path = file.path(file_dir, "Margin_Plots"),
       scale = 1, width = 6, height = 4, units = "in",
       dpi = 300)
+    # SAVE FOR DISSERTATION FIGURES
+    # ggsave(filename = paste0("Prob_", ij_name, ".png"), plot = gg_prob_ij,
+    #   path = file.path(tex_dir, "Figures/Ch2/Step_Type_Covar_Prob"),
+    #   scale = 1, width = 6, height = 4, units = "in",
+    #   dpi = 300)
   }
 }
 

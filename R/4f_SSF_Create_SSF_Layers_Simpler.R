@@ -18,11 +18,11 @@ rasterOptions(maxmem = Inf, progress = "text", timer = TRUE,
 # Directory of fits
 mod_fit_dir = "Output/Analysis/SSF/Models"
 
-best_ssf_fits_org <- readRDS(file.path(mod_fit_dir, "best_fits",
-  "best_ssf_fit_all.rds"))
+best_ssf_fits_org <- readRDS(file.path(mod_fit_dir, "best_simpler_fits",
+  "best_ssf_simpler_fit_all.rds"))
 
 best_ssf_fits_org %>% dplyr::select(step_type, preds)
-best_ssf_fits <- best_ssf_fits_org
+best_ssf_fits <- best_ssf_fits_org %>% slice(1)
 
 # Determine all the raster_sigma layers
 preds_all <- paste0(best_ssf_fits$preds, collapse = " + ")
@@ -55,17 +55,17 @@ preds_tbl <- tibble(preds_unique) %>%
   mutate(raster_layer = vector(mode = "list", length = nrow(.))) %>%
   arrange(covar, sigma)
 
-saveRDS(preds_tbl, file.path(mod_fit_dir, "best_fits/preds_tbl.rds"))
+saveRDS(preds_tbl, file.path(mod_fit_dir, "best_simpler_fits/preds_tbl.rds"))
 
 ################ CREATE COVARIATE RASTERS FOR MAINE ############################
 
-preds_tbl <- readRDS(file.path(mod_fit_dir, "best_fits/preds_tbl.rds"))
+preds_tbl <- readRDS(file.path(mod_fit_dir, "best_simpler_fits/preds_tbl.rds"))
 
 # Source data directories
 input_dir <- "C:/ArcGIS/Data/R_Input/BAEA"
 elev_file <- file.path(input_dir, "elev_30mc.tif")
 kernel_dir <- file.path(input_dir, "SSF_Rasters/Processed_Sections/Kernel")
-covar_full_dir <- file.path(input_dir, "SSF_Rasters/Covars_Full")
+covars_full_dir <- file.path(input_dir, "SSF_Rasters/Covars_Full")
 
 elev_org <- raster(elev_file) # all other layers' extent are set to this layer
 
@@ -97,7 +97,7 @@ for (i in 1:nrow(preds_kernel)){
   top_file <- file.path(kernel_dir, paste0(covar, sigma, "_top.grd"))
   mid_file <- file.path(kernel_dir, paste0(covar, sigma, "_mid.grd"))
   bot_file <- file.path(kernel_dir, paste0(covar, sigma, "_bot.grd"))
-  out_file <- file.path(covars_full, paste0(covar, sigma, ".tif"))
+  out_file <- file.path(covars_full_dir, paste0(covar, sigma, ".tif"))
 
   # Covar TOP
   print("top")
@@ -219,7 +219,8 @@ for (i in seq_along(nrow(preds_terrain))){
 
   # Covar TOP
   print(paste0("Starting top at: ", lubridate::now()))
-  covar_i_top <- CalculateTerrainMetricWithSigma(sigma, covar, ext_top, elev_org)
+  covar_i_top <- CalculateTerrainMetricWithSigma(sigma, covar, ext_top,
+    elev_org)
   writeRaster(covar_i_top, top_file, format = "raster", overwrite = TRUE)
   rm(covar_i_top)
   gc()
@@ -227,7 +228,8 @@ for (i in seq_along(nrow(preds_terrain))){
   # Covar MID
   print(paste0("Starting mid at: ", lubridate::now()))
   print("mid")
-  covar_i_mid <- CalculateTerrainMetricWithSigma(sigma, covar, ext_mid, elev_org)
+  covar_i_mid <- CalculateTerrainMetricWithSigma(sigma, covar, ext_mid,
+    elev_org)
   covar_i_mid_crop <- crop(covar_i_mid, ext_mid_crop)
   writeRaster(covar_i_mid_crop, mid_file, format = "raster", overwrite = TRUE)
   rm(covar_i_mid)
@@ -235,7 +237,8 @@ for (i in seq_along(nrow(preds_terrain))){
 
   # Covar BOT
   print(paste0("Starting bot at: ", lubridate::now()))
-  covar_i_bot <- CalculateTerrainMetricWithSigma(sigma, covar, ext_bot, elev_org)
+  covar_i_bot <- CalculateTerrainMetricWithSigma(sigma, covar, ext_bot,
+    elev_org)
   writeRaster(covar_i_bot, bot_file, format = "raster", overwrite = TRUE)
   rm(covar_i_bot)
   gc()
@@ -278,12 +281,12 @@ writeRaster(turbine_dist, file.path(covars_full_dir,
 ################### MASK COVARIATE RASTERS TO MAINE ONLY #######################
 
 # Crop all the Covariate Rasters -----------------------------------------------
-preds_tbl_file = "Output/Analysis/SSF/Models/best_fits/preds_tbl.rds"
+preds_tbl_file = "Output/Analysis/SSF/Models/best_simpler_fits/preds_tbl.rds"
 covars_full_dir = "C:/ArcGIS/Data/R_Input/BAEA/SSF_Rasters/Covars_Full"
 covars_crop_dir = "C:/ArcGIS/Data/R_Input/BAEA/SSF_Rasters/Covars_Crop"
 maine_raster_trim_file = "C:/ArcGIS/Data/BlankRaster/maine_trim.tif"
 
-preds_tbl <- readRDS("Output/Analysis/SSF/Models/best_fits/preds_tbl.rds")
+preds_tbl <- readRDS("Output/Analysis/SSF/Models/best_simpler_fits/preds_tbl.rds")
 maine_raster_trim <- raster(maine_raster_trim_file)
 
 for (i in seq_len(nrow(preds_tbl))){
@@ -307,24 +310,26 @@ for (i in seq_len(nrow(preds_tbl))){
 mod_fit_dir = "Output/Analysis/SSF/Models"
 ssf_raster_dir = "C:/ArcGIS/Data/R_Input/BAEA/SSF_Rasters"
 covars_crop_dir = file.path(ssf_raster_dir, "Covars_Crop")
-step_type_dir = file.path(ssf_raster_dir, "Step_Type")
+step_type_dir = file.path(ssf_raster_dir, "Step_Types_Simpler")
 maine_raster_trim_file = "C:/ArcGIS/Data/BlankRaster/maine_trim.tif"
 
-best_ssf_fits <- readRDS(file.path(mod_fit_dir, "best_fits",
-  "best_ssf_fit_all.rds"))
+best_ssf_simpler_fits <- best_ssf_fits
+best_ssf_simpler_fits <- readRDS(file.path(mod_fit_dir, "best_simpler_fits",
+  "best_ssf_simpler_fit_all.rds"))
 maine_raster_trim <- raster(maine_raster_trim_file)
 
 # Original
 # Generate layer for each ssf based on original fits
-for (i in 1:nrow(best_ssf_fits)){
+for (i in 1:nrow(best_ssf_simpler_fits)){
   print(paste0("i:", i))
-  clogit_fit_i <- best_ssf_fits %>% slice(i) %>% pull(clogit_fit) %>% pluck(1)
-  step_type_i <- best_ssf_fits %>% slice(i) %>% pull(step_type)
+#  clogit_fit_i <- best_ssf_simpler_fits %>% slice(i) %>% pull(clogit_fit) %>%
+#    pluck(1)
+  step_type_i <- best_ssf_simpler_fits %>% slice(i) %>% pull(step_type)
   # Extract terms(not including 'strata(step_id)')
-  terms_i <- clogit_fit_i %>% pluck(terms, attr_getter("term.labels")) %>%
+  terms_i <- best_ssf_simpler_fits %>% slice(i) %>% pluck("fit_terms", 1) %>%
     .[!. %in% c("strata(step_id)")]
   # Extract coefficients
-  coefs_i <- clogit_fit_i %>% pluck(coef)
+  coefs_i <- best_ssf_simpler_fits %>% slice(i) %>% pluck("fit_coefs", 1)
 
   # Create Raster_Brick
   covars_list <- vector(mode = "list", length = length(terms_i))
@@ -336,90 +341,34 @@ for (i in 1:nrow(best_ssf_fits)){
   }
   covars_brick <- raster::brick(covars_list)
   #plot(covars_brick)
-  rm(clogit_fit_i, covars_list)
+  rm(covars_list)
 
   # Generate formulas
   ssf_formula <- paste0("(", paste(paste0("covars_brick[['", names(coefs_i),
     "']]"), paste0("coefs_i['", names(coefs_i),"']"), sep = "*",
     collapse = ") + ("), ")")
 
-  # Create raster, then crop and mask
-  ssf_raster <- eval(parse(text = ssf_formula))
-  plot(ssf_raster, main = step_type_i)
+  # Create value raster, then crop and mask
+  ssf_value_raster <- eval(parse(text = ssf_formula))
+  plot(ssf_value_raster, main = step_type_i)
 
-  # Write Raster to output dir
+  # Calculate probability
+  ssf_prob_raster <- raster::calc(ssf_value_raster, fun = boot::inv.logit)
+
+  # Write Rasters to output dir
   step_type_i_numeric <- step_type_i %>% str_replace_all(c("cruise" = "1",
     "flight" = "2", "nest" = "3", "perch" = "4", "roost" = "5"))
-  writeRaster(ssf_raster, file.path(ssf_raster_dir, "Step_Types",
+  writeRaster(ssf_value_raster, file.path(ssf_raster_dir, "Step_Types_Simpler",
     step_type_i_numeric), format = "GTiff", overwrite = TRUE)
-  rm(coefs_i, covars_brick, raster_file, ssf_formula, ssf_raster,
-    step_type_i_numeric, terms_i, terms_i_j)
+  writeRaster(ssf_prob_raster, file.path(ssf_raster_dir,
+    "Step_Types_Prob_Simpler", step_type_i_numeric), format = "GTiff",
+    overwrite = TRUE)
+  rm(coefs_i, covars_brick, raster_file, ssf_formula, ssf_value_raster,
+    ssf_prob_raster, step_type_i_numeric, terms_i, terms_i_j)
   gc()
 }
 
 
-# Generate UPDATE_01 layers based on PERCH using only hydro_dist and open_water
-for (i in 1:nrow(best_ssf_fits)){
-  print(paste0("i:", i))
-  clogit_fit_i <- best_ssf_fits %>% slice(i) %>% pull(clogit_fit) %>% pluck(1)
-  step_type_i <- best_ssf_fits %>% slice(i) %>% pull(step_type)
-  step_type_i_numeric <- step_type_i %>% str_replace_all(c("cruise" = "1",
-    "flight" = "2", "nest" = "3", "perch" = "4", "roost" = "5"))
-  start_behavior <- str_split(step_type_i_numeric, "_") %>% pluck(1, 1) %>%
-    as.numeric(.)
-  end_behavior <- str_split(step_type_i_numeric, "_") %>% pluck(1, 2) %>%
-    as.numeric(.)
-
-  if(end_behavior != 4){
-
-    # Extract terms(not including 'strata(step_id)')
-    terms_i <- clogit_fit_i %>% pluck(terms, attr_getter("term.labels")) %>%
-      .[!. %in% c("strata(step_id)")]
-    # Extract coefficients
-    coefs_i <- clogit_fit_i %>% pluck(coef)
-
-  } else {
-
-    # Extract terms associated with water only
-    terms_logical_i <- clogit_fit_i %>% pluck(terms,
-      attr_getter("term.labels")) %>%str_detect(., "hydro_dist0|open_water")
-    terms_i <- clogit_fit_i %>% pluck(terms, attr_getter("term.labels")) %>%
-      .[terms_logical_i]
-    # Extract coefficients
-    coefs_i <- clogit_fit_i %>% pluck(coef) %>%
-      .[terms_logical_i]
-
-  }
-
-  # Create Raster_Brick
-  covars_list <- vector(mode = "list", length = length(terms_i))
-  for (j in seq_along(terms_i)){
-    terms_i_j <- terms_i[j]
-    print(paste0("covariates: ", terms_i_j))
-    raster_file <- file.path(covars_crop_dir, paste0(terms_i_j, ".tif"))
-    covars_list[[j]] <- raster(raster_file)
-  }
-  covars_brick <- raster::brick(covars_list)
-  #plot(covars_brick)
-  rm(clogit_fit_i, covars_list)
-
-  # Generate formulas
-  ssf_formula <- paste0("(", paste(paste0("covars_brick[['", names(coefs_i),
-    "']]"), paste0("coefs_i['", names(coefs_i),"']"), sep = "*",
-    collapse = ") + ("), ")")
-
-  # Create raster, then crop and mask
-  ssf_raster <- eval(parse(text = ssf_formula))
-  plot(ssf_raster, main = step_type_i)
-
-  # Write Raster to output dir
-
-  writeRaster(ssf_raster, file.path(ssf_raster_dir, "Step_Types_Update_01",
-    step_type_i_numeric), format = "GTiff", overwrite = TRUE)
-  rm(coefs_i, covars_brick, raster_file, ssf_formula, ssf_raster,
-    step_type_i_numeric, terms_i, terms_i_j)
-  gc()
-}
 
 
 ### ------------------------------------------------------------------------ ###
