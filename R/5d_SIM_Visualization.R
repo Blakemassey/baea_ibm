@@ -6,17 +6,14 @@ pacman::p_load(cartography,ctmm, dplyr, fasterize, ggplot2, ggthemes, grid,
   purrr, raster, rosm, rsvg, sf, s2, tmap, tmaptools, viridis, units, webshot,
   zoo)
 pacman::p_load(baear, gisr, ibmr)
+set_thin_PROJ6_warnings(TRUE)
 #devtools::reload("C:/Users/blake/OneDrive/Work/R/Packages/ibmr")
-
-toc_msg <- function(tic, toc, msg, info){
-  outmsg <- paste(seconds_to_period(round(toc - tic)))
-}
 
 theme_update(plot.title = element_text(hjust = 0.5))
 
 # Coordinate systems
-wgs84 <- CRS("+init=epsg:4326") # WGS84 Lat/Long
-wgs84n19 <- CRS("+init=epsg:32619") # WGS84 UTM 19N
+wgs84 <- 4326 # WGS84 Lat/Long
+wgs84n19 <- 32619 # WGS84 UTM 19N
 
 # ESRI Baselayers
 esri_url <- "https://server.arcgisonline.com/ArcGIS/rest/services/"
@@ -28,7 +25,7 @@ base <- raster("C:/ArcGIS/Data/BlankRaster/maine_30mc.tif")
 
 # Maine Outline
 maine <- read_sf(file.path("C:/ArcGIS/Data/BlankPolygon/MaineOutline.shp")) %>%
-  st_transform(., crs = 4326) %>%
+  st_transform(., crs = wgs84) %>%
   mutate(state = "Maine")  %>%
   dplyr::select(state)
 
@@ -36,7 +33,10 @@ maine <- read_sf(file.path("C:/ArcGIS/Data/BlankPolygon/MaineOutline.shp")) %>%
 
 # Read in sim_out file
 
-sim_out <- readRDS("C:/TEMP/sim_20200823-02.rds")
+sim_dir <- "C:/TEMP"
+sim_id <- "sim_20200823-02.rds"
+
+sim_out <- readRDS(file.path(sim_dir, sim_id))
 
 sim_out1 <- sim_out[[1]]
 sim_step_data <- CompileAllAgentsStepData(sim=sim_out1) %>%
@@ -91,15 +91,10 @@ for (i in unique(sim_step_data$id)){
     hr_akde <- bind_rows(hr_akde, tibble(id = i, year = j,
       hr_akde = list(akde_k)))
   }
+  rm(sim_hr_i, move_k, telemetry_k, guess_k, fit_k, akde_k, i, j)
 }
 #saveRDS(hr_akde, "C:/TEMP/hr_akde_20200823-02.rds")
 hr_akde <- readRDS("C:/TEMP/hr_akde_20200823-02.rds")
-
-projcrs <- raster::crs(sim_out1$spatial$base)
-sim_step_sf <- st_as_sf(x = sim_step_data, coords = c("x", "y"),
-  crs = projcrs)
-stm_step_sf_1 <- sim_step_sf %>%
-  filter(id == 1)
 
 # Use "Tmap_baselayers.R" script to get other baselayers
 maine_bb_sf <- st_as_sfc(bb(maine, relative = TRUE, height = 1, width = 2))
@@ -107,55 +102,67 @@ maine_bb <- bb_poly(bb(maine_bb_sf, ext = 1.15))
 maine_om = read_osm(maine_bb, zoom = 5, minNumTiles = 9, type = om_nat_geo)
 
 # For mapping
+i <- 1; j <- 2015
 for (i in unique(sim_step_data$id)){
-  sim_hr_i <- sim_step_data %>% filter(id == i) %>% arrange(datetime)
+  sim_step_i <- sim_step_data %>% filter(id == i) %>% arrange(datetime)
   sim_akde_i <- hr_akde %>% filter(id == i)
-  for (j in unique(baea_hr_i$year)){
+  for (j in unique(year(sim_step_i$datetime))){
     print(paste0("ID:", i, "; ", "Year:", j))
 
     # Create Points and UDs
-    sim_hr_k <- sim_hr_i %>% filter(year(datetime) == j)
-    sim_akde_k <- sim_akde_i %>% filter(year == j)
-    akde_k <- sim_akde_k %>% pull(hr_akde) %>% pluck(1)
-    ud_95_sp_k <- SpatialPolygonsDataFrame.UD(akde_k, level.UD = 0.95,
-      level = 0.95)
-    ud_95_sf_k <- st_as_sf(ud_95_sp_k) %>% slice(2)
-    ud_50_sp_k <- SpatialPolygonsDataFrame.UD(akde_k, level.UD = 0.5,
-      level = 0.95)
-    ud_50_sf_k <- st_as_sf(ud_50_sp_k) %>% slice(2)
-    sim_sf_k <- st_as_sf(sim_hr_k, coords = c("x", "y"),
-      crs = 32619, agr = "constant")
+    sim_step_j <- sim_step_i %>% filter(year(datetime) == j) %>%
+      st_as_sf(., coords = c("x", "y"), crs = wgs84n19, agr = "constant") %>%
+      st_transform(., crs = wgs84)
+    sim_akde_j <- sim_akde_i %>% filter(year == j)
+    akde_j <- sim_akde_j %>% pull(hr_akde) %>% pluck(1)
+    ud_95_j <- SpatialPolygonsDataFrame.UD(akde_j, level.UD = 0.95,
+      level = 0.95) %>% st_as_sf(.) %>% slice(2)
+    ud_50_j <- SpatialPolygonsDataFrame.UD(akde_j, level.UD = 0.5,
+      level = 0.95) %>% st_as_sf(.) %>% slice(2)
 
-    mapview(list(ud_95_sf_k, ud_50_sf_k, sim_sf_k),
+    # Map Points and UDs
+    mapview(list(ud_95_j, ud_50_j, sim_step_j),
       zcol = list(NULL,NULL, NULL),
       legend = list(TRUE, FALSE, FALSE),
       homebutton = list(FALSE, TRUE, TRUE))
 
     # Create Flightpaths
-    sim_k <- sim_hr_k %>% st_as_sf(., coords = c("x", "y"),
-      crs = 32619)  %>%
-      st_transform(., crs = as.character(OpenStreetMap::osm()))
-    sim_k_lines <- sim_k %>% group_by(id) %>% arrange(datetime) %>%
-      summarize(m = mean(year(datetime)), do_union = FALSE) %>%
+    sim_lines_j <- sim_step_j %>%
+      group_by(id) %>%
+      arrange(datetime) %>%
+      dplyr::summarize(m = mean(year(datetime)), do_union = FALSE) %>%
       st_cast("LINESTRING")
 
-    mapview(list(sim_k, sim_k_lines),
-      zcol = list(NULL,NULL),
+    # Map Points and Flightpaths
+    mapview(list(sim_step_j, sim_lines_j),
+      zcol = list("behavior", NULL),
       legend = list(TRUE, FALSE),
       homebutton = list(TRUE, FALSE))
 
-    # Create Raster of Locations
+    # Create Nest Point
     nest_id_i <- sim_out$run_1$agents$input %>% filter(id == i) %>%
-      pull(nest_id)
-    con_nest_dist_i <- sim_out$run_1$spatial$con_nest_dist[[nest_id_i]]
-    sim_steps_raster_k <- trim(rasterize(sim_sf_k, con_nest_dist_i, field = 1,
-      fun = 'sum', background = NA, mask = FALSE, update = FALSE,
-      updateValue = 'all', filename = "", na.rm = TRUE))
-    plot(sim_steps_raster_k)
+       pull(nest_id)
+    nest_i <- sim_out$run_1$agents$input %>% filter(id == i) %>%
+      st_as_sf(., coords = c("start_x", "start_y"), crs = 32619) %>%
+      st_transform(., crs = 4326)
+    # Create Raster of Locations
+    base_j <- crop(base, as(st_as_sfc(st_bbox(sim_sf_j)) %>%
+      st_transform(., crs = wgs84n19), "Spatial"), snap = "out")
+    mapview(base_j) +
+      mapview(sim_sf_k)
 
+    sim_raster_j <- rasterize(sim_sf_j, base_j, field = 1,
+      fun = 'sum', background = NA, mask = FALSE, update = FALSE,
+      updateValue = 'all', na.rm = TRUE)
+
+    # Map Nest and Point Location Raster
+    mapview(nest_i,  zcol = NULL) +
+      mapview(sim_raster_j) +
+      mapview(sim_lines_j)
 
     # Get osm baselayer for sim_k
-    sim_k_bb_sf <- st_as_sfc(bb(sim_k, relative = TRUE, height = 4, width = 4))
+    sim_k_bb_sf <- st_as_sfc(bb(sim_sf_k, relative = TRUE, height = 4,
+      width = 4))
     sim_k_om = read_osm(sim_k_bb_sf, minNumTiles = 21,
       type = om_nat_geo)  # may need to add and adjust 'zoom' arg
     sim_dist_sf <- st_as_sfc(bb(sim_k, relative = TRUE, height = 1, width = 1))
@@ -231,26 +238,6 @@ for (i in unique(sim_step_data$id)){
   }
 }
 
-# Rasters of Location Density
-
-for (i in unique(sim_step_data$id)){
-  sim_steps_i <- sim_step_data %>% filter(id == i) %>% arrange(datetime)
-  for (j in unique(baea_hr_i$year)){
-    print(paste0("ID:", i, "; ", "Year:", j))
-    sim_steps_k <- sim_hr_i %>% filter(year(datetime) == j)
-
-    sim_sf_k <- st_as_sf(sim_steps_k, coords = c("x", "y"),
-      crs = 32619, agr = "constant")
-
-    nest_id_i <- sim_out$run_1$agents$input %>% filter(id == i) %>% pull(nest_id)
-    con_nest_dist_i <- sim_out$run_1$spatial$con_nest_dist[[nest_id_i]]
-
-    sim_steps_raster_k <- trim(rasterize(sim_sf_k, con_nest_dist_i, field = 1,
-      fun = 'sum', background = NA, mask = FALSE, update = FALSE,
-      updateValue = 'all', filename = "", na.rm = TRUE))
-    plot(sim_steps_raster_k)
-  }
-}
 
 # destination_raster <- rasterize(destination_xy, prob_raster, field = 1,
 #   fun = 'sum', background = NA, mask = FALSE, update = FALSE,
@@ -260,44 +247,37 @@ for (i in unique(sim_step_data$id)){
 # plot(destination_raster)
 # Plot3DRaster(destination_raster, col = viridis::viridis(20),
 #   main = "Probability Plot")
-
-
-
-
-
-
-nest_locs <- sim_step_data %>% dplyr::filter(behavior == 3)
-
-
-
-# Plots of Sim Daily Behavior
-locs_dir = "Output/Sim/01_BehaviorMove/Plots/Daily_Locations"
-for (i in unique(sim_step_data$id)){
-  PlotLocationSunriseSunset(df = sim_step_data %>% filter(id == i),
-    by = "id", color_factor = "behavior", individual = "", start = "", end = "",
-    breaks = "14 days", tz = "Etc/GMT+5", addsolartimes = FALSE, wrap = TRUE)
-  SaveGGPlot(file.path(locs_dir ,paste0("DailyLocs_", str_pad(i, 2,
-    side = "left", "0"), ".png")))
-}
-title_sim = "Daily Behavior Distributions (simulated data)"
-PlotBehaviorProportionBar(sim_step_data, title = title_sim)
-SaveGGPlot("Results/Sim/01_BehaviorMove/Behavior/Proportion_Bar_SIM.png")
-
-
-# Plots of Empirical Daily Behavior
-baea_behavior <- readRDS(file="Data/Baea/baea_behavior.rds")
-behave_dir <- "Results/Analysis/Plots/Behavior"
-
-PlotLocationSunriseSunset(df=baea_behavior %>% as.data.frame() %>%
-    filter(id == "Three"),
-  by = "id", color_factor = "behavior", individual = "", start = "2015-03-20",
-  end = "2015-09-20", breaks = "14 days", tz = "Etc/GMT+5",
-  addsolartimes = FALSE, wrap = TRUE)
-SaveGGPlot(file.path(behave_dir ,paste0("DailyLocs_Three.png")))
-
-PlotLocationSunriseSunset(df = baea_behavior %>% as.data.frame() %>%
-    filter(id == "Ellis"),
-  by = "id", color_factor = "behavior", individual = "",
-  start = "2016-03-20", end = "2016-09-20", breaks = "10 days",
-  tz = "Etc/GMT+5", addsolartimes = FALSE, wrap = TRUE)
-SaveGGPlot(file.path(behave_dir ,paste0("DailyLocs_Ellis.png")))
+#
+# nest_locs <- sim_step_data %>% dplyr::filter(behavior == 3)
+#
+# # Plots of Sim Daily Behavior
+# locs_dir = "Output/Sim/01_BehaviorMove/Plots/Daily_Locations"
+# for (i in unique(sim_step_data$id)){
+#   PlotLocationSunriseSunset(df = sim_step_data %>% filter(id == i),
+#     by = "id", color_factor = "behavior", individual = "", start = "", end = "",
+#     breaks = "14 days", tz = "Etc/GMT+5", addsolartimes = FALSE, wrap = TRUE)
+#   SaveGGPlot(file.path(locs_dir ,paste0("DailyLocs_", str_pad(i, 2,
+#     side = "left", "0"), ".png")))
+# }
+# title_sim = "Daily Behavior Distributions (simulated data)"
+# PlotBehaviorProportionBar(sim_step_data, title = title_sim)
+# SaveGGPlot("Results/Sim/01_BehaviorMove/Behavior/Proportion_Bar_SIM.png")
+#
+#
+# # Plots of Empirical Daily Behavior
+# baea_behavior <- readRDS(file="Data/Baea/baea_behavior.rds")
+# behave_dir <- "Results/Analysis/Plots/Behavior"
+#
+# PlotLocationSunriseSunset(df=baea_behavior %>% as.data.frame() %>%
+#     filter(id == "Three"),
+#   by = "id", color_factor = "behavior", individual = "", start = "2015-03-20",
+#   end = "2015-09-20", breaks = "14 days", tz = "Etc/GMT+5",
+#   addsolartimes = FALSE, wrap = TRUE)
+# SaveGGPlot(file.path(behave_dir ,paste0("DailyLocs_Three.png")))
+#
+# PlotLocationSunriseSunset(df = baea_behavior %>% as.data.frame() %>%
+#     filter(id == "Ellis"),
+#   by = "id", color_factor = "behavior", individual = "",
+#   start = "2016-03-20", end = "2016-09-20", breaks = "10 days",
+#   tz = "Etc/GMT+5", addsolartimes = FALSE, wrap = TRUE)
+# SaveGGPlot(file.path(behave_dir ,paste0("DailyLocs_Ellis.png")))

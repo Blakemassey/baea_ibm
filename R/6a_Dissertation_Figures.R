@@ -285,47 +285,25 @@ baea_behavior <- readRDS("Data/Baea/baea_behavior.rds")
 baea_behavior_simple <- baea_behavior %>%
   dplyr::select(datetime, id, time_proportion, bh_nest:behavior)
 
-# Utility Functions
-CutProportion <- function(data, breaks = breaks) {
-  b <- seq(0, 1, length=2*breaks+1)
-  brk <- b[0:breaks*2+1]
-  k <- cut(data, breaks=brk)
-}
-CutProportionMid <- function(data, breaks = breaks) {
-  b <- seq(0, 1, length = 2*breaks + 1)
-  brk <- b[0:breaks*2 + 1]
-  mid <- b[1:breaks*2]
-  k <- cut(data, breaks=brk)
-  mid[k]
-}
-Capitalize <- function(string) {
-  substr(string, 1, 1) <- toupper(substr(string, 1, 1))
-  string
-}
-sex_names <- list('female' = "Female", 'male' = "Male")
-sex_labeller <- function(variable, value){
-  return(sex_names[value])
-}
-
-# Wrangle data
+# Summarize daily behavior by time_proportion
 breaks = 20
-behavior_colors <- CreateColorsByMetadata(file=
-    "Data/Assets/behavior_colors.csv", metadata_id="behavior")
-df <- baea_behavior
-df$behavior <- factor(df$behavior)
-df$bins <- CutProportion(df$time_proportion, breaks)
-df$bins_mid <- factor(CutProportionMid(df$time_proportion, breaks))
-melted <- reshape::melt(plyr::ddply(df, plyr::.(sex, bins_mid),
-  function(x){prop.table(table(x$behavior))}))
-names(melted)[names(melted) == 'variable'] <- 'behavior'
-melted$bins_mid <- as.numeric(as.character(melted$bins_mid))
+baea_behavior_sum <- baea_behavior %>%
+  mutate(behavior = factor(behavior)) %>%
+  mutate(bins = CutProportion(time_proportion, breaks)) %>%
+  mutate(bins_mid = factor(CutProportionMid(time_proportion, breaks))) %>%
+  group_by(sex, bins_mid) %>%
+  count(behavior) %>%
+  mutate(value = n/sum(n)) %>%
+  mutate(bins_mid = as.numeric(as.character(bins_mid))) %>%
+  ungroup(.) %>%
+  arrange(sex, bins_mid)
 
 # Make Plot
 point_size = 2; space_legend = .7
-gg_behave_prop <-   ggplot(melted, aes(x = bins_mid, y = value, ymax = 1,
-  fill = behavior)) +
+gg_behave_prop <-   ggplot(baea_behavior_sum, aes(x = bins_mid, y = value,
+  ymax = 1, fill = behavior)) +
   facet_grid(~ sex, labeller = labeller(sex = Capitalize)) +
-  geom_bar(stat="identity") +
+  geom_bar(stat = "identity") +
   scale_fill_manual(values = behavior_colors, name = "Behavior") +
   labs(x = "Daily Period", y = "Behavior Proportion", title = "") +
   theme_minimal() +
@@ -681,7 +659,7 @@ ind_list = lapply(sort(unique(baea_movements_vm_sub$behavior_behavior)),
     theme(axis.text = element_text(size = 7)) +
     theme(axis.text.x = element_text(angle = 0, vjust = .5, hjust = 0.5)) +
     theme(plot.title = element_text(size = 8, vjust = -2, hjust = 0.5)) +
-    theme(legend.position="none") +
+    theme(legend.position = "none") +
     theme(panel.grid.major = element_line(colour = "grey90"))  +
     theme(panel.grid.minor = element_line(colour = "grey90"))  +
     ggtitle(TeX(grp_i)) +
@@ -1004,4 +982,10 @@ ggsave(filename = "ConNest_Logistic.png", plot = gg_connest_logistic,
 # ---------------------------------------------------------------------------- #
 ################################ OLD CODE ######################################
 # ---------------------------------------------------------------------------- #
+
+# # Utility Functions
+# sex_names <- list('female' = "Female", 'male' = "Male")
+# SexLabeller <- function(variable, value){
+#   return(sex_names[value])
+# }
 
