@@ -299,6 +299,7 @@ ssf_best_ten_fits_df  <- ssf_best_ten_fits_org %>%
   mutate(preds = str_replace_all(preds, "DevelopedDist0", "DevelopedDist")) %>%
   mutate(preds = str_replace_all(preds, "HydroDist0", "HydroDist")) %>%
   mutate(preds = str_replace_all(preds, "TurbineDist0", "TurbineDist")) %>%
+  mutate(preds = str_replace_all(preds, "RoadDist0", "RoadDist")) %>%
   group_by(step_type_cap) %>%
   mutate(mod_rank = 1:n()) %>%
   ungroup(.) %>%

@@ -197,10 +197,10 @@ landscape <- NamedList(forest, land, maine_outline)
 # Directories
 ssf_raster_dir = "C:/ArcGIS/Data/R_Input/BAEA/SSF_Rasters"
 
-ssf_source <- "Step_Types_Update_01" # THIS CONTROLS SSF LAYERS INPUT
+ssf_source <- "Step_Types_Prob" # THIS CONTROLS SSF LAYERS INPUT
 
 if(!exists("con_nest_dist")){
-  sim <- readRDS(file="C:/Work/R/Data/Simulation/sim_01.rds")
+  sim <- readRDS(file = "C:/Work/R/Data/Simulation/sim_01.rds")
   con_nest_dist <- sim %>% pluck("spatial", "con_nest_dist")
 }
 
@@ -217,7 +217,7 @@ for (i in seq_along(ssf_layers)){
   print(ssf_layer_i)
 
   # Create Raster
-  ssf_i <- raster(file.path(ssf_raster_dir, "Step_Types_Update_01", ssf_layer_i))
+  ssf_i <- raster(file.path(ssf_raster_dir, ssf_source, ssf_layer_i))
 
   # Create ssf_layer raster for each nest site
   ssf_i_list <- purrr::map(unique(names(con_nest_dist)), ~ NULL)
@@ -228,27 +228,16 @@ for (i in seq_along(ssf_layers)){
     con_nest_dist_j <- con_nest_dist[[which(names(con_nest_dist) == j)]]
     #plot(con_nest_dist_j)
     ssf_i_j_ext <- extend(ssf_i, con_nest_dist_j, value = NA)
-    #plot(ssf_i_j_ext)
+    plot(ssf_i_j_ext)
     ssf_i_j_crop <- crop(ssf_i_j_ext, con_nest_dist_j)
-    #plot(ssf_i_j_crop)
+    plot(ssf_i_j_crop)
     ssf_i_j_mask <- mask(ssf_i_j_crop, con_nest_dist_j)
     plot(ssf_i_j_mask, main = paste0(i, ": ", j))
-
-    # ORIGINAL METHOD - RESCALING GLOBALLY
-    # ssf_i_j_rescale <- ssf_i_j_ext
-    # ssf_i_j_rescale[] <- scales::rescale(ssf_i_j_ext[], to = c(-9, 9))
-    # plot(ssf_i_j_rescale)
-    # ssf_i_j_inv_logit <- calc(ssf_i_j_rescale, fun = boot::inv.logit)
-    # ssf_i_j_final <- mask(ssf_i_j_inv_logit, con_nest_dist_j)
-    # plot(ssf_i_j_final)
-    # writeRaster(ssf_i_j_final, file.path(ssf_raster_dir,
-    #   "Step_Types_Rescale_Prob", paste0(j, "_", ssf_layer_i)),
-    #   format = "GTiff", overwrite = TRUE)
 
     # NEW SECTION - NO TRANSFORMATION (RESCALING DONE AT STEP-LEVEL)
     ssf_i_j_final <- ssf_i_j_mask
     writeRaster(ssf_i_j_final, file.path(ssf_raster_dir,
-      "Step_Types_Crop", paste0(j, "_", ssf_layer_i)),
+      "Step_Types_Prob_Crop", paste0(j, "_", ssf_layer_i)),
       format = "GTiff", overwrite = TRUE)
     ssf_i_list[[which(names(ssf_i_list) == j)]] <- ssf_i_j_final
   }
@@ -286,12 +275,29 @@ sim <- NamedList(agents, pars, spatial)
 saveRDS(sim, file="C:/Work/R/Data/Simulation/sim_20200823.rds")
 
 # Recompile sim
-sim <- readRDS(file="C:/Work/R/Data/Simulation/sim_01.rds")
+sim <- readRDS(file="C:/Work/R/Data/Simulation/sim_20200823.rds")
 agents <- sim$agents
 pars <- sim$pars
 spatial <- sim$spatial
+sim$spatial$ssf_layers <- ssf_layers
 sim <- NamedList(agents, pars, spatial)
-saveRDS(sim, file="C:/Work/R/Data/Simulation/sim_01.rds")
+saveRDS(sim, file = "C:/Work/R/Data/Simulation/sim_20201016.rds")
 
 RemoveExcept(c("baea", "nest_set", "base", "max_r", "write_home_dist",
   "write_con_dist", "write_con_dist_nest", "write_con_dist"))
+
+
+#------------------------------------------------------------------------------#
+################################ OLD CODE ######################################
+#------------------------------------------------------------------------------#
+
+# ORIGINAL METHOD - RESCALING GLOBALLY
+# ssf_i_j_rescale <- ssf_i_j_ext
+# ssf_i_j_rescale[] <- scales::rescale(ssf_i_j_ext[], to = c(-9, 9))
+# plot(ssf_i_j_rescale)
+# ssf_i_j_inv_logit <- calc(ssf_i_j_rescale, fun = boot::inv.logit)
+# ssf_i_j_final <- mask(ssf_i_j_inv_logit, con_nest_dist_j)
+# plot(ssf_i_j_final)
+# writeRaster(ssf_i_j_final, file.path(ssf_raster_dir,
+#   "Step_Types_Rescale_Prob", paste0(j, "_", ssf_layer_i)),
+#   format = "GTiff", overwrite = TRUE)

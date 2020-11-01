@@ -7,7 +7,7 @@ MovementSubModelBAEA2 <- function(sim = sim,
                                   agent_states = agent_states,
                                   step_data = step_data,
                                   step = step) {
-  plotting <- FALSE
+  plotting <- FALSE #TRUE
   base <- sim$spatial$base
   cellsize <- raster::res(sim$spatial$base)[1]
   i <- which(step_data$datetime == step)
@@ -76,6 +76,7 @@ MovementSubModelBAEA2 <- function(sim = sim,
     move_shift_ext <- raster::extend(move_shift, move_org_shift, value = NA)
     move_shift_crop <- raster::crop(move_shift_ext, move_org_shift, snap="in")
     move_kernel <- raster::mask(move_shift_crop, move_org_shift, value=NA)
+    if(plotting) plot(move_kernel)
 
     # Con_Nest Kernel
     con_nest_raster <- sim$spatial$con_nest_dist[[agent_states$nest_id]]
@@ -110,18 +111,19 @@ MovementSubModelBAEA2 <- function(sim = sim,
     if(plotting) plot(ssf_mask)
 
     # ORIGINAL WAY TO CALCULATE THE KERNEL
-    #ssf_kernel <- raster::extend(ssf_mask, move_kernel, value = NA)
-
-    # NEW SECTION THAT DOES A RESCALE AT EVERY STEP
-    ssf_rescale <- ssf_mask
-    ssf_rescale[] <- scales::rescale(ssf_mask[], to = c(-4, 4)) # Tried 4, 4
-    if(plotting) plot(ssf_rescale)
-
-    if(behavior_trans == "3_4"){
-      ssf_rescale <- ssf_mask
-    }
-    ssf_kernel <- raster::calc(ssf_rescale, fun = boot::inv.logit)
+    ssf_kernel <- raster::extend(ssf_mask, move_kernel, value = NA)
     if(plotting) plot(ssf_kernel)
+
+    # # NEW SECTION THAT DOES A RESCALE AT EVERY STEP
+    # ssf_rescale <- ssf_mask
+    # ssf_rescale[] <- scales::rescale(ssf_mask[], to = c(-4, 4)) # Tried 4, 4
+    # if(plotting) plot(ssf_rescale)
+
+    # if(behavior_trans == "3_4"){
+    #   ssf_rescale <- ssf_mask
+    # }
+    # ssf_kernel <- raster::calc(ssf_rescale, fun = boot::inv.logit)
+    # if(plotting) plot(ssf_kernel)
     #raster::writeRaster(ssf_kernel, "C:/Temp/Sim6/ssf_kernel.tif")
 
     # Restrictions for different next_behavior
@@ -157,40 +159,62 @@ MovementSubModelBAEA2 <- function(sim = sim,
     # print(paste0("land_log:", raster::extent(land_log)))
     # print(paste0("maine_outline_log:", raster::extent(maine_outline_log)))
 
-    # COMPLETE VERSION
-    kernel_stack <- raster::stack(list(move_kernel_log, con_nest_kernel_log,
-      land_log, maine_outline_log, ssf_kernel_log))
-
-    # MOVE ONLY VERSION
-    # kernel_stack <- raster::stack(list(land_log, move_kernel_log))
-
-    # SSF ONLY VERSION
-    # kernel_stack <- raster::stack(list(land_log, maine_outline_log,
-    #   ssf_kernel_log))
+    if (next_behavior %in% c(4,5)){
+      # If end behavior is perch or roost - SSF, Maine, and Land
+      kernel_stack <- raster::stack(list(land_log, maine_outline_log,
+        con_nest_kernel_log, ssf_kernel_log))
+    } else {
+      # If end behavior is cruise or flight - SSF, Con_Nest, Maine, and Land
+      kernel_stack <- raster::stack(list(move_kernel_log, con_nest_kernel_log,
+        maine_outline_log, ssf_kernel_log))
+    }
 
     kernel_stack_mean <- raster::calc(kernel_stack, fun = mean, na.rm = TRUE)
+
+    if(plotting) plot(kernel_stack_mean)
     prob_raster <- exp(kernel_stack_mean)
-    prob_raster <- prob_raster/raster::cellStats(prob_raster, stat = "sum")
+    #prob_raster <- prob_raster/raster::cellStats(prob_raster, stat = "sum")
     prob_raster[is.na(prob_raster)] <- 0
 
     raster::crs(prob_raster) <- raster::crs(sim$spatial$base)
     if(plotting) plot(prob_raster)
-    ExportKMLRasterOverlayWithTime(raster = prob_raster, time = step_interval,
-      alpha = .8, color_pal= viridis::viridis(20),
-      outfile = paste0(agent_states$id, "_", i),
-      output_dir = file.path("C:/Temp/Sim6/Prob_Rasters"))
-      #output_dir= file.path(getwd(), "Prob_Rasters"))
+    # ExportKMLRasterOverlayWithTime(raster = prob_raster, time = step_interval,
+    #   alpha = .8, color_pal= viridis::viridis(20),
+    #   outfile = paste0(agent_states$id, "_", i),
+    #   output_dir = file.path("C:/Temp/sim_20201016-03"))
 
+    if(plotting) raster::hist(prob_raster)
     ### END OF OTHER PROBABILITY LAYERS
 
+    ## OLD SECTION ##########
+
+    # destination_cell <- suppressWarnings(sampling::strata(data = data.frame(
+    #   cell = 1:raster::ncell(prob_raster)), stratanames = NULL, size=1,
+    #   method = "systematic", pik = prob_raster@data@values))
+    # while(is.na(destination_cell[1,1])) {
+    #   destination_cell <- suppressWarnings(sampling::strata(data=data.frame(
+    #     cell = 1:raster::ncell(prob_raster)), stratanames = NULL, size = 1,
+    #     method = "systematic", pik = prob_raster@data@values))
+    # }
+
+    ## NEW SECTION ##########
+    #print(paste0("Sample proportion: 500 out of ", raster::ncell(prob_raster),
+    #  " (", 500/raster::ncell(prob_raster), ")"))
+
     destination_cell <- suppressWarnings(sampling::strata(data = data.frame(
-      cell = 1:raster::ncell(prob_raster)), stratanames = NULL, size=1,
-      method = "systematic", pik = prob_raster@data@values))
+      cell = 1:raster::ncell(prob_raster)), stratanames = NULL, size = 500,
+      method = "systematic", pik = prob_raster@data@values)) %>%
+    mutate(prob_rank = rank(-Prob, na.last = NA, ties.method = "random")) %>%
+    filter(prob_rank == 1)
+
     while(is.na(destination_cell[1,1])) {
-      destination_cell <- suppressWarnings(sampling::strata(data=data.frame(
-        cell = 1:raster::ncell(prob_raster)), stratanames = NULL, size = 1,
-        method="systematic", pik = prob_raster@data@values))
+      destination_cell <- suppressWarnings(sampling::strata(data = data.frame(
+        cell = 1:raster::ncell(prob_raster)), stratanames = NULL, size = 500,
+        method = "systematic", pik = prob_raster@data@values)) %>%
+      mutate(prob_rank = rank(-Prob, na.last = NA, ties.method = "random")) %>%
+      filter(prob_rank == 1)
     }
+
     destination_xy <- raster::xyFromCell(prob_raster, destination_cell[1,1])
     step_data[i+1, "x"] <- destination_xy[1]
     step_data[i+1, "y"] <- destination_xy[2]
@@ -202,14 +226,6 @@ MovementSubModelBAEA2 <- function(sim = sim,
   return(step_data)
 }
 
-SimplifySimSpatialBAEA <- function(sim){
-    ssf_source <- sim %>%
-      pluck('spatial', 'ssf_layers') %>%
-      keep(., is.character)
-    sim$spatial <- NULL
-    sim[["spatial"]][["ssf_layers"]] <- ssf_source
-    return(sim)
-}
 
 # IMPORTANT - Process to plot probability plot
 # sample_n <- 50000
@@ -235,6 +251,167 @@ SimplifySimSpatialBAEA <- function(sim){
 # plot(destination_raster)
 # Plot3DRaster(destination_raster, col = viridis::viridis(20),
 #   main = "Probability Plot")
+
+SimplifySimSpatialBAEA <- function(sim){
+    ssf_source <- sim %>%
+      pluck('spatial', 'ssf_layers') %>%
+      keep(., is.character)
+    sim$spatial <- NULL
+    sim[["spatial"]][["ssf_layers"]] <- ssf_source
+    return(sim)
+}
+
+
+CreateBirthDate <- function(sim = sim){
+  # Only proceed if there is no birth_date column
+  sim = sim
+  input = sim$agents$input
+  if(!"birth_date" %in% colnames(input)){
+    # Loop through each row in the input
+    input_age_period <- sim$pars$global$input_age_period
+    birth_day <- sim$pars$global$birth_day
+    input <- tibble::add_column(input, birth_date = NA)
+    for(a in 1:nrow(input)){
+      # Is the age_period a year?
+      if(input_age_period == "year" || input_age_period == "years") {
+        # Determine the first sim_start date after the birth_day
+        one_year <- as.period(1, "year")
+        s0 <- as.Date(sim$pars$global$sim_start - (one_year*input$age[a]))
+        # Set the format of the birth_day
+        birth_day_format <- tail(guess_formats(birth_day, orders ="dm"), 1)
+        birth_day_format <- paste(birth_day_format,"%Y",sep="")
+        # Determine the first birth_day after s0
+        s1 <- as.Date(paste(birth_day,year(s0),sep=""), format=birth_day_format)
+        if(s0 >= s1) {
+          input$birth_date[a] <- as.character(s1)
+        } else {
+          input$birth_date[a] <- as.character(s1-one_year)
+        }
+      } else {
+        # If age period is not a year
+        age_period_unit <- as.period(1, input_age_period)
+        input$birth_date[a] <- as.character(sim$pars$global$sim_start -
+          (age_period_unit*input$age[a]))
+      }
+    }
+  }
+  return(input)
+}
+
+UpdateAgentStates <- function(agent_states = NULL,
+                              sim = sim,
+                              init = FALSE) {
+  if (init == TRUE) {
+    input <- sim$agents$input
+    input <- CreateBirthDate(sim)
+    input_columns <- colnames(input)
+    na_columns <- c("start_datetime", "died")
+    all <- list()
+    for (i in 1:nrow(input)) {
+      states <- list()
+      for (j in input_columns) states <- append(states, input[i, j])
+      for (k in 1:length(na_columns)) states <- append(states, NA)
+      states <- setNames(states, c(input_columns, na_columns))
+      agent <- NamedList(states)
+      all <- append(all, NamedList(agent))
+    }
+    sim$agents <- append(sim$agents, NamedList(all))
+    return(sim)
+  } else {
+    agent_states <- agent_states
+    return(agent_states)
+  }
+}
+
+UpdateAgentStepDataBAEA <- function(step_data = NULL,
+                                    sim = sim,
+                                    init = FALSE,
+                                    rep_intervals = rep_intervals) {
+  if (init == TRUE) {
+    sim_start <- sim$pars$global$sim_start
+    all <- sim$agents$all
+    for (i in 1:length(all)) {
+      agent <- all[[i]]
+      print(paste("Creating initial 'step_data' dataframe for", i, "of",
+        length(all)))
+      all_time_steps <- as.POSIXct(NA)
+      for (j in 1:length(rep_intervals)){
+        #j <- 1
+        step_intervals <- CreateStepIntervals(rep_intervals[[j]],
+          step_period = sim$pars$global$step_period)
+        for (k in 1:length(step_intervals)){
+          #k <- 1
+          time_steps <- CreateTimeStepsBAEA(step_intervals[[k]], agent=agent,
+            sim=sim)
+          for (m in 1:length(time_steps)){
+            all_time_steps <- append(all_time_steps, int_start(time_steps[[m]]))
+            if (m == length(time_steps)) all_time_steps <- append(all_time_steps,
+              int_end(time_steps[[m]]))
+          }
+        }
+      }   # this is all about getting 'all_time_steps'
+      if(is.na(all_time_steps[1])) all_time_steps <- all_time_steps[-1]
+      time_steps_df <- data.frame(datetime = all_time_steps) %>%
+        mutate(julian = yday(datetime)) %>%
+        group_by(julian) %>%
+        mutate(day_start = min(datetime),
+          day_end = max(datetime),
+          day_minutes = as.integer(difftime(day_end,day_start,units="mins"))) %>%
+        ungroup() %>%
+        mutate(time_after_start = as.integer(difftime(datetime, day_start,
+          units="mins"))) %>%
+        mutate(time_proportion = time_after_start/day_minutes) %>%
+        dplyr::select(datetime, julian, time_proportion)
+      step_data <- time_steps_df %>%
+        mutate(id=agent$states$id,
+          behavior = NA,
+          x = NA,
+          y = NA,
+          exp_angle = NA,
+          abs_angle = NA) %>%
+        dplyr::select(id, datetime, behavior, x, y, exp_angle, abs_angle,
+          julian, time_proportion) %>%
+        as.data.frame() # when saved as a tibble, broke BehaviorSubModel
+      step_data[1, "behavior"] <- 3
+      step_data[1, "x"] <- agent$states$start_x
+      step_data[1, "y"] <- agent$states$start_y
+      agent  <- append(agent, NamedList(step_data))
+      all[[i]] <- agent
+    }
+    sim$agents$all <- all
+    return(sim)
+  } else {
+    step_data <- step_data
+    return(step_data)
+  }
+}
+
+
+CreateStepIntervals <- function(rep_interval = rep_interval,
+                                step_period = sim$pars$global$step_period) {
+  step_period <- step_period
+  step_intervals <- list()
+  interval_counter <- 1
+  current_start <- lubridate::int_start(rep_interval)
+  current_end <- (current_start + step_period)
+  stop_point <- lubridate::int_end(rep_interval)
+  while(current_start < (stop_point)) {
+    current_end <- (current_start+step_period)
+    step_intervals[[interval_counter]] <- lubridate::interval(current_start,
+      current_end)
+    interval_counter <- interval_counter + 1
+    current_start <- current_start + step_period
+    }
+  if (lubridate::int_end(step_intervals[[length(step_intervals)]])>stop_point){
+    step_intervals[[length(step_intervals)]] <-
+      interval(lubridate::int_start(step_intervals[[length(step_intervals)]]),
+        stop_point)
+    }
+  return(step_intervals)
+}
+
+
+
 
 
 

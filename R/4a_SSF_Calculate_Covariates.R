@@ -3,7 +3,6 @@
 pacman::p_load(AICcmodavg, plyr, dplyr, ggplot2, ggthemes, optimx, raster,
   reproducible, rgdal, smoothie, stringr, survival, tictoc) #spatialfil
 pacman::p_load(baear, gisr, ibmr)
-options(stringsAsFactors=FALSE)
 #setwd("C:/Users/blake/OneDrive/Work/R/Projects/baea_ibm")
 
 # Output paths
@@ -21,6 +20,7 @@ elev_file <- file.path(file_dir, "elev_30mc.tif")
 developed_dist_file <- file.path(file_dir, "developed_dist_30mc.tif")
 hydro_dist_file <- file.path(file_dir, "hydro_dist_30mc.tif")
 turbine_dist_file <- file.path(file_dir, "turbine_dist_30mc.tif")
+road_dist_file <- file.path(file_dir, "road_dist_30mc.tif")
 
 # Kernel class
 developed_file <- file.path(file_dir, "developed_30mc.tif")
@@ -32,6 +32,7 @@ wetland_file <- file.path(file_dir, "wetland_30mc.tif")
 eastness_file <- file.path(file_dir, "eastness_30mc.tif")
 northness_file <- file.path(file_dir, "northness_30mc.tif")
 wind_class_file <- file.path(file_dir, "wind_class_30mc.tif")
+road_file <- file.path(file_dir, "road_30mc.tif")
 
 # BAEA and Movement Parameters
 baea_steps_file <- "Data/BAEA/baea_steps.rds"
@@ -39,9 +40,9 @@ move_pars_file <- "Output/Analysis/Movements/move_pars.rds"
 
 # Subsetting Variables
 subsetting_bandwidths <- FALSE
-subsetting_covars <- FALSE
+subsetting_covars <- TRUE
 subsetting_ids <- FALSE
-subsetting_step_types <- FALSE
+subsetting_step_types <- TRUE
 
 ## Import Base Raster, Steps Data, and Movement Parameters ---------------------
 
@@ -61,6 +62,7 @@ elev <- raster(elev_file) # all other layers' extent are set to this layer
 developed_dist <- crop(raster(developed_dist_file), elev)
 hydro_dist <- crop(raster(hydro_dist_file), elev)
 turbine_dist <- crop(raster(turbine_dist_file), elev)
+road_dist <- crop(raster(road_dist_file), elev)
 
 # Kernel class
 developed <- crop(raster(developed_file), elev)
@@ -72,13 +74,14 @@ wetland <- crop(raster(wetland_file), elev)
 eastness <- crop(raster(eastness_file), elev)
 northness <- crop(raster(northness_file), elev)
 wind_class <- crop(raster(wind_class_file), elev)
+road <- crop(raster(road_file), elev)
 
 # plot(developed$as.RasterLayer(band = 1))
 rm(base_file, file_dir,
-  developed_dist_file, hydro_dist_file, turbine_dist_file,
+  developed_dist_file, hydro_dist_file, turbine_dist_file, road_dist_file,
   developed_file, forest_file, open_water_file, pasture_file,
   shrub_herb_file, wetland_file, eastness_file, northness_file, wind_class_file,
-  elev_file)
+  road_file, elev_file)
 
 ## Specify Landscape Covariates and Bandwidths ---------------------------------
 
@@ -86,14 +89,14 @@ cell_size <- 30
 kernel_bandwidths <- c(seq(0, 3000, by = 30))  # radius (meters)
 terrain_bandwidths <- c(seq(0, 1500, by = 30))
 
-extract_class <- c("developed_dist", "hydro_dist", "turbine_dist")
+extract_class <- c("developed_dist", "hydro_dist", "turbine_dist", "road_dist")
 kernel_class <- c("developed", "forest", "open_water", "pasture", "shrub_herb",
   "wetland", "eastness", "northness", "wind_class")
 terrain_class <- c("tpi", "tri", "roughness")
 
-covar_stack <- stack(developed_dist, hydro_dist, turbine_dist,
+covar_stack <- stack(developed_dist, hydro_dist, turbine_dist, road_dist,
   developed, forest, open_water, pasture, shrub_herb, wetland, eastness,
-  northness, wind_class, elev)
+  northness, wind_class, road, elev)
 names(covar_stack) <- str_replace_all(names(covar_stack), "_30mc", "")
 covar_types <- c(extract_class, kernel_class, terrain_class)
 covariate_cols <- c(paste0(rep(extract_class, each=1), 0),
@@ -109,10 +112,10 @@ if (subsetting_bandwidths == TRUE){  # subset data for testing
 }
 
 if (subsetting_covars == TRUE){  # subset data for testing
-  extract_class <- c("hydro_dist")
-  kernel_class <- c("developed", "forest", "wetland")
-  terrain_class <- c("tpi", "roughness")
-  covar_stack <- stack(hydro_dist, developed, forest, wetland, tpi, roughness)
+  extract_class <- c("road_dist")
+  kernel_class <- c("road")
+  terrain_class <- c()
+  covar_stack <- stack(road_dist, road)
   names(covar_stack) <- str_replace_all(names(covar_stack), "_30mc", "")
   covar_types <- c(extract_class, kernel_class, terrain_class)
   covariate_cols <- c(paste0(rep(extract_class, each = 1), 0),
@@ -126,13 +129,15 @@ table(baea_steps$behavior_behavior)
 if (subsetting_step_types == TRUE){  # subset data for testing
   baea_steps_file <- "Data/BAEA/baea_steps.rds"
   baea_steps <- readRDS(file = baea_steps_file)
-  start = "perch"
-  end = "roost"
+  start = "cruise"
+  end = "perch"
   baea_steps_all <- baea_steps
-  unique(baea_steps_all$behavior_behavior)
-  baea_steps <- baea_steps_all %>% filter(behavior_behavior %in%
-    c(paste0(str_to_title(start)," -> ", str_to_title(end))))
-  unique(baea_steps$behavior_behavior)
+  sort(unique(baea_steps_all$behavior_behavior))
+  baea_steps <- baea_steps_all %>%
+    filter(!behavior_behavior %in%
+     c("Cruise -> Cruise", "Cruise -> Flight", "Cruise -> Perch",
+       "Nest -> Perch", "Roost -> Flight"))
+  sort(unique(baea_steps$behavior_behavior))
 }
 
 if (subsetting_ids == TRUE){  # subset data for testing
@@ -141,9 +146,9 @@ if (subsetting_ids == TRUE){  # subset data for testing
   i <- j <- k <- m <- 1
 }
 
-rm(developed_dist, hydro_dist, turbine_dist,
+rm(developed_dist, hydro_dist, turbine_dist, road_dist,
   developed, forest, open_water, pasture, shrub_herb, wetland, eastness,
-  northness, wind_class, elev)
+  northness, wind_class, road, elev)
 
 plot_stack <- FALSE
 if (isTRUE(plot_stack)){
@@ -164,8 +169,7 @@ if (isTRUE(plot_stack)){
 
 covar_matrix <- raster::as.matrix(covar_stack)
 covar_cols <- setNames(seq_len(ncol(covar_matrix)), colnames(covar_matrix))
-covar_names <- c(names(covar1), names(covar2), names(covar3))
-rm(covar_brick)
+rm(covar_matrix)
 
 ### ------------------------------------------------------------------------ ###
 ###    CALCULATE KERNEL-WEIGHTED COVARIATE VALUES FOR USED AND AVAILABLE     ###

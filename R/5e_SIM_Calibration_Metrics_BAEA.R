@@ -107,12 +107,9 @@ rm(baea_behavior, baea_perch, baea_perch_xy, baea_perch_sp, hydro_dist_crop,
 # Source data directories
 file_dir <- "C:/ArcGIS/Data/R_Input/BAEA"
 ridge_poly_file <- file.path(file_dir, "Ridgelines", "ridge_poly.shp")
-ridge_line_file <- file.path(file_dir, "Ridgelines", "ridge_line.shp")
 
 # Ridgeline Data
-ridge_poly <- read_sf(ridge_poly_file) %>%
-  st_transform(., crs = CRS(SRS_string = paste0("EPSG:", wgs84n19))) %>%
-  st_set_crs(wgs84n19)
+ridge_poly <- read_sf(ridge_poly_file)
 #mapview(ridge_poly)
 
 # Import original data

@@ -1,11 +1,10 @@
 ########################### CALIBRATION CHECK ##################################
 # This script checks the sim run output and calculates the calibration metrics
 # ---------------------------------------------------------------------------- #
-
 # Load packages
 pacman::p_load(cartography, ctmm, dplyr, fasterize, gplots, ggplot2, ggthemes,
   ggpubr, grid, leaflet, lubridate, magick, mapview, move, OpenStreetMap,
-  patchwork, plotly, prettymapr, purrr, raster, rosm, rsvg, sf, s2, tmap,
+  patchwork, plotly, prettymapr, purrr, raster,readr, rosm, rsvg, sf, s2, tmap,
   tmaptools, viridis, units, webshot, zoo)
 pacman::p_load(baear, gisr, ibmr)
 suppressMessages(extrafont::loadfonts(device="win"))
@@ -14,6 +13,16 @@ set_thin_PROJ6_warnings(TRUE)
 # Set options
 rasterOptions(maxmem = Inf, progress = "text", timer = TRUE, chunksize=1e9,
   memfrac=.9)
+
+# Sim file
+sim_rds <- "sim_20201016-11.rds"
+sim_id <- tools::file_path_sans_ext(sim_rds)
+
+# Directories
+input_dir <- "C:/ArcGIS/Data/R_Input/BAEA"
+sim_dir <- "C:/TEMP"
+sim_calibration_dir <- "Calibration"
+baea_calibration_dir <- "Output/Sim/Calibration"
 
 # Plot themes
 theme_latex <- theme(text = element_text(family = "Latin Modern Roman")) +
@@ -44,17 +53,14 @@ behavior_colors <- CreateColorsByMetadata(file = file.path("Data/Assets",
 sex_colors <- tibble(female = col2hex("yellow"), male = col2hex("tomato"),
   Female = col2hex("yellow"), Male = col2hex("tomato"))
 
-# Directories
-input_dir <- "C:/ArcGIS/Data/R_Input/BAEA"
-calibration_dir <- "Output/Sim/Calibration"
-sim_dir <- "C:/TEMP"
-
-# Sim file
-sim_rds <- "sim_20200823-02.rds"
-sim_id <- tools::file_path_sans_ext(sim_rds)
+nests_df <- read_csv("Data/Nests/Nests_Study_Use_Dates.csv")
 
 if(!dir.exists(file.path(sim_dir, sim_id))){
   dir.create(file.path(sim_dir, sim_id))
+}
+
+if(!dir.exists(file.path(sim_dir, sim_id, sim_calibration_dir))){
+  dir.create(file.path(sim_dir, sim_id, sim_calibration_dir))
 }
 
 ############################# SIMULATION DATA ##################################
@@ -66,42 +72,51 @@ input_dir <- "C:/ArcGIS/Data/R_Input/BAEA"
 hydro_dist_ras <- raster(file.path(input_dir, "hydro_dist_30mc.tif"))
 
 # File Directory and ID
-sim_out <- readRDS(file.path(sim_dir, sim_id, sim_rds))
-sim_out1 <- sim_out[[1]]
-sim_step_data <- CompileAllAgentsStepData(sim=sim_out1) %>%
-  mutate(behavior = as.factor(behavior)) %>%
-  group_by(id) %>%
-    mutate(step_type = paste0(behavior, "_", lead(behavior))) %>%
-    mutate(previous_step_type = lag(step_type)) %>%
-  ungroup() %>%
-  filter(!is.na(datetime))
-sim_step_data <- ConvertStepDataCoordinates(sim_step_data)
-levels(sim_step_data$behavior) <- c("Cruise", "Flight", "Nest", "Perch","Roost")
-sim_step_data$behavior <- as.character(sim_step_data$behavior)
+sim_runs <- readRDS(file.path(sim_dir, sim_id, sim_rds))
 
-# Create Spatialdataframe of baea w/'Perch' behavior
-sim_perch <- sim_step_data %>%
-  filter(behavior == "Perch")
-sim_perch_xy <- sim_perch %>% dplyr::select(x, y)
-sim_perch_sp <- SpatialPointsDataFrame(sim_perch_xy, sim_perch,
-  proj4string = CRS(SRS_string = paste0("EPSG:", wgs84n19)), match.ID = TRUE)
+for (i in seq_len(length(sim_runs))){
+  sim_out <- sim_runs %>% pluck(i)
+  sim_step_data <- CompileAllAgentsStepData(sim = sim_out) %>%
+    mutate(behavior = as.factor(behavior)) %>%
+    group_by(id) %>%
+      mutate(step_type = paste0(behavior, "_", lead(behavior))) %>%
+      mutate(previous_step_type = lag(step_type)) %>%
+    ungroup() %>%
+    filter(!is.na(datetime))
+  sim_step_data <- ConvertStepDataCoordinates(sim_step_data)
 
-# Crop hydro_dist raster to the perch locations area
-hydro_dist_crop <- crop(hydro_dist_ras, as(st_as_sfc(st_bbox(sim_perch_sp)),
-  "Spatial"), snap = "out")
-extent(hydro_dist_crop)
+  sim_step_data$behavior <- fct_recode(sim_step_data$behavior, "Cruise" = "1",
+    "Flight" = "2", "Nest" = "3", "Perch" = "4", "Roost" = "5")
+  sim_step_data$behavior <- as.character(sim_step_data$behavior)
 
-# Extract hydro_dist from baea_perch
-hydro_dist <- raster::extract(hydro_dist_crop, sim_perch_sp, df = FALSE)
-sim_perch_dist <- cbind(sim_perch, hydro_dist)
+  # Create Spatialdataframe of baea w/'Perch' behavior
+  sim_perch <- sim_step_data %>%
+    filter(behavior == "Perch")
+  sim_perch_xy <- sim_perch %>% dplyr::select(x, y)
+  sim_perch_sp <- SpatialPointsDataFrame(sim_perch_xy, sim_perch,
+    proj4string = CRS(SRS_string = paste0("EPSG:", wgs84n19)), match.ID = TRUE)
 
-# Save perch_dist file
-head(sim_perch_dist, 20)
-saveRDS(sim_perch_dist, file.path(calibration_dir, sim_id,
-  "sim_perch_dist.rds"))
+  # Crop hydro_dist raster to the perch locations area
+  hydro_dist_crop <- crop(hydro_dist_ras, as(st_as_sfc(st_bbox(sim_perch_sp)),
+    "Spatial"), snap = "out")
+  extent(hydro_dist_crop)
 
-rm(sim_out, sim_out1, sim_step_data, sim_perch, sim_perch_xy, sim_perch_sp,
-  hydro_dist_crop, hydro_dist, hydro_dist_ras)
+  # Extract hydro_dist from baea_perch
+  hydro_dist <- raster::extract(hydro_dist_crop, sim_perch_sp, df = FALSE)
+  sim_perch_dist <- cbind(sim_perch, hydro_dist)
+
+  # Save perch_dist file
+  saveRDS(sim_perch_dist, file.path(sim_dir, sim_id, sim_calibration_dir,
+    paste0("sim_perch_dist_", i, ".rds")))
+
+  rm(sim_out, sim_step_data, sim_perch, sim_perch_xy, sim_perch_sp,
+    hydro_dist_crop, hydro_dist)
+}
+
+sim_perch_dist <- list.files(path = file.path(sim_dir, sim_id,
+    sim_calibration_dir), pattern =  paste0("sim_perch_dist_*"))  %>%
+  map(~ readRDS(file.path(sim_dir, sim_id, sim_calibration_dir, .))) %>%
+  reduce(bind_rows)
 
 gg_sim_dist <- ggplot(sim_perch_dist) +
   geom_histogram(aes(x = hydro_dist, y = after_stat(count/sum(count))),
@@ -119,7 +134,8 @@ gg_sim_dist <- ggplot(sim_perch_dist) +
 gg_sim_dist
 
 # Compare simulation and empirical data
-baea_perch_dist <- readRDS(file.path(calibration_dir, "baea_perch_dist.rds"))
+baea_perch_dist <- readRDS(file.path(baea_calibration_dir,
+  "baea_perch_dist.rds"))
 
 gg_baea_dist <- ggplot(baea_perch_dist) +
   geom_histogram(aes(x = hydro_dist, y = after_stat(count/sum(count))),
@@ -138,9 +154,10 @@ gg_baea_dist
 
 gg_combine_hydro_dist <- gg_baea_dist + gg_sim_dist
 
+gg_combine_hydro_dist
 ggsave(filename = "gg_combine_hydro_dist.png", plot = gg_combine_hydro_dist,
-  path = file.path(sim_dir, sim_id), scale = 1, width = 6, height = 4,
-  units = "in", dpi = 300)
+  path = file.path(sim_dir, sim_id, sim_calibration_dir), scale = 1, width = 6,
+  height = 4, units = "in", dpi = 300)
 
 ## Ridgeline Flights -----------------------------------------------------------
 
@@ -157,100 +174,113 @@ ridge_poly <- read_sf(ridge_poly_file) %>%
 # BAEA data
 baea_terr <- readRDS("Data/BAEA/baea_terr.rds")
 
+# File Directory and ID
+sim_runs <- readRDS(file.path(sim_dir, sim_id, sim_rds))
+
 # Sim data
-sim_out <- readRDS(file.path(sim_dir, sim_id, sim_rds))
-sim_agents_input <- sim_out %>% pluck(1, "agents", "input")
-sim_step_data <- CompileAllAgentsStepData(sim=sim_out1) %>%
-  mutate(behavior = as.factor(behavior)) %>%
-  group_by(id) %>%
-    mutate(step_type = paste0(behavior, "_", lead(behavior))) %>%
-    mutate(previous_step_type = lag(step_type)) %>%
-  ungroup() %>%
-  filter(!is.na(datetime)) %>%
-  ConvertStepDataCoordinates(.)
+for (i in seq_len(length(sim_runs))){
+  sim_out <- sim_runs %>% pluck(i)
+  print(paste0("Starting run: ", i, " of ", length(sim_runs)))
 
-levels(sim_step_data$behavior) <- c("Cruise", "Flight", "Nest", "Perch","Roost")
-sim_step_data$behavior <- as.character(sim_step_data$behavior)
+  sim_agents_input <- sim_out %>% pluck("agents", "input")
+  sim_step_data <- CompileAllAgentsStepData(sim = sim_out) %>%
+    mutate(behavior = as.factor(behavior)) %>%
+    group_by(id) %>%
+      mutate(step_type = paste0(behavior, "_", lead(behavior))) %>%
+      mutate(previous_step_type = lag(step_type)) %>%
+    ungroup() %>%
+    filter(!is.na(datetime)) %>%
+    ConvertStepDataCoordinates(.)
 
-sim_steps <- sim_step_data %>%
-  filter(step_length > 42.43) %>%
-  group_by(id) %>%
-  mutate(x_end = lead(x),
-         y_end = lead(y)) %>%
-  ungroup(.) %>%
-  filter(!is.na(x_end))
+  sim_step_data$behavior <- fct_recode(sim_step_data$behavior, "Cruise" = "1",
+    "Flight" = "2", "Nest" = "3", "Perch" = "4", "Roost" = "5")
+  sim_step_data$behavior <- as.character(sim_step_data$behavior)
 
-baea_id_nest <- baea_terr %>%
-  group_by(id) %>%
-  summarize(nest_id = unique(nest_site), .groups = "drop")
+  sim_steps <- sim_step_data %>%
+    filter(step_length > 42.43) %>%
+    group_by(id) %>%
+    mutate(x_end = lead(x),
+           y_end = lead(y)) %>%
+    ungroup(.) %>%
+    filter(!is.na(x_end))
 
-for (i in unique(sim_steps$id)){
-  if (i == unique(sim_steps$id)[1]){
-    sim_ridge_sum <- sim_steps %>%
-      left_join(., sim_agents_input, by = c("id", "sex")) %>%
-      group_by(id) %>%
-      summarize(nest_id = unique(nest_id), sex = Capitalize(first(sex)),
-        .groups = "drop") %>%
-      mutate(total_steps_n = NA_integer_, ridge_steps_n = NA_integer_,
-        ridge_steps_prop = NA_real_)
+  baea_id_nest <- baea_terr %>%
+    group_by(id) %>%
+    summarize(nest_id = unique(nest_site), .groups = "drop")
+
+  for (j in unique(sim_steps$id)){
+    if (j == unique(sim_steps$id)[1]){
+      sim_ridge_sum <- sim_steps %>%
+        left_join(., sim_agents_input, by = c("id", "sex")) %>%
+        group_by(id) %>%
+        summarize(nest_id = unique(nest_id), sex = Capitalize(first(sex)),
+          .groups = "drop") %>%
+        mutate(total_steps_n = NA_integer_, ridge_steps_n = NA_integer_,
+          ridge_steps_prop = NA_real_)
+    }
+    row_n <- which(sim_ridge_sum$id == j)
+    print(paste0("Starting id: ", j, " (", row_n, " of ",
+      length(unique(sim_step_data$id)), ")"))
+
+    # Create Lines and Points
+    sim_steps_j <- sim_steps %>%
+      filter(id == j)
+    sim_lines_j <- sim_steps_j %>%
+      filter(id == j) %>%
+      dplyr::select(x, y, x_end, y_end) %>%
+      pmap(.f = MakeLines) %>%
+      st_as_sfc(crs = wgs84n19) %>%
+      {cbind(sim_steps_j, geom = .)} %>%
+      st_sf(.) %>%
+      tibble::rowid_to_column("row_id")
+
+    sim_lines_j_bb_sf <- st_as_sfc(bb(sim_lines_j, relative = TRUE, height = 4,
+        width = 4))
+
+    ridge_poly_crop <- suppressWarnings(st_crop(st_buffer(ridge_poly, dist = 0),
+      st_buffer(sim_lines_j_bb_sf, dist = 0))) # buffers fix known topo problems
+
+    # mapview::mapview(sim_lines_j) +
+    # mapview::mapview(ridge_poly_crop)
+
+    sim_lines_intersect_df <- st_intersects(sim_lines_j,
+        ridge_poly, sparse = TRUE) %>%
+      as.data.frame(.) %>%
+      as_tibble(.) %>%
+      rename(row_id = row.id,
+        intersect_poly_id = col.id)
+
+    sim_lines_intersect_sf <- sim_lines_j %>%
+      left_join(., sim_lines_intersect_df, by = "row_id")
+
+    intersect_sum <- sim_lines_intersect_sf %>%
+      as_tibble(.) %>%
+      summarise(total_steps_n = n(),
+        ridge_steps_n = sum(!is.na(intersect_poly_id))) %>%
+      mutate(id = j) %>%
+      mutate(ridge_steps_prop = ridge_steps_n/total_steps_n)
+
+    sim_ridge_sum[row_n, "total_steps_n"] <- intersect_sum %>%
+      pull(total_steps_n)
+    sim_ridge_sum[row_n, "ridge_steps_n"] <- intersect_sum %>%
+      pull(ridge_steps_n)
+    sim_ridge_sum[row_n, "ridge_steps_prop"] <- intersect_sum %>%
+      pull(ridge_steps_prop)
   }
-  row_n <- which(sim_ridge_sum$id == i)
-  print(paste0("Starting: ", i, " (", row_n, " of ",
-    length(unique(sim_step_data$id)), ")"))
-
-  # Create Lines and Points
-  sim_steps_i <- sim_steps %>%
-    filter(id == i)
-  sim_lines_i <- sim_steps_i %>%
-    filter(id == i) %>%
-    dplyr::select(x, y, x_end, y_end) %>%
-    pmap(.f = MakeLines) %>%
-    st_as_sfc(crs = wgs84n19) %>%
-    {cbind(sim_steps_i, geom = .)} %>%
-    st_sf(.) %>%
-    tibble::rowid_to_column("row_id")
-
-  sim_lines_i_bb_sf <- st_as_sfc(bb(sim_lines_i, relative = TRUE, height = 4,
-      width = 4))
-
-  ridge_poly_crop <- suppressWarnings(st_crop(st_buffer(ridge_poly, dist = 0),
-    st_buffer(sim_lines_i_bb_sf, dist = 0))) # buffers fix known topo problems
-
-  # mapview::mapview(sim_lines_i) +
-  # mapview::mapview(ridge_poly_crop)
-
-  sim_lines_intersect_df <- st_intersects(sim_lines_i,
-      ridge_poly, sparse = TRUE) %>%
-    as.data.frame(.) %>%
-    as_tibble(.) %>%
-    rename(row_id = row.id,
-      intersect_poly_id = col.id)
-
-  sim_lines_intersect_sf <- sim_lines_i %>%
-    left_join(., sim_lines_intersect_df, by = "row_id")
-
-  intersect_sum <- sim_lines_intersect_sf %>%
-    as_tibble(.) %>%
-    summarise(total_steps_n = n(),
-      ridge_steps_n = sum(!is.na(intersect_poly_id))) %>%
-    mutate(id = i) %>%
-    mutate(ridge_steps_prop = ridge_steps_n/total_steps_n)
-
-  sim_ridge_sum[row_n, "total_steps_n"] <- intersect_sum %>%
-    pull(total_steps_n)
-  sim_ridge_sum[row_n, "ridge_steps_n"] <- intersect_sum %>%
-    pull(ridge_steps_n)
-  sim_ridge_sum[row_n, "ridge_steps_prop"] <- intersect_sum %>%
-    pull(ridge_steps_prop)
-  rm(i, row_n, sim_steps_i, sim_lines_i, sim_lines_i_bb_sf, ridge_poly_crop,
+  rm(row_n, sim_steps_j, sim_lines_j, sim_lines_j_bb_sf, ridge_poly_crop,
     sim_lines_intersect_df, sim_lines_intersect_sf, intersect_sum)
+  saveRDS(sim_ridge_sum, file.path(sim_dir, sim_id, sim_calibration_dir,
+    paste0("sim_ridge_sum_", i, ".rds")))
+  rm(i, j, sim_ridge_sum)
 }
 
-sim_ridge_sum
-#saveRDS(sim_ridge_sum, file.path(sim_dir, sim_id, "sim_ridge_sum.rds"))
+sim_ridge_sum <- list.files(path = file.path(sim_dir, sim_id,
+    sim_calibration_dir), pattern =  paste0(("sim_ridge_sum_*")))  %>%
+  map(~ readRDS(file.path(sim_dir, sim_id, sim_calibration_dir, .))) %>%
+  reduce(bind_rows)
 
 # Clean up objects
-rm(ridge_line_file, ridge_poly_file, ridge_poly, baea_terr, sim_out, sim_out1,
+rm(ridge_line_file, ridge_poly_file, ridge_poly, baea_terr, sim_out,
   sim_agents_input, sim_step_data, sim_steps, baea_id_nest)
 
 # Compare simulation and empirical data
@@ -277,22 +307,35 @@ gg_combine_ridge <- ggplot() +
 gg_combine_ridge
 
 ggsave(filename = "gg_combine_ridge.png", plot = gg_combine_ridge,
-  path = file.path(sim_dir, sim_id), scale = 1, width = 6, height = 4,
-  units = "in", dpi = 300)
+  path = file.path(sim_dir, sim_id, sim_calibration_dir), scale = 1, width = 6,
+  height = 4, units = "in", dpi = 300)
+
 
 ## Behavior Data ---------------------------------------------------------------
 
 # File Directory and ID
-sim_out <- readRDS(file.path(sim_dir, sim_id, sim_rds))
-sim_agents_input <- sim_out %>% pluck(1, "agents", "input")
-sim_behavior <- CompileAllAgentsStepData(sim=sim_out1) %>%
-  mutate(behavior = as.factor(behavior)) %>%
-  group_by(id) %>%
-  ungroup() %>%
-  filter(!is.na(datetime)) %>%
-  ConvertStepDataCoordinates(.)
-levels(sim_behavior$behavior) <- c("Cruise", "Flight", "Nest", "Perch","Roost")
-sim_behavior$behavior <- as.character(sim_behavior$behavior)
+sim_runs <- readRDS(file.path(sim_dir, sim_id, sim_rds))
+
+# Sim data
+for (i in seq_len(length(sim_runs))){
+  sim_out <- sim_runs %>% pluck(i)
+  print(paste0("Starting run: ", i, " of ", length(sim_runs)))
+  sim_agents_input <- sim_out %>% pluck(1, "agents", "input")
+  sim_behavior_i <- CompileAllAgentsStepData(sim = sim_out) %>%
+    mutate(behavior = as.factor(behavior)) %>%
+    group_by(id) %>%
+    ungroup() %>%
+    filter(!is.na(datetime)) %>%
+    ConvertStepDataCoordinates(.)
+  sim_behavior_i$behavior <- fct_recode(sim_behavior_i$behavior, "Cruise" = "1",
+    "Flight" = "2", "Nest" = "3", "Perch" = "4", "Roost" = "5")
+  sim_behavior_i$behavior <- as.character(sim_behavior_i$behavior)
+  if(i == 1){
+    sim_behavior <- sim_behavior_i
+  } else {
+    sim_behavior <- bind_rows(sim_behavior, sim_behavior_i)
+  }
+}
 
 ## Consecutive Steps --------------
 
@@ -300,7 +343,7 @@ sim_behavior$behavior <- as.character(sim_behavior$behavior)
 cruise <- table(data.frame(unclass(rle(sim_behavior$behavior))) %>%
     filter(values == "Cruise")) %>% as_tibble(.) %>% rename(behavior = values)
 flight <- table(data.frame(unclass(rle(sim_behavior$behavior))) %>%
-    filter(values == "Flight")) %>% as_tibble(.) %>% rename(behavior =values)
+    filter(values == "Flight")) %>% as_tibble(.) %>% rename(behavior = values)
 nest <- table(data.frame(unclass(rle(sim_behavior$behavior))) %>%
     filter(values == "Nest")) %>% as_tibble(.) %>% rename(behavior = values)
 perch <- table(data.frame(unclass(rle(sim_behavior$behavior))) %>%
@@ -315,9 +358,9 @@ sim_behavior_consecutive <- bind_rows(cruise, flight, nest, perch, roost) %>%
 sim_behavior_consecutive
 
 saveRDS(sim_behavior_consecutive, file.path(sim_dir, sim_id,
-  "sim_behavior_consecutive.rds"))
+  sim_calibration_dir, "sim_behavior_consecutive.rds"))
 
-rm(sim_out, sim_out1, sim_agents_input, cruise, flight, nest, perch, roost)
+rm(sim_out, sim_agents_input, cruise, flight, nest, perch, roost)
 
 # Graph behaviors' consecutive lengths
 
@@ -344,7 +387,7 @@ gg_sim_consecutive_list <- lapply(sort(behaviors), function(i){
 })
 
 # Read baea_behavior_consecutive
-baea_behavior_consecutive <- readRDS(file.path(calibration_dir,
+baea_behavior_consecutive <- readRDS(file.path(baea_calibration_dir,
   "baea_behavior_consecutive.rds"))
 
 combined_behavior_consecutive <- bind_rows(
@@ -413,8 +456,8 @@ gg_sim_list = lapply(sort(unique(sim_behavior_consecutive$behavior)),
     theme(plot.title = element_text(size = 8, vjust = -2, hjust = 0.5))
 })
 
-gg_baea_list[[1]]
-gg_sim_list[[1]]
+#gg_baea_list[[1]]
+#gg_sim_list[[1]]
 
 layout <- '
 ABCDE
@@ -428,7 +471,7 @@ gg_behavior_plots <- wrap_plots(A = gg_baea_list[[1]],
 gg_behavior_plots
 
 # Save Temp (No Label) File
-gg_behavior_no_label_fig_file = file.path(sim_dir, sim_id,
+gg_behavior_no_label_fig_file = file.path(sim_dir, sim_id, sim_calibration_dir,
   "gg_behavior_no_label_fig_file.png")
 
 ggsave(filename = basename(gg_behavior_no_label_fig_file),
@@ -478,7 +521,7 @@ behavior_consecutive_label_fig <- backgrd %>%
 
 behavior_consecutive_label_fig
 
-behavior_consecutive_file = file.path(sim_dir, sim_id,
+behavior_consecutive_file = file.path(sim_dir, sim_id, sim_calibration_dir,
   "gg_combine_behavior_consecutive.png")
 image_write(behavior_consecutive_label_fig,
   path = behavior_consecutive_file, format = ".png")
@@ -504,7 +547,7 @@ sim_behavior_sum <- sim_behavior %>%
   arrange(bins_mid) # arrange(sex, bins_mid)
 
 sim_behavior_sum
-saveRDS(sim_behavior_sum, file.path(sim_dir, sim_id,
+saveRDS(sim_behavior_sum, file.path(sim_dir, sim_id, sim_calibration_dir,
   "sim_behavior_sum.rds"))
 
 # Make Plot
@@ -542,7 +585,8 @@ gg_sim_behavior_prop <- ggplot(sim_behavior_sum, aes(x = bins_mid, y = value,
 gg_sim_behavior_prop
 
 # Get empirical data
-baea_behavior_sum <- readRDS(file.path(calibration_dir, "baea_behavior_sum.rds"))
+baea_behavior_sum <- readRDS(file.path(baea_calibration_dir,
+  "baea_behavior_sum.rds"))
 
 # Make Plot
 point_size = 2; space_legend = .7
@@ -599,9 +643,9 @@ tex_behavior_legend <- image_trim(image_read("C:/TEMP/TEMP.png"))
 file.remove("C:/TEMP/TEMP.png")
 
 # Save Temp (No Label) Files
-gg_baea_no_label_fig_file = file.path(sim_dir, sim_id,
+gg_baea_no_label_fig_file = file.path(sim_dir, sim_id, sim_calibration_dir,
   "gg_baea_no_label_fig.png")
-gg_sim_no_label_fig_file = file.path(sim_dir, sim_id,
+gg_sim_no_label_fig_file = file.path(sim_dir, sim_id, sim_calibration_dir,
   "gg_sim_no_label_fig.png")
 
 ggsave(filename = basename(gg_baea_no_label_fig_file),
@@ -649,7 +693,8 @@ behavior_daily_label_fig <- backgrd %>%
   image_composite(., tex_behavior_legend, offset = "+2450+735")
 behavior_daily_label_fig
 
-behavior_daily_file = file.path(sim_dir, sim_id,"gg_combine_behavior_daily.png")
+behavior_daily_file = file.path(sim_dir, sim_id, sim_calibration_dir,
+  "gg_combine_behavior_daily.png")
 image_write(behavior_daily_label_fig, path = behavior_daily_file,
   format = ".png")
 file.remove(gg_baea_no_label_fig_file)
