@@ -117,6 +117,7 @@ dist <- c("developed_dist", "hydro_dist", "road_dist", "turbine_dist")
 
 
 line_color = viridis::viridis(5)[5]
+point_color = viridis::viridis(5)[5]
 
 ribbon_fill1 <-  "grey95"
 ribbon_color1 <- viridis::viridis(5)[1]
@@ -196,7 +197,7 @@ for (i in unique(ua_steps_stats %>% pull(behavior_behavior))){
         "")))) +
     geom_errorbar(aes(x = covar_alpha, y = median, ymin = prob_05,
       ymax = prob_95), width = 0.2) +
-    geom_point(aes(x = covar_alpha, y = median), color = "blue", size = 1) +
+    geom_point(aes(x = covar_alpha, y = median), color = point_color, size = 1)+
     ggtitle("Euclidean Distance to Nearest") + labs(x = "", y = "") +
     theme(plot.title = element_text(vjust = -12, hjust = .5, size = 9)) +
     theme(axis.text.x.bottom = element_text(angle = 0, hjust = .4,
