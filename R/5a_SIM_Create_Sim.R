@@ -272,7 +272,7 @@ sim[["spatial"]] <- spatial
 
 sim <- NamedList(agents, pars, spatial)
 #RemoveExcept("sim")
-saveRDS(sim, file="C:/Work/R/Data/Simulation/sim_20200823.rds")
+saveRDS(sim, file ="C:/Work/R/Data/Simulation/sim_20201106-01.rds")
 
 # Recompile sim
 sim <- readRDS(file="C:/Work/R/Data/Simulation/sim_20200823.rds")

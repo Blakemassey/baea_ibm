@@ -1,0 +1,38 @@
+digraph {
+       nodesep = 0.5; #hack
+       //A[label=Start];
+
+       # Graph
+       A -> F;
+       A -> G;
+       A -> H;
+       A -> I;
+       A -> J;
+
+       B -> F;
+       B -> G;
+       B -> H;
+       B -> I;
+       B -> J;
+
+       C -> F;
+       C -> G;
+       C -> H;
+       C -> I;
+       C -> J;
+
+       D -> F;
+       D -> G;
+       D -> H;
+       D -> I;
+       D -> J;
+
+       E -> F;
+       E -> G;
+       E -> H;
+       E -> I;
+       E -> J;
+
+       {rank=same ; A, B, C, D, E};
+       {rank=same ; F, G, H, I, J};
+  }

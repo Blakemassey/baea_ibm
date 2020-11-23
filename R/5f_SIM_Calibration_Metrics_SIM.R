@@ -2,10 +2,10 @@
 # This script checks the sim run output and calculates the calibration metrics
 # ---------------------------------------------------------------------------- #
 # Load packages
-pacman::p_load(cartography, ctmm, dplyr, fasterize, gplots, ggplot2, ggthemes,
-  ggpubr, grid, leaflet, lubridate, magick, mapview, move, OpenStreetMap,
-  patchwork, plotly, prettymapr, purrr, raster,readr, rosm, rsvg, sf, s2, tmap,
-  tmaptools, viridis, units, webshot, zoo)
+pacman::p_load(cartography,ctmm, dplyr, fasterize, forcats, gplots, ggplot2,
+  ggthemes, ggpubr, grid, leaflet, lubridate, magick, mapview, move,
+  OpenStreetMap, patchwork, plotly, prettymapr, purrr, raster,readr, rosm, rsvg,
+  sf, s2, tmap, tmaptools, viridis, units, webshot, zoo)
 pacman::p_load(baear, gisr, ibmr)
 suppressMessages(extrafont::loadfonts(device="win"))
 set_thin_PROJ6_warnings(TRUE)
@@ -15,7 +15,7 @@ rasterOptions(maxmem = Inf, progress = "text", timer = TRUE, chunksize=1e9,
   memfrac=.9)
 
 # Sim file
-sim_rds <- "sim_20201016-11.rds"
+sim_rds <- "sim_20201106-02.rds"
 sim_id <- tools::file_path_sans_ext(sim_rds)
 
 # Directories
@@ -47,6 +47,15 @@ MakeLines <- function(x, y, x_end, y_end) {
   st_linestring(matrix(c(x, x_end, y, y_end), 2, 2))
 }
 
+RecodeNestIDtoName <- function(value){
+  recoded_value <- fct_recode(value,
+    "Ellis" = "282A",
+    "Sandy" = "423R01",
+    "Hebron" = "659A",
+    "Musquash" = "446R01")
+  return(recoded_value)
+}
+
 # Behavior colors
 behavior_colors <- CreateColorsByMetadata(file = file.path("Data/Assets",
   "behavior_colors.csv"), metadata_id = "behavior")
@@ -62,6 +71,7 @@ if(!dir.exists(file.path(sim_dir, sim_id))){
 if(!dir.exists(file.path(sim_dir, sim_id, sim_calibration_dir))){
   dir.create(file.path(sim_dir, sim_id, sim_calibration_dir))
 }
+
 
 ############################# SIMULATION DATA ##################################
 
@@ -169,6 +179,7 @@ ridge_line_file <- file.path(file_dir, "Ridgelines", "ridge_line.shp")
 ridge_poly <- read_sf(ridge_poly_file) %>%
   st_transform(., crs = CRS(SRS_string = paste0("EPSG:", wgs84n19))) %>%
   st_set_crs(wgs84n19)
+
 #mapview(ridge_poly)
 
 # BAEA data
@@ -277,22 +288,24 @@ for (i in seq_len(length(sim_runs))){
 sim_ridge_sum <- list.files(path = file.path(sim_dir, sim_id,
     sim_calibration_dir), pattern =  paste0(("sim_ridge_sum_*")))  %>%
   map(~ readRDS(file.path(sim_dir, sim_id, sim_calibration_dir, .))) %>%
-  reduce(bind_rows)
+  reduce(bind_rows) %>%
+  mutate(nest_name = RecodeNestIDtoName(nest_id))
 
 # Clean up objects
 rm(ridge_line_file, ridge_poly_file, ridge_poly, baea_terr, sim_out,
   sim_agents_input, sim_step_data, sim_steps, baea_id_nest)
 
 # Compare simulation and empirical data
-baea_ridge_sum <- readRDS("Output/Sim/Calibration/baea_ridge_sum.rds")
+baea_ridge_sum <- readRDS("Output/Sim/Calibration/baea_ridge_sum.rds") %>%
+  mutate(nest_name = RecodeNestIDtoName(nest_id))
 
 # Graph ridge-crossing summary data
 gg_combine_ridge <- ggplot() +
-  geom_point(data = baea_ridge_sum, aes(x = nest_id, y = ridge_steps_prop)) +
+  geom_point(data = baea_ridge_sum, aes(x = nest_name, y = ridge_steps_prop)) +
   geom_errorbar(data = baea_ridge_sum,
-    aes(x = nest_id, y = ridge_steps_prop, ymin = quant_05, ymax = quant_95,
+    aes(x = nest_name, y = ridge_steps_prop, ymin = quant_05, ymax = quant_95,
       width = .1, color = "Mean + 95% CI")) +
-  geom_point(data = sim_ridge_sum, aes(x = nest_id, y = ridge_steps_prop,
+  geom_point(data = sim_ridge_sum, aes(x = nest_name, y = ridge_steps_prop,
     fill = sex), color = "black",  shape = 24, size = 2, show.legend = TRUE) +
   scale_fill_manual(name = "Simulation", values = sex_colors) +
   scale_color_manual(name = "Empirical", values = c("black", "black")) +
@@ -300,7 +313,7 @@ gg_combine_ridge <- ggplot() +
     linetype = c("solid"),
     shape = c(16)))) +
   theme_minimal() +
-  xlab("Nest ID") + ylab("Ridge-Crossing Step Proportion") +
+  xlab("Nest Area") + ylab("Ridge-Crossing Step Proportion") +
   labs(fill = "Agent Sex") +
   theme(legend.position = "right")
 

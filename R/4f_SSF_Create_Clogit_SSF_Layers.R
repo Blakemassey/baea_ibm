@@ -277,6 +277,11 @@ hydro_dist_file <- file.path(input_dir, "hydro_dist_30mc.tif")
 turbine_dist_file <- file.path(input_dir, "turbine_dist_30mc.tif")
 road_dist_file <- file.path(input_dir, "road_dist_30mc.tif")
 
+developed_dist_out_file <- file.path(covars_full_dir, "developed_dist0.tif")
+hydro_dist_out_file <- file.path(covars_full_dir, "hydro_dist0.tif")
+turbine_dist_out_file <- file.path(covars_full_dir, "turbine_dist0.tif")
+road_dist_out_file <- file.path(covars_full_dir, "road_dist0.tif")
+
 # Change turbine dist raster cells with NA to 60000 (max dist calculated)
 turbine_dist_org <- raster(turbine_dist_file)
 turbine_dist_max <- cellStats(turbine_dist_org, stat = "max")
@@ -284,14 +289,23 @@ turbine_dist <- turbine_dist_org
 turbine_dist[is.na(turbine_dist)] <- turbine_dist_max
 plot(turbine_dist)
 
-writeRaster(raster(developed_dist_file), file.path(covars_full_dir,
-  "developed_dist0.tif"), format = "GTiff", overwrite = TRUE)
-writeRaster(raster(hydro_dist_file), file.path(covars_full_dir,
-  "hydro_dist0.tif"), format = "GTiff", overwrite = TRUE)
-writeRaster(turbine_dist, file.path(covars_full_dir,
-  "turbine_dist0.tif"), format = "GTiff", overwrite = TRUE)
-writeRaster(raster(road_dist_file), file.path(covars_full_dir,
-  "road_dist0.tif"), format = "GTiff", overwrite = TRUE)
+if (!file.exists(developed_dist_out_file)){
+writeRaster(raster(developed_dist_file), developed_dist_out_file,
+  format = "GTiff", overwrite = TRUE)
+}
+if (!file.exists(developed_dist_out_file)){
+writeRaster(raster(hydro_dist_file), hydro_dist_out_file, format = "GTiff",
+  overwrite = TRUE)
+}
+if (!file.exists(turbine_dist_out_file)){
+writeRaster(turbine_dist, turbine_dist_out_file, format = "GTiff",
+  overwrite = TRUE)
+}
+if (!file.exists(road_dist_out_file)){
+writeRaster(raster(road_dist_file), road_dist_out_file, format = "GTiff",
+  overwrite = TRUE)
+}
+
 
 ################### MASK COVARIATE RASTERS TO MAINE ONLY #######################
 
@@ -315,6 +329,7 @@ for (i in seq_len(nrow(preds_tbl))){
   out_file <- file.path(covars_crop_dir, paste0(covar_sigma, ".tif"))
 
   if(!file.exists(out_file)){
+    print(paste0("Writing: ", covar_sigma, " at: ", lubridate::now()))
     covar_raster <- raster(covar_file)
     covar_raster_crop <- crop(covar_raster, maine_raster_trim)
     covar_raster_mask <- mask(covar_raster_crop, maine_raster_trim)
@@ -337,7 +352,7 @@ maine_raster_trim <- raster(maine_raster_trim_file)
 
 # Original
 # Generate layer for each ssf based on original fits
-for (i in 2:nrow(best_ssf_fits)){
+for (i in 1:nrow(best_ssf_fits)){
   print(paste0("i:", i))
   step_type_i <- best_ssf_fits %>% slice(i) %>% pull(step_type)
   # Extract terms(not including 'strata(step_id)')

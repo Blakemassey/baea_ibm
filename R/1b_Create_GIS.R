@@ -1,8 +1,8 @@
 ## This script is for importing GIS datalayers and converting them to the
 ## proper coordinate reference system (NAD83 UTM N19), extent, and resolution.
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
-pacman::p_load(dplyr, fasterize, foreign, mapview, plyr, plotKML, raster, rgdal,
-sf, sp, whitebox)
+pacman::p_load(dplyr, fasterize, foreign, mapview, plyr, plotKML, raster,
+  readtext, rgdal, sf, sp, stringr, whitebox)
 whitebox::wbt_init() # required for WhiteboxTools to work
 wbt_version() # check WhiteboxTools version
 library(gisr)
@@ -634,6 +634,8 @@ ridge_4_file <- file.path(file_dir, "Ridgelines", "ridge_4.tif")
 ridge_5_file <- file.path(file_dir, "Ridgelines", "ridge_5.tif")
 ridge_6_file <- file.path(file_dir, "Ridgelines", "ridge_6.tif")
 ridge_poly_file <- file.path(file_dir, "Ridgelines", "ridge_poly.shp")
+ridge_poly_kml_file <- file.path(file_dir, "Ridgelines", "KMLs",
+  "ridge_poly.kml")
 ridge_line_file <- file.path(file_dir, "Ridgelines", "ridge_line.shp")
 
 # Elevation raster aggregation
@@ -710,6 +712,33 @@ elev <- raster(elev_file)
 ridge_poly <- sf::read_sf(ridge_poly_file)
 sf::st_crs(ridge_poly) <- crs(elev)
 sf::st_write(ridge_poly, ridge_poly_file, append=FALSE)
+
+# Write to KML
+ridge_poly_wgs84 <- ridge_poly %>%
+  st_transform(4326) %>%
+  select(Description = FID)
+
+ridge_poly_kml_file <- file.path(file_dir, "Ridgelines", "KMLs",
+  "ridge_poly.kml")
+
+st_write(ridge_poly_wgs84, ridge_poly_kml_file, driver = "kml", append = FALSE)
+
+# Update KML Colors (remove outline and fill with yellow)
+kml_raw <- readtext(ridge_poly_kml_file)
+kml_raw_line <- str_replace_all(kml_raw,
+  "<Style><LineStyle><color>ff0000ff</color></LineStyle>",
+  "<Style><LineStyle><width>0</width><color>ffffffff</color></LineStyle>")
+kml_raw_poly <- str_replace_all(kml_raw_line,
+  "<PolyStyle><fill>0</fill></PolyStyle></Style>",
+  "<PolyStyle><color>ff00ffff</color><fill>1</fill></PolyStyle></Style>")
+fileConn <- ridge_poly_kml_file
+writeLines(kml_raw_poly, fileConn)
+close(fileConn)
+
+# IMPORTANT NOTE ----
+# The colors of the KML can also be reconfigured in Google Earth under the kml's
+# 'properties' drop-down menu and then saved as a new file.
+
 
 ################################  OLD CODE  ####################################
 

@@ -1,17 +1,17 @@
 ####################### VISUALIZE SIM ##########################################
 ### This script is used to create visual a 'sim' object
 
-pacman::p_load(cartography,ctmm, dplyr, fasterize, ggplot2, ggthemes, grid,
-  leaflet, lubridate, magick, mapview, move, OpenStreetMap, plotly, prettymapr,
-  purrr, raster, rosm, rsvg, sf, s2, tmap, tmaptools, viridis, units, webshot,
-  zoo)
+pacman::p_load(cartography,ctmm, dplyr, fasterize, forcats, ggplot2, ggthemes,
+  grid, leaflet, lubridate, magick, mapview, move, OpenStreetMap, plotly,
+  prettymapr, purrr, raster, rosm, rsvg, sf, stringr, s2, tmap, tmaptools,
+  viridis, units, webshot, zoo)
 pacman::p_load(baear, gisr, ibmr)
 set_thin_PROJ6_warnings(TRUE)
 theme_update(plot.title = element_text(hjust = 0.5))
 #devtools::reload("C:/Users/blake/OneDrive/Work/R/Packages/ibmr")
 
 # Sim file and code Boolean parameters
-sim_rds <- "sim_20201016-11.rds"
+sim_rds <- "sim_20201106-02.rds"
 create_kml = TRUE
 calculate_akde = TRUE
 map_akde = TRUE
@@ -56,6 +56,8 @@ sim_id <- tools::file_path_sans_ext(sim_rds)
 sim_runs <- readRDS(file.path(sim_dir, sim_id, sim_rds))
 
 for (i in seq_len(length(sim_runs))){
+  print(paste0("Starting run ", i, " of ", length(sim_runs), " at ",
+    GetDateTime()))
   sim_out <- sim_runs %>% pluck(i)
   sim_step_data <- CompileAllAgentsStepData(sim = sim_out) %>%
     mutate(behavior = as.factor(behavior)) %>%
@@ -83,6 +85,7 @@ for (i in seq_len(length(sim_runs))){
       dir.create(kml_dir)
     }
     for (j in unique(sim_step_data$id)){
+      print(paste0("Starting kml for ", j, " at ", GetDateTime()))
       sim_step_data_j <- sim_step_data %>% filter(id == j)
       ExportKMLTelemetry(sim_step_data_j, lat = "lat", long = "long", alt =NULL,
         speed = NULL, file = paste0(sim_id, "_", str_pad(i, 2, side = "left",
@@ -103,6 +106,7 @@ for (i in seq_len(length(sim_runs))){
     # Calculate akde (if it doesn't already exist)
     if(!file.exists(akde_file)){
       for (j in unique(sim_step_data$id)){
+        print(paste0("Starting adke for ", j, " at ", GetDateTime()))
         sim_hr_j <- sim_step_data %>% filter(id == j) %>% arrange(datetime)
         for (k in unique(year(sim_hr_j$datetime))){
           sim_hr_k <- sim_hr_j %>% filter(year(datetime) == k)

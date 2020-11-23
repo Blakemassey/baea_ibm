@@ -1,0 +1,74 @@
+digraph G {
+  rankdir = TB;
+  graph [pad="1", ranksep="1.75", nodesep=".75"];
+
+  node [shape = oval, fontname = Helvetica, fontsize = 16; style = filled];
+  c01 [label = "Cruise", fillcolor = CornFlowerBlue];
+  f01 [label = "Flight", fillcolor = FireBrick1];
+  n01 [label = "Nest",  fillcolor = Yellow2];
+  p01 [label = "Perch",  fillcolor = Sienna1];
+  r01 [label = "Roost",  fillcolor = Orchid];
+
+  c02 [label = "Cruise", fillcolor = CornFlowerBlue];
+  f02 [label = "Flight", fillcolor = FireBrick1];
+  n02 [label = "Nest",  fillcolor = Yellow2];
+  p02 [label = "Perch",  fillcolor = Sienna1];
+  r02 [label = "Roost",  fillcolor = Orchid];
+
+	edge[color = grey25, style = solid, dir = front, penwidth = 2.5];
+
+  subgraph A {
+	subgraph cluster_0 {
+		c01 -> c02;
+		color = invis
+	}
+	subgraph cluster_1 {
+		f01 -> f02;
+		color = invis
+	}
+	subgraph cluster_2 {
+	  edge[color = grey25, style = dotted, arrowhead = normal];
+		n01 -> n02;
+		color = invis
+	}
+	subgraph cluster_3 {
+		edge[color = gray25, style = dashed];
+		p01 -> p02;
+		color = invis
+	}
+	subgraph cluster_4 {
+		edge[color = gray25, style = dotted];
+		r01 -> r02;
+		color = invis
+	}
+
+  edge[color = grey25, style = solid];
+	c01 -> f02;
+	c01 -> n02;
+  c01 -> p02;
+
+  edge[color = invis];
+	c01 -> r02;  # Keeps Cruise, Flight, Nest, Perch, Roost in L -> R order
+
+  edge[color = grey25];
+  f01 -> c02;
+  f01 -> n02;
+  f01 -> p02;
+  f01 -> r02;
+
+  n01 -> c02;
+  n01 -> f02;
+  n01 -> p02;
+  n01 -> r02;
+
+  p01 -> c02;
+  p01 -> f02;
+  p01 -> n02;
+  p01 -> r02;
+
+  r01 -> f02;
+  r01 -> n02;
+  r01 -> p02;
+  }
+
+}

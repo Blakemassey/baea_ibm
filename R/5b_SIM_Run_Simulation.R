@@ -13,13 +13,13 @@ toc_msg <- function(tic, toc, msg, info){
 
 source('R/5c_SIM_MovementSubmodelBAEA.R')
 
-sim <- readRDS("C:/Work/R/Data/Simulation/sim_20201016.rds")
+sim <- readRDS("C:/Work/R/Data/Simulation/sim_20201106.rds")
 
 #sim$agents$input <- sim$agents$input %>% slice(c(1,3,5,7))
 
 print(format(object.size(sim), units = "Mb"))
 
-sim_out_file <- "sim_20201016-12.rds"
+sim_out_file <- "sim_20201106-02.rds"
 
 sim_out_dir <- "C:/TEMP"
 sim_id <- tools::file_path_sans_ext(sim_out_file)

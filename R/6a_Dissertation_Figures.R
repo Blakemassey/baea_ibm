@@ -21,7 +21,7 @@ theme_latex <- theme(text = element_text(family = "Latin Modern Roman")) +
 
 # Theme (for blank background)
 theme_blank <- theme(legend.position = "none",
-  text = element_text(family="Latin Modern Roman"),
+  text = element_text(family = "Latin Modern Roman"),
   plot.title = element_text(size=14),
   panel.grid = element_blank(), axis.title = element_blank(),
   axis.text = element_blank(), axis.ticks = element_blank(),

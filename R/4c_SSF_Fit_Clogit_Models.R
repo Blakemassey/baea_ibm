@@ -25,7 +25,7 @@ plan(multiprocess)
 # Pull files
 #ua_files <- dir(ua_data_dir)[c(3,6,10,11,14,15,17)] # all . -> perch, roost
 #ua_files <- dir(ua_data_dir)[c(1,2,4,5,8,9,12,13,16)] # all . -> cruise, flight
-ua_files <- dir(ua_data_dir)[c(3,6)]
+ua_files <- dir(ua_data_dir)[c(2, 4)] #1 , 2, 4, 5)]
 
 
 # WARNING: the ua_perch_perch.rds had to get split into two files to meet the
@@ -52,7 +52,11 @@ for (i in seq_along(ua_files)){
 
   if (end %in% c("cruise", "flight")){
     keep_covars <- c(
-      "(road)+[0-9]", "open_water",
+      #"(road)+[0-9]",
+      #"hydro_dist",
+      #"forest",
+      "roughness",
+      "hydro_dist",
       "eastness", "northness",
       "turbine_dist")
   }
@@ -78,7 +82,7 @@ for (i in seq_along(ua_files)){
   # Find rows with missing data
   ua_steps_na <- ua_steps_i_all %>%
     filter_all(any_vars(is.na(.))) %>%
-    select(case, step_id)
+    dplyr::select(case, step_id)
 
   # Remove step_id pairs where any data is missing
   ua_steps_i <- ua_steps_i_all %>% anti_join(., ua_steps_na,

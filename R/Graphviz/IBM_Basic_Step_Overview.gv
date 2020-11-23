@@ -1,9 +1,9 @@
 digraph {
-  forcelabels=true;
+  forcelabels = true;
   rankdir = LR;
-  fontsize = 16
-  fontname = Helvetica
-  node [shape = oval, fontname = Helvetica, style = filled];
+  fontsize = 16;
+  fontname = 'Modern Computer';
+  node [shape = oval, style = filled];
   a01 [label = "Location", shape = oval, fillcolor = DeepSkyBlue];
   a02 [label = "Select Behavior", shape = rectangle, fillcolor = Thistle];
   a03 [label = "Behavior", shape = hexagon, fillcolor = Gold, margin =.05];
@@ -12,6 +12,7 @@ digraph {
   a06 [label = "New Location", shape = hexagon, fillcolor = Gold, margin=.05];
   node [style = invis];
   a07 ;
+  a08 ;
   node [shape = polygon, style = filled, fillcolor = LightCoral,
     fixedsize = true, margin = 0, skew = 0.1];
   b01 [label = "Julian Date", width = 1.55];
@@ -19,13 +20,13 @@ digraph {
   b03 [label = "Current Behavior", width = 1.85];
   node [shape = polygon, style = filled, fillcolor = Khaki, fixedsize = true,
     margin = 0, skew = 0.1];
-  c01 [label = "Resource Selection Functions", width = 3.15];
+  c01 [label = "Step-Selection Function", width = 2.65];
   c02 [label = "Movement Kernel", width = 2.05];
-  c03 [label = "Conspecific Territories", width = 2.45];
+  c03 [label = "Conspecific and Nest Distance", width = 3.0];
   subgraph cluster_0 {
     label = "Individual-based Model\nStep Process Overview"
     a01, a02, a03, a04, a05, a06
-    edge[constraint = false, weight = 1000, fontsize = 14, fontname = Helvetica]
+    edge[constraint = false, weight = 1000, fontsize = 14]
       a04  -> a01[taillabel = "False", labeldistance = 4]
     edge[constraint = false, weight = .1, fontsize = 14]
       a06  -> a01
@@ -34,22 +35,24 @@ digraph {
       a02 -> b01
       a05 -> c02
     edge[style = solid, minlen = 1, color = black, constraint = true, dir =back,
-        fontsize = 14, fontname = Helvetica]
+        fontsize = 14]
       a06 -> a05
-      a05 -> a04[headlabel = "True    ", labeldistance = 2]
+      a05 -> a04[headlabel = "True      ", labeldistance = 1.5]
       a04 -> a03 -> a02 -> a01
     subgraph cluster_1 {
       label = "State Variables";
       color = grey20;
       b01, b02, b03;
-      edge[color = blue,  minlen = 0, constraint = false, style = dashed, dir = front];
+      edge[color = blue,  minlen = 0, constraint = false, style = dashed,
+        dir = front];
         {b01 b02 b03} -> a02
     }
     subgraph cluster_2 {
-      label = "Environmental and Behavioral\nGIS Layers";
+      label = "GIS Layers";
       color = grey20;
       c01, c02, c03;
-      edge[color = blue, minlen = 0, constraint = false, style = dashed, dir = front];
+      edge[color = blue, minlen = 0, constraint = false, style = dashed,
+        dir = front];
         {c01 c02 c03} -> a05
     }
     {

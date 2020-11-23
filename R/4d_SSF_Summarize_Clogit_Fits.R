@@ -2,7 +2,7 @@
 
 ########################### LOAD PACKAGES AND DATA  ############################
 # Load libraries, scripts, and input parameters
-pacman::p_load(AICcmodavg, plyr, dplyr, future, furrr, optimx, ggplot2,
+pacman::p_load(plyr, dplyr, future, furrr, optimx, ggplot2,
   ggthemes, glmulti, lubridate, optimx, purrr, reproducible, rgenoud, stringr,
   summarytools, survival, surveybootstrap, tibble, tictoc, tidyr)
 library(baear, gisr)
