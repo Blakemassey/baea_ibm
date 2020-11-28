@@ -1,9 +1,8 @@
 ################## ModelFit_SSF_Calculate_Covariates ###########################
 # Load libraries, scripts, and input parameters --------------------------------
-pacman::p_load(plyr, dplyr, forcats, ggplot2, ggthemes, gridExtra, patchwork,
-  purrr, stringr, tidyr, tibble)
+pacman::p_load(plyr, dplyr, forcats, ggplot2, ggthemes, purrr, stringr, tidyr,
+  tibble)
 pacman::p_load(baear, gisr, ibmr)
-suppressMessages(extrafont::loadfonts(device="win"))
 
 # Directories
 ua_data_dir <- "Output/Analysis/SSF/UA_Data"
@@ -36,7 +35,7 @@ unique(str_remove_all(colnames(ua_steps_all %>% select(matches("[0-9]"))),
 # Calculate differences for each of the behavior_behaviors
 ua_steps_diff <- ua_steps_all %>%
   group_by(behavior_behavior, step_id) %>%
-  arrange(behavior_behavior, step_id, desc(case)) %>%
+  arrange(behavior_behavior, step_id, case) %>%
   mutate(across(matches("[0-9]"), diff)) %>%
   ungroup() %>%
   filter(case == 1) %>%

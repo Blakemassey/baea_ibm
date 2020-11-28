@@ -7,6 +7,7 @@ suppressMessages(extrafont::loadfonts(device="win"))
 
 # Directories
 ua_data_diff_dir <- "Output/Analysis/SSF/UA_Data_Diff"
+graphs_dir <- "Products/Graphs/Step_UA_Differences"
 
 # Themes
 theme_latex <- theme(text = element_text(family = "Latin Modern Roman")) +
@@ -115,7 +116,6 @@ dist <- c("developed_dist", "hydro_dist", "road_dist", "turbine_dist")
 # Create graph for each of the step_type and covariates showing the differences
 # between the used and available values
 
-
 line_color = viridis::viridis(5)[5]
 point_color = viridis::viridis(5)[5]
 
@@ -137,7 +137,8 @@ for (i in unique(ua_steps_stats %>% pull(behavior_behavior))){
       fill = ribbon_fill2, color = ribbon_color2, alpha = ribbon_alpha2) +
     geom_line(aes(x = covar_sigma, y = median), color = line_color, size = .75)+
     facet_grid(~ covar_alpha, labeller = labeller(covar_alpha = RelabelCovar)) +
-    labs(x = "", y = "Median Difference\n(Used - Available)") + theme_latex
+    labs(x = "", y = "Step-Selection Covariate Difference\n(Used - Available)")+
+    theme_latex
 
   gg_covar_land
 
@@ -149,7 +150,7 @@ for (i in unique(ua_steps_stats %>% pull(behavior_behavior))){
       fill = ribbon_fill2, color = ribbon_color2, alpha = ribbon_alpha2) +
     geom_line(aes(x = covar_sigma, y = median), color = line_color, size = .75)+
     facet_grid(. ~ covar_alpha, labeller = labeller(covar_alpha = Capitalize)) +
-    labs(x = "", y = "Median Difference\n(Used - Available)")
+    labs(x = "", y = "Step-Selection Covariate Difference\n(Used - Available)")
 
   gg_covar_rough <-  ggplot(ua_steps_stats %>%
       filter(behavior_behavior == i)  %>% filter(covar_alpha == "roughness")) +
@@ -195,9 +196,12 @@ for (i in unique(ua_steps_stats %>% pull(behavior_behavior))){
       filter(behavior_behavior == i)  %>% filter(covar_alpha %in% dist) %>%
       mutate(covar_alpha = Capitalize(str_replace_all(covar_alpha, "_dist",
         "")))) +
+    geom_errorbar(aes(x = covar_alpha, y = median, ymin = prob_25,
+      ymax = prob_75), color = ribbon_color2, width = 0.15) +
     geom_errorbar(aes(x = covar_alpha, y = median, ymin = prob_05,
-      ymax = prob_95), width = 0.2) +
-    geom_point(aes(x = covar_alpha, y = median), color = point_color, size = 1)+
+      ymax = prob_95), color = ribbon_color1,  width = 0.2) +
+    geom_point(aes(x = covar_alpha, y = median), color = "gray20", size = 2)+
+    geom_point(aes(x = covar_alpha, y = median), color = point_color, size=1.5)+
     ggtitle("Euclidean Distance to Nearest") + labs(x = "", y = "") +
     theme(plot.title = element_text(vjust = -12, hjust = .5, size = 9)) +
     theme(axis.text.x.bottom = element_text(angle = 0, hjust = .4,
@@ -282,9 +286,13 @@ for (i in unique(ua_steps_stats %>% pull(behavior_behavior))){
   covar_stats_label_fig
 
   covar_stats_label_fig_file <- paste0("C:/TEMP/Covar_Figures/", i_name, ".png")
+  graphs_file <- file.path(graphs_dir, paste0(i_name, ".png"))
 
   image_write(covar_stats_label_fig, path = covar_stats_label_fig_file,
     format = ".png")
+
+  covar_stats_label_fig_file <- paste0("C:/TEMP/Covar_Figures/", i_name, ".png")
+  file.copy(covar_stats_label_fig_file, graphs_file)
 
   file.remove(gg_covar_stats_fig_no_lab_file)
 }

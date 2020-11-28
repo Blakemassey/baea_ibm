@@ -71,7 +71,7 @@ rm(hr_metrics_org, hr_metrics_terrain_50, hr_metrics_terrain_95)
 
 pointSize = 2; textSize = 5; spaceLegend = 1
 gg_hr_size_1 <- ggplot(data = hr_metrics_terrain %>%
-    filter(variable == "Area_km"),aes(group = ud, x = factor(0), y = value)) +
+    filter(variable == "Area_km"), aes(group = ud, x = factor(0), y = value)) +
   geom_boxplot(aes(fill = as.factor(ud))) +
   scale_fill_viridis_d(option = "C", direction = -1) +
   xlab("Home Range Size") +

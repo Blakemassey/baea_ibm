@@ -15,7 +15,7 @@ rasterOptions(maxmem = Inf, progress = "text", timer = TRUE, chunksize=1e9,
   memfrac=.9)
 
 # Sim file
-sim_rds <- "sim_20201106-02.rds"
+sim_rds <- "sim_20201016-06.rds"
 sim_id <- tools::file_path_sans_ext(sim_rds)
 
 # Directories
