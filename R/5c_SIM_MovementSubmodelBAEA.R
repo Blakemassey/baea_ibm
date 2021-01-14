@@ -202,14 +202,14 @@ MovementSubModelBAEA2 <- function(sim = sim,
     #  " (", 500/raster::ncell(prob_raster), ")"))
 
     destination_cell <- suppressWarnings(sampling::strata(data = data.frame(
-      cell = 1:raster::ncell(prob_raster)), stratanames = NULL, size = 100,
+      cell = 1:raster::ncell(prob_raster)), stratanames = NULL, size = 50,
       method = "systematic", pik = prob_raster@data@values)) %>%
     mutate(prob_rank = rank(-Prob, na.last = NA, ties.method = "random")) %>%
     filter(prob_rank == 1)
 
     while(is.na(destination_cell[1,1])) {
       destination_cell <- suppressWarnings(sampling::strata(data = data.frame(
-        cell = 1:raster::ncell(prob_raster)), stratanames = NULL, size = 100,
+        cell = 1:raster::ncell(prob_raster)), stratanames = NULL, size = 50,
         method = "systematic", pik = prob_raster@data@values)) %>%
       mutate(prob_rank = rank(-Prob, na.last = NA, ties.method = "random")) %>%
       filter(prob_rank == 1)

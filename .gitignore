@@ -10,7 +10,7 @@ Output/Analysis/Homerange/homerange_akde.rds
 Output/Analysis/SSF/Models/compiled_fits
 Output/Analysis/SSF/Models/best_fits/best_ssf_fit_all.rds
 Output/Analysis/SSF/Models/best_fits/best_ssf_fit_perch_perch.rds
-
+Output/Analysis/SSF/Models/model_fits_compiled_refit_best/model_fits_compiled_refit_best.rds
 Output/Analysis/Territorial
 Output/Sim
 Products/Graphs

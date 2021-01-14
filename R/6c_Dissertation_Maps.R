@@ -363,9 +363,6 @@ for (i in seq_len(length(ssf_prob_files))){
       position = c(.75, .01)) +
     tm_compass(type = "4star",  show.labels = 1, size = 3,
       position = c(.85, .75)) +
-    tm_grid(n.x = 4, n.y = 5, projection = 4326, col = "grey85", alpha = .75,
-      labels.col = "grey25", labels.format = list(format = "f", big.mark = ""),
-      labels.inside.frame = FALSE) +
     tm_shape(maine) + tm_borders(col = "black") +  # ME outline overlays grid
     tm_shape(nests_study %>% filter(nest_site != "446R01")) +
     tm_symbols(shape = 8, col = "black", size = .4) +
@@ -449,10 +446,9 @@ ssf_tmap_arrange <- tmap_arrange(
   tmap_blank, ssf_tmap_list[[16]], ssf_tmap_list[[17]], tmap_blank,
   ncol = 4)
 
-tmap_save(tm = ssf_tmap_arrange, filename = file.path(tex_dir, "Figures/Ch3",
-  "SSF_Probability_Maps_Overview.svg"), unit = "in", dpi = 300, height = 8,
-  width = 6)
-
+tmap_save(tm = ssf_tmap_arrange, filename = file.path(tex_dir, "Figures/Ch2",
+  "SSF_Prob_Raster_Maps", "SSF_Probability_Maps_Overview.svg"), unit = "in",
+  dpi = 300, height = 8, width = 6)
 
 #### ------------------------- Individual Nest Maps ----------------------------
 

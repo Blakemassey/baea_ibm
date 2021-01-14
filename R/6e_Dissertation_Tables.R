@@ -1,5 +1,5 @@
 library(pacman)
-p_load(DT, lubridate, tidyverse, ggplot2, readr, xtable)
+p_load(DT, lubridate, tibble, tidyverse, ggplot2, readr, xtable)
 suppressMessages(extrafont::loadfonts(device="win"))
 options(stringsAsFactors = FALSE)
 
@@ -283,12 +283,12 @@ print(fits_move_pars_xtable,
                    "Tables/Ch2/Movement_Pars.tex"))
 
 
-## SSF Best Ten Fits -----------------------------------------------------------
+## SSF Models Compiled Refits --------------------------------------------------
 
-ssf_best_ten_fits_org <- readRDS(file.path("Output/Analysis/SSF/Models",
-  "best_ten_fits", "best_ten_fits.rds"))
+model_fits_compiled_refit_org <- readRDS(file.path("Output/Analysis/SSF/Models",
+  "model_fits_compiled_refit", "model_fits_compiled_refit.rds"))
 
-ssf_best_ten_fits_df  <- ssf_best_ten_fits_org %>%
+model_fits_compiled_refit_df  <- model_fits_compiled_refit_org %>%
   dplyr::select(step_type, fit_aicc, delta_aicc, preds) %>%
   mutate(step_type_cap = str_replace_all(step_type, "_", " ")) %>%
   mutate(step_type_cap = str_to_title(step_type_cap)) %>%
@@ -305,55 +305,56 @@ ssf_best_ten_fits_df  <- ssf_best_ten_fits_org %>%
   ungroup(.) %>%
   select(step_type_cap, mod_rank, fit_aicc, delta_aicc, preds)
 
-colnames(ssf_best_ten_fits_df) <- colnames(ssf_best_ten_fits_df) %>%
+colnames(model_fits_compiled_refit_df) <-
+  colnames(model_fits_compiled_refit_df) %>%
   str_replace(., "mod_rank", "Rank") %>%
   str_replace(., "fit_aicc", "AICc") %>%
   str_replace(., "delta_aicc", "$\\\\Delta$ AICc") %>%
   str_replace(., "preds",
     "Model Covariates (with $\\\\sigma$ bandwidth values)")
 
-for (i in unique(ssf_best_ten_fits_df$step_type_cap)){
-  ssf_best_ten_fits_df_i <- ssf_best_ten_fits_df %>%
+for (i in unique(model_fits_compiled_refit_df$step_type_cap)){
+  model_fits_compiled_refit_df_i <- model_fits_compiled_refit_df %>%
     filter(step_type_cap == i) %>%
     select(-c(step_type_cap))
-  ssf_best_ten_fits_xtable_i <- xtable(ssf_best_ten_fits_df_i,
+  model_fits_compiled_xtable_i <- xtable(model_fits_compiled_refit_df_i,
     digits = c(0, 0, 2, 2, 0))
-  align(ssf_best_ten_fits_xtable_i) <- c("L{0}", "C{.3}", "C{.3}", "C{.45}",
-    "L{2.95}")
-  str_replace_all(align(ssf_best_ten_fits_xtable_i), "[^[//.||0-9]]", "") %>%
+  align(model_fits_compiled_xtable_i) <- c("L{0}", "C{.3}", "C{.3}",
+    "C{.45}", "L{2.95}")
+  str_replace_all(align(model_fits_compiled_xtable_i), "[^[//.||0-9]]", "") %>%
     str_subset(., "[0-9]") %>% as.numeric(.) %>% sum()
   # should sum to 4 for the 4 columns
-  print(ssf_best_ten_fits_xtable_i,
+  print(model_fits_compiled_xtable_i,
     floating = FALSE, width = "\\textwidth",
     tabular.environment = "tabularx",
     booktabs = TRUE, # thick top/bottom line, Preamble: "\usepackage{booktabs}"
     include.rownames = FALSE,
     size = "\\fontsize{11pt}{12pt}\\selectfont",
-    sanitize.colnames.function = BoldTextCentered,
+    sanitize.colnames.function = BoldText,
     sanitize.text.function = identity,
     file = file.path("C:/Users/blake/OneDrive/Work/LaTeX/BMassey_Dissertation",
       "Tables/Ch2", paste0("SSF_Fits_", i,".tex")))
 }
 
-## SSF Best Fits ---------------------------------------------------------------
+## SSF Models Compiled Best ----------------------------------------------------
 
-best_ssf_fit_all_org <- readRDS(file.path("Output/Analysis/SSF/Models",
-  "best_fits", "best_ssf_fit_all.rds"))
+model_fits_best_org <- readRDS(file.path("Output/Analysis/SSF/Models",
+  "model_fits_compiled_refit_best", "model_fits_compiled_refit_best.rds"))
 
-best_fit_all <- best_ssf_fit_all_org %>%
+model_fits_best <- model_fits_best_org %>%
   mutate(start_behavior = word(step_type, 1, sep = "_")) %>%
   mutate(end_behavior = word(step_type, 2, sep = "_"))
 
-start_step_types <- best_fit_all %>% pull(start_behavior) %>% unique(.)
+start_step_types <- model_fits_best %>% pull(start_behavior) %>% unique(.)
 
-#i <- start_step_types[1]; j <- 1  # for testing
+i <- start_step_types[1]; j <- 1  # for testing
 for (i in start_step_types){
-  best_fit_i <- best_fit_all %>% filter(start_behavior == i)
-  xtable_list <- vector(mode = "list", length = nrow(best_fit_i))
-  for (j in seq_len(nrow(best_fit_i))){
-    fit_ij <- best_fit_i %>% slice(j) %>% pull(clogit_fit) %>% pluck(1)
-    start_ij <- best_fit_i %>% slice(j) %>% pull(start_behavior)
-    end_ij <- best_fit_i %>% slice(j) %>% pull(end_behavior)
+  model_fits_best_i <- model_fits_best %>% filter(start_behavior == i)
+  xtable_list <- vector(mode = "list", length = nrow(model_fits_best_i))
+  for (j in seq_len(nrow(model_fits_best_i))){
+    fit_ij <- model_fits_best_i %>% slice(j) %>% pull(clogit_fit) %>% pluck(1)
+    start_ij <- model_fits_best_i %>% slice(j) %>% pull(start_behavior)
+    end_ij <- model_fits_best_i %>% slice(j) %>% pull(end_behavior)
     xtable_fit_ij <- as.data.frame(xtable(fit_ij)) %>%
       rownames_to_column(., var = "term") %>%
       mutate(step_type = NA)
@@ -361,7 +362,7 @@ for (i in start_step_types){
       "$\\rightarrow$", str_to_title(end_ij))
     xtable_list[[j]] <- xtable_fit_ij
   }
-  ssf_best_fits_xtable <- xtable_list %>%
+  model_fits_best_xtable <- xtable_list %>%
     reduce(bind_rows) %>%
     mutate(term = str_replace_all(term, "_", " ")) %>%
     mutate(term = str_replace_all(str_to_title(term),
@@ -379,20 +380,20 @@ for (i in start_step_types){
     dplyr::select("Step Type", "Term", "Coefficient ", "Exp(Coef)",
       "SE(Coef)", "Z Statistic", "p-value")
 
-  ssf_best_fits_xtable <- xtable(ssf_best_fits_xtable,
+  model_fits_best_xtable <- xtable(model_fits_best_xtable,
     digits = c(0, 0, 2, 3, 2, 2, 2, 2))
-  display(ssf_best_fits_xtable) = c("s", "s", "s", "g", "g", "g", "g", "g")
+  display(model_fits_best_xtable) = c("s", "s", "s", "g", "g", "g", "g", "g")
 
-  align(ssf_best_fits_xtable) <- c("L{0}", "L{1.8}", "H{1.25}", "R{1}",
+  align(model_fits_best_xtable) <- c("L{0}", "L{1.8}", "H{1.25}", "R{1}",
     "R{.9}", "R{.8}", "R{.45}", "R{.8}")
-  str_replace_all(align(ssf_best_fits_xtable), "[^[//.||0-9]]", "") %>%
+  str_replace_all(align(model_fits_best_xtable), "[^[//.||0-9]]", "") %>%
     str_subset(., "[0-9]") %>% as.numeric(.) %>% sum()
 
-  hline <- (which(str_detect(ssf_best_fits_xtable$`Step Type`,
+  hline <- (which(str_detect(model_fits_best_xtable$`Step Type`,
    "[:alpha:]"))-1)[-1]
   htype <- c(rep("\\midrule ", times = length(hline)))
 
-  ssf_xtable_list_tex <- print(ssf_best_fits_xtable,
+  model_fits_best_tex <- print(model_fits_best_xtable,
     add.to.row = list(pos = as.list(hline), command = htype),
     floating = FALSE, width = "\\textwidth",
     tabular.environment = "xltabular",
@@ -413,24 +414,24 @@ for (i in start_step_types){
     " behavior for Bald Eagles in Maine.}\\\\\\\\ \n ")
 
   # Make column header ("Step Type") horizontal, italicize 'p' in p-value
-  ssf_xtable_list_tex_update <- ssf_xtable_list_tex %>%
+  model_fits_best_tex_update <- model_fits_best_tex %>%
     str_replace(., "\\\\toprule", paste0(caption_label_tex, "\\\\toprule")) %>%
-  str_replace_all(., paste0("\\\\begin\\{sideways\\} ",
-    "\\{\\\\textbf\\{Step Type\\}\\} \\\\end\\{sideways\\}"),
-    "\\{\\\\textbf\\{Step Type\\}\\}") %>%
-  str_replace_all(., "\\{\\\\textbf\\{p-value\\}\\}",
-    "\\{\\\\textit\\{\\\\textbf\\{p\\}\\}\\\\textbf\\{-value\\}\\}")
+    str_replace_all(., paste0("\\\\begin\\{sideways\\} ",
+      "\\{\\\\textbf\\{Step Type\\}\\} \\\\end\\{sideways\\}"),
+      "\\{\\\\textbf\\{Step Type\\}\\}") %>%
+    str_replace_all(., "\\{\\\\textbf\\{p-value\\}\\}",
+      "\\{\\\\textit\\{\\\\textbf\\{p\\}\\}\\\\textbf\\{-value\\}\\}")
 
   # Add column headers when table is split across pages
-  column_headers <- ssf_xtable_list_tex_update %>%
+  column_headers <- model_fits_best_tex_update %>%
     str_match(., "(?s)toprule(.*?)\\\\midrule(?s)") %>% pluck(2) %>%
     str_replace_all(., "\\\\", "\\\\\\\\")
-  ssf_xtable_list_tex_final <- ssf_xtable_list_tex_update %>%
+  model_fits_best_tex_final <- model_fits_best_tex_update %>%
     str_replace(., "\\\\midrule",
     paste0("\\\\endfirsthead\n \\\\\\hline", column_headers,
       "\\\\\\hline\n \\\\endhead\n \\\\\\hline\n \\\\endfoot\n \\\\\\hline\n ",
       "\\\\endlastfoot\n \\\\\\hline"))
-  write_lines(ssf_xtable_list_tex_final, path = file.path("C:/Users/blake",
+  write_lines(model_fits_best_tex_final, file = file.path("C:/Users/blake",
     "OneDrive/Work/LaTeX/BMassey_Dissertation/Tables/Ch2",
     paste0("SSF_Fits_Terms_", str_to_title(i), ".tex")))
 }
@@ -440,7 +441,7 @@ for (i in start_step_types){
 # ---------------------------------------------------------------------------- #
 
 
-## SSF Fits --------------------------------------------------------------------
+## SSF Fits ----------------------------------------------------------------- ##
 
 # best_ssf_fit_all_org <- readRDS(file.path("Output/Analysis/SSF/Models",
 #   "best_ssf_fit_all.rds"))

@@ -369,6 +369,22 @@ for (i in seq_along(ua_data_files)){
   if(updated) saveRDS(ua_data_i_out, ua_data_files[i])
 }
 
+# This section replaces the "x_dist" field names to "dist_x" because it was
+# easier to use them in that format duing the optimization procedure
+
+ua_data_files <- list.files(ua_data_dir, full.names = TRUE)
+for (i in seq_along(ua_data_files)){
+  ua_data_i <- readRDS(ua_data_files[i])
+  unique(ua_data_i$behavior_behavior)
+  # Next step replaces the column names. Another simple fix.
+  colnames(ua_data_i) <- colnames(ua_data_i) %>%
+    str_replace_all("developed_dist0", "dist_developed0") %>%
+    str_replace_all("hydro_dist0", "dist_hydro0") %>%
+    str_replace_all("road_dist0", "dist_road0") %>%
+    str_replace_all("turbine_dist0", "dist_turbine0")
+  if(updated) saveRDS(ua_data_i_out, ua_data_files[i])
+}
+
 # End of section to fix the terrain bandwidths
 
 # Check Timings

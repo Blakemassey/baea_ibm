@@ -8,7 +8,7 @@ pacman::p_load(plyr, dplyr, optimx, ggplot2, ggthemes, lubridate, optimx, purrr,
 library(baear, gisr)
 
 # Calculate the percentiles for the covariates ---------------------------------
-model_dir = "Output/Analysis/SSF/Models/best_simpler_fits"
+model_dir = "Output/Analysis/SSF/Models/model_fits_compiled_refit_best"
 preds_tbl_file = file.path(model_dir, "preds_tbl.rds")
 quantile_tbl_file = file.path(model_dir, "covar_quantiles.rds")
 covars_crop_dir = "C:/ArcGIS/Data/R_Input/BAEA/SSF_Rasters/Covars_Crop"
@@ -58,11 +58,11 @@ rm(covars_crop_dir, covar_quantile, covar_raster_file, covar_raster,
   quantile_tbl_file)
 
 # Extract model data (terms, coefs, etc.) from best_ssf_fit_models -------------
-mod_fit_dir = "Output/Analysis/SSF/Models"
-model_data_file = "Output/Analysis/SSF/Models/best_simpler_fits/model_data.rds"
+mod_fit_dir = "Output/Analysis/SSF/Models/model_fits_compiled_refit_best"
+model_data_file = file.path(mod_fit_dir, "model_data.rds")
 
-best_ssf_fit_all_org <- readRDS(file.path(mod_fit_dir, "best_simpler_fits",
-  "best_ssf_simpler_fit_all.rds"))
+best_ssf_fit_all_org <- readRDS(file.path(mod_fit_dir,
+  "model_fits_compiled_refit_best.rds"))
 
 best_fit_all <- best_ssf_fit_all_org %>%
   mutate(start_behavior = word(step_type, 1, sep = "_")) %>%
@@ -97,15 +97,13 @@ for (i in start_step_types){
 saveRDS(model_data, model_data_file)
 
 # Combine the model fit data w/ raster quantile data and predict margins -------
-mod_fit_dir = "Output/Analysis/SSF/Models"
-model_data_file = "Output/Analysis/SSF/Models/best_simpler_fits/model_data.rds"
-quantile_tbl_file = file.path("Output/Analysis/SSF/Models/best_simpler_fits",
-  "covar_quantiles.rds")
-predictions_file = file.path("Output/Analysis/SSF/Models/best_simpler_fits",
-  "covar_predictions.rds")
+mod_fit_dir = "Output/Analysis/SSF/Models/model_fits_compiled_refit_best"
+model_data_file = file.path(mod_fit_dir, "model_data.rds")
+quantile_tbl_file = file.path(model_fit_dir, "covar_quantiles.rds")
+predictions_file = file.path(model_fit_dir, "covar_predictions.rds")
 
-best_fit_all <- readRDS(file.path(mod_fit_dir, "best_simpler_fits",
-  "best_ssf_simpler_fit_all.rds"))
+best_fit_all <- readRDS(file.path(mod_fit_dir,
+  "model_fits_compiled_refit_best.rds"))
 model_data <- readRDS(model_data_file)
 quantile_tbl <- readRDS(quantile_tbl_file)
 
@@ -165,8 +163,9 @@ saveRDS(predictions_tbl_all, predictions_file)
 # Plots of Marginal Predicted Fits ---------------------------------------------
 
 # Theme (for LaTeX font)
+mod_fit_dir = "Output/Analysis/SSF/Models/model_fits_compiled_refit_best"
 tex_dir <- "C:/Users/Blake/OneDrive/Work/LaTeX/BMassey_Dissertation"
-file_dir <- "C:/ArcGIS/Data/R_Input/BAEA/SSF_Rasters/Step_Types_Simpler"
+file_dir <- "C:/ArcGIS/Data/R_Input/BAEA/SSF_Rasters/Step_Types_Prob"
 suppressMessages(extrafont::loadfonts(device="win"))
 theme_latex <- theme(text = element_text(family = "Latin Modern Roman")) +
   theme(axis.text = element_text(size = 10)) +
@@ -174,8 +173,7 @@ theme_latex <- theme(text = element_text(family = "Latin Modern Roman")) +
   theme(plot.title = element_text(size = 14))
 pointSize = 2; textSize = 5; spaceLegend = 1
 
-predictions_file = file.path("Output/Analysis/SSF/Models/best_simpler_fits",
-  "covar_predictions.rds")
+predictions_file = file.path(mod_fit_dir, "covar_predictions.rds")
 predictions_tbl_all <- readRDS(predictions_file)
 
 step_types <- unique(predictions_tbl_all$step_type)

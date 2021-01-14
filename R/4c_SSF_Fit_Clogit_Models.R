@@ -206,7 +206,7 @@ for (i in seq_along(ua_files)){
         covars_fixed_0 <- paste0(covars_fixed, "0")
         preds <- paste(c(covars_scale_sigmas, covars_fixed_0,
           "strata(step_id)"), collapse = " + ")
-        clogit_model_formula <- as.formula(paste('case', preds,sep = " ~ "))
+        clogit_model_formula <- as.formula(paste('case', preds, sep = " ~ "))
         clogit_fit <- clogit(clogit_model_formula, data = ua_data,
           method = "efron", iter.max = iter_max)
         model_aicc = AICc(clogit_fit)

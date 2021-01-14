@@ -588,14 +588,14 @@ for (i in seq_len(nrow(tex_df))){
 rm(i, tex_df, tex_name_i, tex_str_i, tex_i, tex_head)
 
 # Image background
-backgrd <- image_blank(1800, 1800, color = "white")
+backgrd <- image_blank(1800, 1850, color = "white")
 
 # Create Final Plot and Export to Dissertation
 movements_step_length_fig <- image_read(movements_step_length_no_label_fig_file)
 movements_step_length_labels_fig <- backgrd %>%
   image_composite(., movements_step_length_fig, offset = "+20+00") %>%
   image_composite(., image_rotate(tex_lab_density, 270), offset = "+20+700") %>%
-  image_composite(., tex_lab_step_length, offset = "+800+1745")
+  image_composite(., tex_lab_step_length, offset = "+800+1775")
 movements_step_length_labels_fig
 movements_step_length_fig_file = file.path(tex_dir, "Figures/Ch2",
   "Movements_Step_Length.png")

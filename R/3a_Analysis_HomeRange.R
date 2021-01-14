@@ -548,12 +548,12 @@ hr_all_metrics_sum <- hr_all_metrics %>%
 hr_metrics_50 <- hr_all_metrics %>%
   dplyr::select(-contains("ud_95")) %>%
   set_names(~ str_to_lower(.) %>% str_replace_all("ud_50_", "")) %>%
-  melt(., id.var = "id") %>%
+  reshape2::melt(., id.var = "id") %>%
   mutate(ud = "50%") %>% map_if(is.factor, as.character)
 hr_metrics_95 <- hr_all_metrics %>%
   dplyr::select(-contains("ud_50")) %>%
   set_names(~ str_to_lower(.) %>% str_replace_all("ud_95_", "")) %>%
-  melt(., id.var = "id") %>%
+  reshape2::melt(., id.var = "id") %>%
   mutate(ud = "95%") %>%
   map_if(is.factor, as.character)
 
