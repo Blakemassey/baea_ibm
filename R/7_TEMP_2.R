@@ -4,7 +4,7 @@
 # Load libraries, scripts, and input parameters
 pacman::p_load(AICcmodavg, arrangements, plyr, dplyr, future, furrr, optimx,
   ggplot2, lubridate, optimx, purrr, rgenoud, stringr, survival, tibble, tictoc,
-  tidyr)
+  tidyr, reproducible)
 pacman::p_load(baear, gisr, ibmr)
 testing <- FALSE
 
@@ -84,6 +84,9 @@ PrepUAStepDataForOptimization <- function(ua_data, keep_covars){
     str_replace_all("hydro_dist0", "dist_hydro0") %>%
     str_replace_all("road_dist0", "dist_road0") %>%
     str_replace_all("turbine_dist0", "dist_turbine0")
+  # Limits the dist_turbine to 20km
+  ua_data <- ua_data %>%
+    mutate(dist_turbine0 = if_else(dist_turbine0 < 20000, dist_turbine0, 20000))
   # Replaces the covar distances with sigma values
   colnames_alpha <- str_replace_all(colnames(ua_data), "[0-9]", "")
   colnames_num <- as.numeric(str_replace_all(colnames(ua_data), "[^0-9]",""))
@@ -131,6 +134,7 @@ covar_matrix <- tribble(
   "pasture",        FALSE, TRUE, 1, 100, 50, FALSE,
   "road",           FALSE, TRUE, 1, 100, 50, FALSE,
   "shrub_herb",     FALSE, TRUE, 1, 100, 50, FALSE,
+  "wetland",        FALSE, TRUE, 1, 100, 50, FALSE,
   "eastness",       FALSE, TRUE, 1, 100, 50, FALSE,
   "northness",      FALSE, TRUE, 1, 100, 50, FALSE,
   "wind_class",     FALSE, TRUE, 1, 100, 50, FALSE,
@@ -143,43 +147,62 @@ covar_matrix <- tribble(
   "dist_turbine",   TRUE, FALSE, NA, NA, NA, FALSE
 )
 
+covar_matrix_simple_flight_01 <- tribble(
+  ~covar, ~fixed, ~scale, ~scale_min, ~scale_max, ~scale_start, ~poly2,
+  "road",           FALSE, TRUE, 1, 100, 50, FALSE,
+  "eastness",       FALSE, TRUE, 1, 100, 50, FALSE,
+  "northness",      FALSE, TRUE, 1, 100, 50, FALSE,
+  "dist_hydro",     TRUE, FALSE, NA, NA, NA, FALSE,
+  "dist_turbine",   TRUE, FALSE, NA, NA, NA, FALSE
+)
+
+covar_matrix_simple_perch_01 <- tribble(
+  ~covar, ~fixed, ~scale, ~scale_min, ~scale_max, ~scale_start, ~poly2,
+  "open_water",     FALSE, TRUE, 1, 100, 50, FALSE,
+#  "roughness",      FALSE, TRUE, 1,  50, 25,  TRUE,
+  "tpi",            FALSE, TRUE, 1,  50, 25,  TRUE,
+#  "tri",            FALSE, TRUE, 1,  50, 25,  TRUE,
+  "dist_hydro",     TRUE, FALSE, NA, NA, NA, FALSE,
+)
+
 # Pull files
 ua_files <- dir(ua_data_dir)[c(2,5,13)]
+ua_files <- dir(ua_data_dir)[c(3,6,10,14)]
 
 # Sequence through step_type used/available files and fit sigma optimization
 for (i in seq_along(ua_files)){
-  #if(testing) i <- 3
   ua_file_i <- ua_files[i]
   step_type <- str_remove_all(ua_file_i, ("ua_steps_|.rds"))
   print(paste0("Starting: ", step_type, " (", i , " of ", length(ua_files),")"))
   if(!dir.exists(file.path(mod_fit_dir, step_type))){
     dir.create(file.path(mod_fit_dir, step_type))
   }
+  models_in_dir <- list.files(file.path(mod_fit_dir, step_type),
+    pattern = "\\.rds$")
+  print(paste0("Models in directory : ", models_in_dir))
+  for (i in models_in_dir){
+    file.move(file.path(mod_fit_dir, step_type, i), file.path(mod_fit_dir,
+      step_type, "Archive"))
+  }
   start <- str_split(step_type, "_") %>% unlist(.) %>% pluck(1)
   end <- str_split(step_type, "_") %>% unlist(.) %>% pluck(2)
 
   if (end %in% c("flight")){
-    keep_covars <- c(
-      "forest",
-      "open_water",
-      "eastness",
-      "northness",
-      "roughness",
-      "tri",
-      "dist_developed",
-      "dist_hydro",
-      "dist_turbine")
+    covar_matrix_i <- covar_matrix_simple_flight_01
+  }
+  if (end %in% c("perch")){
+    covar_matrix_i <- covar_matrix_simple_perch_01
   }
 
-  covar_matrix_i <- covar_matrix %>%
-    dplyr::filter(covar %in% keep_covars)
+  #covar_matrix_i <- covar_matrix %>% #dplyr::filter(covar %in% keep_covars)
+
   covar_matrix_i_combos <- do.call(c, lapply(seq_len(nrow(covar_matrix_i)),
     function(y) {arrangements::combinations(nrow(covar_matrix_i), y,
       layout = "l")}))
 
   ## Filter ua_data to full set of keep_covars
   ua_steps_i_org <- readRDS(file.path(ua_data_dir, ua_file_i))
-  ua_steps_i <- PrepUAStepDataForOptimization(ua_steps_i_org, keep_covars)
+  ua_steps_i <- PrepUAStepDataForOptimization(ua_steps_i_org, covar_matrix_i$covar)
 
   #covars_scale, covars_fixed, sigma_domains, sigma_starts, pop_size,
   OptimizeClogitSigma <- function(covars_matrix, mod_num){
@@ -254,18 +277,19 @@ for (i in seq_along(ua_files)){
   }
 
   ## OPTIMIZATION PROCEDURE
-  # divide models into groups for analysis (so that if threads fail they
-  # have a chance to start again)
+  # Divide models into groups for analysis (so if a thread fails, it has a
+  # chance to start again)
   model_grp <- as.numeric(cut_number(1:length(covar_matrix_i_combos),
     n = ceiling(length(covar_matrix_i_combos)/100)))
 
   tbl_models <- tibble(step_type, covar_index = covar_matrix_i_combos,
     model_grp = model_grp) %>%
-    mutate(model_num = str_pad(1:n(), 4, "left", "0")) %>%
+    mutate(model_num = str_pad(1:nrow(.), 4, "left", "0")) %>%
     mutate(covar_matrix = map(covar_index, GetCovarMatrix)) %>%
-    select(-covar_index)
+    dplyr::select(-covar_index)
 
   print(paste0("Starting ", step_type, " : ", now()))
+  print(paste0("Assessing ", nrow(tbl_models), " models"))
 
   tbl_models_fitted_list <- list()
   for (i in unique(model_grp)) {
@@ -280,7 +304,8 @@ for (i in seq_along(ua_files)){
   }
   tbl_models_fitted <- tbl_models_fitted_list %>%
     reduce(bind_rows)
-  print(paste0("Finished ", step_type, " at ", now()))
+  writeLines("")
+  writeLines(paste0("Finished ", step_type, " at ", now()))
 
   tbl_models_final <- tbl_models_fitted %>%
       arrange(fit_aicc) %>%
@@ -298,9 +323,9 @@ for (i in seq_along(ua_files)){
       mutate(fit_covars_clean = map(covar_fitted, pull, "covar_clean")) %>%
       mutate(fit_coefs_signif = map(covar_fitted, pull, "coef_signif")) %>%
       mutate(model_full = map(covar_fitted, ExtractModelFull)) %>%
-      dplyr::select(step_type, fit_aicc, delta_aicc, refit_aicc, peak_gen,
-        concordance_value, covar_fitted, fit_covars_clean, fit_coefs_signif,
-        model_full)
+      dplyr::select(step_type, covar_matrix, fit_aicc, delta_aicc, refit_aicc,
+        peak_gen, concordance_value, covar_fitted, fit_covars_clean,
+        fit_coefs_signif, model_full)
 
   # SAVE FIlE -----------------------------------------------------------
 

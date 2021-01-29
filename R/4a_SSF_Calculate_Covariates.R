@@ -17,10 +17,10 @@ file_dir <- "C:/ArcGIS/Data/R_Input/BAEA"
 elev_file <- file.path(file_dir, "elev_30mc.tif")
 
 # Extract class
-developed_dist_file <- file.path(file_dir, "developed_dist_30mc.tif")
-hydro_dist_file <- file.path(file_dir, "hydro_dist_30mc.tif")
-turbine_dist_file <- file.path(file_dir, "turbine_dist_30mc.tif")
-road_dist_file <- file.path(file_dir, "road_dist_30mc.tif")
+dist_developed_file <- file.path(file_dir, "developed_dist_30mc.tif")
+dist_hydro_file <- file.path(file_dir, "hydro_dist_30mc.tif")
+dist_turbine_file <- file.path(file_dir, "turbine_dist_30mc.tif")
+dist_road_file <- file.path(file_dir, "road_dist_30mc.tif")
 
 # Kernel class
 developed_file <- file.path(file_dir, "developed_30mc.tif")
@@ -59,10 +59,10 @@ rm(baea_steps_file, move_pars_file) #base_file
 elev <- raster(elev_file) # all other layers' extent are set to this layer
 
 # Extract class
-developed_dist <- crop(raster(developed_dist_file), elev)
-hydro_dist <- crop(raster(hydro_dist_file), elev)
-turbine_dist <- crop(raster(turbine_dist_file), elev)
-road_dist <- crop(raster(road_dist_file), elev)
+dist_developed <- crop(raster(dist_developed_file), elev)
+dist_hydro <- crop(raster(dist_hydro_file), elev)
+dist_turbine <- crop(raster(dist_turbine_file), elev)
+dist_road <- crop(raster(dist_road_file), elev)
 
 # Kernel class
 developed <- crop(raster(developed_file), elev)
@@ -78,7 +78,7 @@ road <- crop(raster(road_file), elev)
 
 # plot(developed$as.RasterLayer(band = 1))
 rm(base_file, file_dir,
-  developed_dist_file, hydro_dist_file, turbine_dist_file, road_dist_file,
+  dist_developed_file, dist_hydro_file, dist_turbine_file, dist_road_file,
   developed_file, forest_file, open_water_file, pasture_file,
   shrub_herb_file, wetland_file, eastness_file, northness_file, wind_class_file,
   road_file, elev_file)
@@ -89,12 +89,12 @@ cell_size <- 30
 kernel_bandwidths <- c(seq(0, 3000, by = 30))  # radius (meters)
 terrain_bandwidths <- c(seq(0, 1500, by = 30))
 
-extract_class <- c("developed_dist", "hydro_dist", "turbine_dist", "road_dist")
+extract_class <- c("dist_developed", "dist_hydro", "dist_turbine", "dist_road")
 kernel_class <- c("developed", "forest", "open_water", "pasture", "shrub_herb",
   "wetland", "eastness", "northness", "wind_class")
 terrain_class <- c("tpi", "tri", "roughness")
 
-covar_stack <- stack(developed_dist, hydro_dist, turbine_dist, road_dist,
+covar_stack <- stack(dist_developed, dist_hydro, dist_turbine, dist_road,
   developed, forest, open_water, pasture, shrub_herb, wetland, eastness,
   northness, wind_class, road, elev)
 names(covar_stack) <- str_replace_all(names(covar_stack), "_30mc", "")
@@ -112,10 +112,10 @@ if (subsetting_bandwidths == TRUE){  # subset data for testing
 }
 
 if (subsetting_covars == TRUE){  # subset data for testing
-  extract_class <- c("road_dist")
+  extract_class <- c("dist_road")
   kernel_class <- c("road")
   terrain_class <- c()
-  covar_stack <- stack(road_dist, road)
+  covar_stack <- stack(dist_road, road)
   names(covar_stack) <- str_replace_all(names(covar_stack), "_30mc", "")
   covar_types <- c(extract_class, kernel_class, terrain_class)
   covariate_cols <- c(paste0(rep(extract_class, each = 1), 0),
@@ -146,7 +146,7 @@ if (subsetting_ids == TRUE){  # subset data for testing
   i <- j <- k <- m <- 1
 }
 
-rm(developed_dist, hydro_dist, turbine_dist, road_dist,
+rm(dist_developed, dist_hydro, dist_turbine, dist_road,
   developed, forest, open_water, pasture, shrub_herb, wetland, eastness,
   northness, wind_class, road, elev)
 
@@ -270,17 +270,14 @@ for (i in seq_along(unique(baea_steps$behavior_behavior))){
         col_num_used <- which(colnames(used_steps_i) == col_name)
         col_num_avail <- which(colnames(used_steps_i) == col_name)
         if(bw_meters == 0){
-          covar_raster_calc_m <- covar_raster_k
-          ## ####################### IMPORTANT NOTE ############################
-          ## This step incorrectly caused the 'elev' raster to be used directly
-          ## for the 'tpi', 'tri', and 'roughness' layers at bandwidth = 0.
-          ## This was corrected by replacing the bandwidth = 0 values with the
-          ## bandwidth = 1 values for these rasters. Fix is performed with code
-          ## starting at line ~355. Function CalculateTerrainMetricWithSigma()
-          ## was written so the function would still work if sigma = 0 (it is
-          ## internally converted to sigma = 1) because that was needed for
-          ## other steps in the analysis.
-          ## ################################################################# #
+          if (covar_type_k %in% kernel_class){
+			covar_raster_calc_m <- covar_raster_k
+          } else if (covar_type_k %in% terrain_class){
+            covar_raster_calc_m <- CalculateTerrainMetric(elev = covar_raster_k,
+              size = 1, metric = covar_type_k)
+          } else if (covar_type_k %in% extract_class){
+            covar_raster_calc_m <- covar_raster_k
+          }
         } else {
           if (covar_type_k %in% kernel_class){
             covar_matrix_smooth_m <- kernel2dsmooth(covar_matrix_k,
@@ -343,60 +340,6 @@ for (i in seq_along(unique(baea_steps$behavior_behavior))){
   rm(avail_steps_i, used_steps_i, step_type_i_name)
   tic.clearlog()
 }
-
-# This section replaces the terrain raster layers at bandwidth = 0 with the
-# bandwidth = 1 values. Needed to fix issue from procedure above (see note).
-# This section is used to replace the terrain_raster bandwidth = 0, with the
-# bandwidth = 1 values.
-
-ua_data_files <- list.files(ua_data_dir, full.names = TRUE)
-for (i in seq_along(ua_data_files)){
-  ua_data_i <- readRDS(ua_data_files[i])
-  unique(ua_data_i$behavior_behavior)
-  identical(head(ua_data_i$tpi0), head(ua_data_i$tri0),
-    head(ua_data_i$roughness0)) # if TRUE, terrain rasters (bw = 0) are "elev"
-  identical(ua_data_i$tpi0, ua_data_i$tpi30)
-  identical(ua_data_i$tri0, ua_data_i$tri30)
-  identical(ua_data_i$roughness0, ua_data_i$roughness30)
-  # Next step replaces the (bw = 0) with the (bw = 1) values. A simple fix.
-  ua_data_i_out <- ua_data_i %>%
-    mutate(tpi0 = tpi30,
-           tri0 = tri30,
-           roughness0 = roughness30)
-  updated <- all(identical(ua_data_i_out$tpi0, ua_data_i_out$tpi30),
-      identical(ua_data_i_out$tri0, ua_data_i_out$tri30),
-      identical(ua_data_i_out$roughness0, ua_data_i_out$roughness30))
-  if(updated) saveRDS(ua_data_i_out, ua_data_files[i])
-}
-
-# This section replaces the "x_dist" field names to "dist_x" because it was
-# easier to use them in that format duing the optimization procedure
-
-ua_data_files <- list.files(ua_data_dir, full.names = TRUE)
-for (i in seq_along(ua_data_files)){
-  ua_data_i <- readRDS(ua_data_files[i])
-  unique(ua_data_i$behavior_behavior)
-  # Next step replaces the column names. Another simple fix.
-  colnames(ua_data_i) <- colnames(ua_data_i) %>%
-    str_replace_all("developed_dist0", "dist_developed0") %>%
-    str_replace_all("hydro_dist0", "dist_hydro0") %>%
-    str_replace_all("road_dist0", "dist_road0") %>%
-    str_replace_all("turbine_dist0", "dist_turbine0")
-  if(updated) saveRDS(ua_data_i_out, ua_data_files[i])
-}
-
-# End of section to fix the terrain bandwidths
-
-# Check Timings
-tictoc_df <- tictoc_cruise_cruise
-tictoc_df_sum <- tictoc_df %>%
-  group_by(X2, X3) %>%
-  filter(!is.na(X2)) %>%
-  summarize(mean_time = mean(as.numeric(str_extract(X5, "[0-9.]+")),
-    na.rm = TRUE)) %>%
-  mutate(mean_time = as.integer(mean_time)) %>%
-  ungroup()
-
 
 ### ------------------------------------------------------------------------ ###
 ############################### OLD CODE #######################################

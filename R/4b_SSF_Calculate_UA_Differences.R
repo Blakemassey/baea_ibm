@@ -18,13 +18,26 @@ ua_steps_org <- list.files(path = file.path(ua_data_dir),
   mutate(behavior_behavior = factor(behavior_behavior)) %>%
   dplyr::select(behavior_behavior, step_id, case, matches("[0-9]"))
 
+ua_steps <- ua_steps_org
+
+# Rename distance metric columns
+colnames(ua_steps) <- colnames(ua_steps) %>%
+  str_replace_all("developed_dist0", "dist_developed0") %>%
+  str_replace_all("hydro_dist0", "dist_hydro0") %>%
+  str_replace_all("road_dist0", "dist_road0") %>%
+  str_replace_all("turbine_dist0", "dist_turbine0")
+
+# Limits the dist_turbine to 20km
+ua_steps_dist <- ua_steps %>%
+  mutate(dist_turbine0 = if_else(dist_turbine0 < 20000, dist_turbine0, 20000))
+
 # Find rows with missing data
-ua_steps_na <- ua_steps_org %>%
+ua_steps_na <- ua_steps_dist %>%
   filter_all(any_vars(is.na(.))) %>%
   select(behavior_behavior, step_id)
 
 # Remove step_id pairs where any data is missing
-ua_steps_all <- ua_steps_org %>% anti_join(., ua_steps_na,
+ua_steps_all <- ua_steps_dist %>% anti_join(., ua_steps_na,
   by = c('behavior_behavior', 'step_id'))
 
 # Check for behavior, step_id, case columns and covariates columns
@@ -40,6 +53,27 @@ ua_steps_diff <- ua_steps_all %>%
   ungroup() %>%
   filter(case == 1) %>%
   select(-c(step_id))
+
+square <- function(x) {
+  out <- x^2
+  return(out)
+}
+
+ua_steps_squared_diff <- ua_steps_all %>%
+  dplyr::select(behavior_behavior, step_id, case, developed0:developed30) %>%
+  #group_by(behavior_behavior) %>%
+  slice(1:100) %>%
+  arrange(behavior_behavior, step_id, case) %>%
+  ungroup() %>%
+  mutate(across(matches("[0-9]"), square, .names = "add1_{col}")) %>%
+  #filter(case == 1) %>%
+  select(-c(step_id)) %>%
+  head
+
+ames_data %>%
+  group_by(neighborhood) %>%
+  summarize(across(where(is.numeric), mean, .names = "mean_{col}")) %>%
+  head()
 
 # Check size (>100 Mb is too large for GitHub)
 format(object.size(ua_steps_diff), units = 'MB')

@@ -11,12 +11,12 @@ wbt_version() # check WhiteboxTools version
 rasterOptions(maxmem = Inf, progress = "text", timer = TRUE,
   memfrac = .75)
 
+# Directory of fits
+mod_fit_dir = "Output/Analysis/SSF/Models"
+
 ############################ IMPORT RASTERS ####################################
 
 ## Get SSF FITS ----------------------------------------------------------------
-
-# Directory of fits
-mod_fit_dir = "Output/Analysis/SSF/Models"
 
 best_ssf_fits_org <- readRDS(file.path(mod_fit_dir, "model_fits_compiled_best",
   "models_compiled_best.rds"))
@@ -277,10 +277,10 @@ hydro_dist_file <- file.path(input_dir, "hydro_dist_30mc.tif")
 turbine_dist_file <- file.path(input_dir, "turbine_dist_30mc.tif")
 road_dist_file <- file.path(input_dir, "road_dist_30mc.tif")
 
-developed_dist_out_file <- file.path(covars_full_dir, "developed_dist0.tif")
-hydro_dist_out_file <- file.path(covars_full_dir, "hydro_dist0.tif")
-turbine_dist_out_file <- file.path(covars_full_dir, "turbine_dist0.tif")
-road_dist_out_file <- file.path(covars_full_dir, "road_dist0.tif")
+developed_dist_out_file <- file.path(covars_full_dir, "dist_developed0.tif")
+hydro_dist_out_file <- file.path(covars_full_dir, "dist_hydro0.tif")
+turbine_dist_out_file <- file.path(covars_full_dir, "dist_turbine0.tif")
+road_dist_out_file <- file.path(covars_full_dir, "dist_road0.tif")
 
 # Change turbine dist raster cells with NA to 60000 (max dist calculated)
 turbine_dist_org <- raster(turbine_dist_file)

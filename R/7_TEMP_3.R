@@ -2,20 +2,16 @@
 
 ########################### LOAD PACKAGES AND DATA  ############################
 # Load libraries, scripts, and input parameters
-pacman::p_load(AICcmodavg, plyr, dplyr, future, furrr, optimx, ggplot2,
-  ggthemes, glmulti, lubridate, optimx, purrr, reproducible, rgenoud, stringr,
-  summarytools, survival, surveybootstrap, tibble, tictoc, tidyr)
+pacman::p_load(AICcmodavg, tidyverse, ggthemes, glmulti, lubridate, optimx,
+  purrr, reproducible, summarytools, survival, surveybootstrap)
 library(baear, gisr)
 
 # Output Directory
 mod_fit_dir = "Output/Analysis/SSF/Models"
 
-# Source Data Directory
-ua_data_dir <- "Output/Analysis/SSF/UA_Data"
-
 # Find all of the step_type folders in mod_fit_dir
 step_types <- list.dirs(file.path(mod_fit_dir, "model_fits"),
-  full.names = FALSE, recursive = FALSE)
+  full.names = FALSE, recursive = FALSE)[c(3,6,10,14)]#[c(2,5,13)]
 
 ################### COMPILE MODELS FOR EACH STEP TYPE ##########################
 
@@ -31,9 +27,9 @@ for (i in seq_along(step_types)) {
     as_tibble(.)
   print(paste0("Models evaluated: n = ", nrow(ssf_fits_step_type_i)))
   compiled_ssf_fits_step_type_i <- ssf_fits_step_type_i  %>%
-    group_by(model_chr) %>% # Precaution in case duplicate models exist in data
-    slice(which.min(fit_aicc)) %>%
-    ungroup() %>%
+    #group_by(covar_matrix) %>% # Precaution in case duplicate models exist in data
+    #slice(which.min(fit_aicc)) %>%
+    #ungroup() %>%
     arrange(fit_aicc) %>%
     filter(!is.na(fit_aicc))
   print(paste0("Models with fits: n = ", nrow(compiled_ssf_fits_step_type_i)))
@@ -43,10 +39,10 @@ for (i in seq_along(step_types)) {
 }
 rm(step_type_i, ssf_fits_step_type_i, compiled_ssf_fits_step_type_i)
 
-################ COMPILE BEST FIT MODELS FOR EACH STEP TYPE  ###################
+####### COMPILE TOP 10 AND BEST FIT MODELS FOR EACH STEP TYPE  #################
 
-# Find the best fit models for each step_type
-model_fits_compiled <- list.files(path = file.path(mod_fit_dir,
+# Find the top 10 fit models for each step_type
+model_fits_compiled_top_10 <- list.files(path = file.path(mod_fit_dir,
     "model_fits_compiled"), pattern = "^ssf_fits_compiled_*")  %>%
   map(~ readRDS(file.path(mod_fit_dir, "model_fits_compiled", .))) %>%
   reduce(bind_rows) %>%
@@ -57,23 +53,21 @@ model_fits_compiled <- list.files(path = file.path(mod_fit_dir,
   ungroup(.) %>%
   arrange(step_type)
 
-saveRDS(model_fits_compiled_refit %>% dplyr::select(-c(clogit_fit)),
-  file.path("Output/Analysis/SSF/Models", "model_fits_compiled_refit",
-  "model_fits_compiled_refit.rds"))
+saveRDS(model_fits_compiled_top_10, file.path(mod_fit_dir,
+  "model_fits_compiled_best", "model_fits_compiled_top_10.rds"))
 
-########### FIND, REFIT, AND SAVE BEST FIT MODEL FOR EACH STEP TYPE ############
-
-# Find the best fit models for each step_type
-model_fits_compiled_refit_best <- model_fits_compiled_refit %>%
+# Find the top models for each step_type
+model_fits_compiled_best <- model_fits_compiled_top_10 %>%
   group_by(step_type) %>%
   arrange(fit_aicc) %>%
   slice(which.min(fit_aicc)) %>%
   ungroup(.) %>%
   arrange(step_type)
 
-saveRDS(model_fits_compiled_refit_best, file.path(mod_fit_dir,
-  "model_fits_compiled_refit_best",
-  "model_fits_compiled_refit_best.rds"))
+model_fits_compiled_best %>% pluck("model_full")
+
+saveRDS(model_fits_compiled_best, file.path(mod_fit_dir,
+  "model_fits_compiled_best", "model_fits_compiled_best.rds"))
 
 ### ------------------------------------------------------------------------ ###
 ############################### OLD CODE #######################################

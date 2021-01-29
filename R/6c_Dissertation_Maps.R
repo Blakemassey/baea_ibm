@@ -26,9 +26,9 @@ base <- raster(file.path("C:/ArcGIS/Data/BlankRaster/maine_30mc.tif"))
 baea_dir <- "C:/Users/blake/OneDrive/Work/R/Projects/baea_ibm/Data/BAEA"
 nests_dir <- file.path("C:/Users/blake/OneDrive/Work/R/Projects/baea_ibm",
   "Data/Nests/Nests_rds")
-turbine_dir <- file.path("C:/ArcGIS/Data/R_Input/BAEA")
+ssf_raster_dir = "C:/ArcGIS/Data/R_Input/BAEA/SSF_Rasters"
 tex_dir <- "C:/Users/Blake/OneDrive/Work/LaTeX/BMassey_Dissertation"
-
+turbine_dir <- file.path("C:/ArcGIS/Data/R_Input/BAEA")
 wind_dir <- file.path("C:/Users/blake/OneDrive/Work/R/Projects/baea_ibm",
   "Data/Wind")
 maps_dir <- "C:/Users/blake/OneDrive/Work/R/Projects/baea_ibm/Products/Maps"
@@ -328,6 +328,7 @@ tmap_save(tm = con_nest_map, filename = file.path(tex_dir, "Figures/Ch2",
 
 #### ------------------------- Maine By Step_Type Maps -------------------------
 
+ssf_prob_dir <- file.path(ssf_raster_dir, "Step_Types_Prob")
 ssf_prob_files <- list.files(ssf_prob_dir, pattern = "\\.tif", full.names =TRUE)
 ssf_tmap_list <- vector(mode = "list", length = length(ssf_prob_files))
 

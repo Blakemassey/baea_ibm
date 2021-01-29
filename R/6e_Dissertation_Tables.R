@@ -1,7 +1,6 @@
 library(pacman)
 p_load(DT, lubridate, tibble, tidyverse, ggplot2, readr, xtable)
 suppressMessages(extrafont::loadfonts(device="win"))
-options(stringsAsFactors = FALSE)
 
 pkg_dir <- "C:/Users/Blake/OneDrive/Work/R/Projects/multiscale_optim"
 tex_dir <- "C:/Users/Blake/OneDrive/Work/LaTeX/BMassey_Dissertation"
@@ -339,7 +338,7 @@ for (i in unique(model_fits_compiled_refit_df$step_type_cap)){
 ## SSF Models Compiled Best ----------------------------------------------------
 
 model_fits_best_org <- readRDS(file.path("Output/Analysis/SSF/Models",
-  "model_fits_compiled_refit_best", "model_fits_compiled_refit_best.rds"))
+  "model_fits_compiled_refit_best", "models_compiled_best.rds"))
 
 model_fits_best <- model_fits_best_org %>%
   mutate(start_behavior = word(step_type, 1, sep = "_")) %>%
