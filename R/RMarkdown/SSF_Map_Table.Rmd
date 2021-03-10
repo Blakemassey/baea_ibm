@@ -5,6 +5,7 @@ params:
   map_file: NA
   covar_table: NA
   model_table: NA
+  nest_map_files: NA
 header-includes:
 - \usepackage{xltabular}
 - \usepackage{booktabs}
@@ -21,14 +22,8 @@ options(xtable.include.rownames = FALSE)
 map_file <- params$map_file
 covar_table <- params$covar_table
 model_table <- params$model_table
+nest_map_files <- params$nest_map_files
 ```
-
-```{r}
-knitr::include_graphics(map_file)
-#hline.after = rep(c(1:nrow(df)),2)# repeating horizontal lines in xtable
-```
-
-\newpage
 
 ```{r results = "asis"}
 covar_xtable <- xtable(covar_table)
@@ -46,8 +41,13 @@ print(covar_xtable_final,
   booktabs = TRUE,
   size = "\\fontsize{11pt}{12pt}\\selectfont",
   type = "latex",
+  comment = FALSE,
   print.results = TRUE)
+```
 
+\newpage
+
+```{r results = "asis"}
 model_xtable <- xtable(model_table)
 hline <- (which(str_detect(model_xtable$`Step Type`, "[:alpha:]"))-1)[-1]
 htype <- c(rep("\\midrule ", times = length(hline)))
@@ -61,6 +61,20 @@ print(model_xtable,
   booktabs = TRUE,
   size = "\\fontsize{11pt}{12pt}\\selectfont",
   type = "latex",
+  comment = FALSE,
   print.results = TRUE)
 
+```
+
+\newpage
+
+```{r}
+knitr::include_graphics(map_file)
+#hline.after = rep(c(1:nrow(df)),2)# repeating horizontal lines in xtable
+```
+
+\newpage
+
+```{r}
+knitr::include_graphics(nest_map_files)
 ```
