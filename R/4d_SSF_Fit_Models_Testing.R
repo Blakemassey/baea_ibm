@@ -1,7 +1,7 @@
 ###################### SSF_Model_Fit_Testing ###################################
 
 ########################### LOAD PACKAGES AND DATA  ############################
-# Load libraries, scripts, and input parameters
+# Load packages, scripts, and input parameters
 pacman::p_load(AICcmodavg, arrangements, plyr, dplyr, future, furrr, optimx,
   ggplot2, lubridate, optimx, purrr, raster, rgenoud, reproducible, sf, stars,
   stringr, survival, tibble, tictoc, tidyr, tmap, tmaptools, viridis,
@@ -77,7 +77,7 @@ wgs84n19 <- CRS("+init=epsg:32619") # WGS84 UTM 19N
 
 ## Set run parameters ----------------------------------------------------------
 
-step_type_name = "sr"
+step_type_name = "sc"
 
 step_types_df <- tribble(
    ~step_type_full_name,  ~step_type, ~step_type_index,
@@ -88,7 +88,7 @@ step_types_df <- tribble(
   "air -> perch",         "ap",  c(3,6),
   "air -> roost",         "ar",  c(7),
   "stationary -> perch",  "sp",  c(10,14,17),
-  "stationary -> roost",  "sr",  c(11,15)
+  "stationary -> roost",  "sr",  c(15) # c(11,15)
 )
 
 step_type_index <- step_types_df %>%
@@ -113,16 +113,22 @@ covar_matrix_af <- tribble(
   "dist_turbine",   TRUE, FALSE, NA, NA, NA, FALSE
 )
 
-covar_matrix_sc <- tribble(
+covar_matrix_sc_STABLE <- tribble(
   ~covar, ~fixed, ~scale, ~scale_min, ~scale_max, ~scale_start, ~poly2,
-#  "forest",         FALSE, TRUE, 1, 100, 50, FALSE,# Removed 2021-03-07
-#  "open_water",     FALSE, TRUE, 1, 100, 50, FALSE, # Removed 2021-03-07
-#  "eastness",       FALSE, TRUE, 1, 100, 50, FALSE, # Removed 2021-03-07
-#  "northness",      FALSE, TRUE, 1, 100, 50, FALSE, # Removed 2021-03-07
   "forest",         FALSE, TRUE, 1, 100, 50, TRUE, # Added 2021-03-07
   "open_water",     FALSE, TRUE, 1, 100, 50, TRUE, # Added 2021-03-07
   "dist_hydro",     TRUE, FALSE, NA, NA, NA, FALSE,
   "dist_turbine",   TRUE, FALSE, NA, NA, NA, FALSE
+)
+
+covar_matrix_sc <- tribble(
+  ~covar, ~fixed, ~scale, ~scale_min, ~scale_max, ~scale_start, ~poly2,
+  "developed",      FALSE, TRUE, 1, 100, 50, TRUE,
+#  "pasture",        FALSE, TRUE, 1, 100, 50, FALSE,
+  "forest",         FALSE, TRUE, 1, 100, 50, TRUE, # KEEP
+  "open_water",     FALSE, TRUE, 1, 100, 50, TRUE, # KEEP
+  "dist_hydro",     TRUE, FALSE, NA, NA, NA, FALSE, # KEEP
+  "dist_turbine",   TRUE, FALSE, NA, NA, NA, FALSE  # KEEP
 )
 
 covar_matrix_sf <- tribble(
@@ -159,15 +165,9 @@ covar_matrix_ar <- tribble(
 
 covar_matrix_sr <- tribble(
   ~covar, ~fixed, ~scale, ~scale_min, ~scale_max, ~scale_start, ~poly2,
-  "eastness",       FALSE, TRUE, 1, 100, 50, FALSE,
-  "northness",      FALSE, TRUE, 1, 100, 50, FALSE,  # Added 2021-03-07
-  "forest",         FALSE, TRUE, 1, 100, 50, TRUE,   # Added 2021-03-09
-#  "open_water",     FALSE, TRUE, 1, 100, 50, FALSE, # Removed 2021-03-07
-  "open_water",     FALSE, TRUE, 1, 100, 50, TRUE,   # Added 2021-03-07
-#  "tri",            FALSE, TRUE, 1,  50, 25, FALSE, # Removed 2021-03-09
-#  "tri",            FALSE, TRUE, 1,  50, 25, TRUE,  # Added and Removed 2021-03-09
-  "tpi",            FALSE, TRUE, 1,  50, 25, TRUE,   # Added 2021-03-09
-  "wetland",        FALSE, TRUE, 1, 100, 50, FALSE,
+  "northness",      FALSE, TRUE, 1, 100, 50, FALSE,
+  "open_water",     FALSE, TRUE, 1, 100, 50, TRUE,
+  "tri",            FALSE, TRUE, 1,  50, 25, FALSE,
   "dist_hydro",     TRUE, FALSE, NA, NA, NA, FALSE
 )
 
@@ -336,9 +336,11 @@ if(fit_models){
       files_in_dir <- list.files(file.path(mod_fit_dir, step_type),
         pattern = "\\.rds$")
       writeLines(paste0("Models already in directory: ", files_in_dir))
-      for (k in files_in_dir){
-        file.move(file.path(mod_fit_dir, step_type, k), file.path(mod_fit_dir,
-          step_type, "Archive"))
+      for (k in seq_len(length(files_in_dir))){
+        file_k <- files_in_dir[k]
+        file.move(file.path(mod_fit_dir, step_type, file_k),
+          file.path(mod_fit_dir, step_type, "Archive"), overwrite = TRUE)
+        Sys.sleep(2)
       }
     }
     start <- str_split(step_type, "_") %>% unlist(.) %>% pluck(1)
