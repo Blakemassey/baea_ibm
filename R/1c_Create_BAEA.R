@@ -2,6 +2,7 @@
 ### direction, distance, angle, elevation, etc. to the "deployed" dataset
 ### create the "BAEA" dataset.
 
+# Load packages
 library(gisr)
 library(baear)
 

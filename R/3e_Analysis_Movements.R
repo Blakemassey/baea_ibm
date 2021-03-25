@@ -2,6 +2,8 @@
 # Script for analyzing baea movement patterns, fitting parameters, and plotting
 # step, turn angle, and redististribution kernels
 #------------------------------------------------------------------------------#
+
+## Load Packages, Scripts, Parameters, Etc. ------------------------------------
 pacman::p_load(CircStats, circular, devtools, dplyr, fitdistrplus, ggplot2,
   ggthemes, gridExtra, lubridate, movMF, raster, scales, stringr, zoo)
 pacman::p_load(baear, gisr, ibmr)

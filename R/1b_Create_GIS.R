@@ -1,6 +1,8 @@
 ## This script is for importing GIS datalayers and converting them to the
 ## proper coordinate reference system (NAD83 UTM N19), extent, and resolution.
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+
+# Load packages
 pacman::p_load(dplyr, fasterize, foreign, mapview, plyr, plotKML, raster,
   readtext, rgdal, sf, sp, stringr, whitebox)
 whitebox::wbt_init() # required for WhiteboxTools to work

@@ -88,7 +88,7 @@ step_types_df <- tribble(
   "air -> perch",         "ap",  c(3,6),
   "air -> roost",         "ar",  c(7),
   "stationary -> perch",  "sp",  c(10,14,17),
-  "stationary -> roost",  "sr",  c(15) # c(11,15)
+  "stationary -> roost",  "sr",  c(11,15)
 )
 
 step_type_index <- step_types_df %>%
@@ -98,7 +98,6 @@ step_type_index <- step_types_df %>%
 covar_matrix_ac <- tribble(
   ~covar, ~fixed, ~scale, ~scale_min, ~scale_max, ~scale_start, ~poly2,
   "eastness",       FALSE, TRUE, 1, 100, 50, FALSE,
-  "open_water",     FALSE, TRUE, 1, 100, 50,  TRUE, # ADDED 2021-03-03
   "roughness",      FALSE, TRUE, 1,  50, 25, FALSE,
   "dist_hydro",     TRUE, FALSE, NA, NA, NA, FALSE,
   "dist_turbine",   TRUE, FALSE, NA, NA, NA, FALSE
@@ -107,7 +106,6 @@ covar_matrix_ac <- tribble(
 covar_matrix_af <- tribble(
   ~covar, ~fixed, ~scale, ~scale_min, ~scale_max, ~scale_start, ~poly2,
   "eastness",       FALSE, TRUE, 1, 100, 50, FALSE,
-  "open_water",     FALSE, TRUE, 1, 100, 50,  TRUE, # ADDED 2021-03-03
   "roughness",      FALSE, TRUE, 1,  50, 25, FALSE,
   "dist_hydro",     TRUE, FALSE, NA, NA, NA, FALSE,
   "dist_turbine",   TRUE, FALSE, NA, NA, NA, FALSE
@@ -123,10 +121,9 @@ covar_matrix_sc_STABLE <- tribble(
 
 covar_matrix_sc <- tribble(
   ~covar, ~fixed, ~scale, ~scale_min, ~scale_max, ~scale_start, ~poly2,
-  "developed",      FALSE, TRUE, 1, 100, 50, TRUE,
-#  "pasture",        FALSE, TRUE, 1, 100, 50, FALSE,
   "forest",         FALSE, TRUE, 1, 100, 50, TRUE, # KEEP
   "open_water",     FALSE, TRUE, 1, 100, 50, TRUE, # KEEP
+  "wetland",        FALSE, TRUE, 1, 100, 50, TRUE,
   "dist_hydro",     TRUE, FALSE, NA, NA, NA, FALSE, # KEEP
   "dist_turbine",   TRUE, FALSE, NA, NA, NA, FALSE  # KEEP
 )

@@ -1,5 +1,5 @@
 ################## ModelFit_SSF_Calculate_Covariates ###########################
-# Load libraries, scripts, and input parameters --------------------------------
+# Load packages, scripts, and input parameters ---------------------------------
 pacman::p_load(plyr, dplyr, forcats, ggplot2, ggthemes, gridExtra, magick,
   patchwork, purrr, stringr, tidyr, tibble)
 pacman::p_load(baear, gisr, ibmr)

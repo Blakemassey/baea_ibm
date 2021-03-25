@@ -2,7 +2,7 @@
 # This script is identifying behavior categories of GPS location data.
 #------------------------------------------------------------------------------#
 
-# Load libraries, scripts, and input parameters
+## Load Packages, Scripts, Parameters, Etc. ------------------------------------
 pacman::p_load(devtools, dplyr, fitdistrplus, ggplot2, ggthemes, lubridate,
   raster, zoo)
 options(stringsAsFactors=FALSE)

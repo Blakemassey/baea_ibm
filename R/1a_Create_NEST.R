@@ -8,17 +8,15 @@
 # files as IFW_Nests.gbd/IFW_All, and Study_Nests.gbd/Study_All, respectively.
 # This maintains the relationship between the .rds files and geodatabases.
 #------------------------------------------------------------------------------#
-suppressPackageStartupMessages(require(plyr))
-suppressPackageStartupMessages(require(dplyr))
-suppressPackageStartupMessages(require(foreign))
-suppressPackageStartupMessages(require(rgdal))
-suppressPackageStartupMessages(require(sp))
-suppressPackageStartupMessages(require(stringr))
+
+## Load Packages ---------------------------------------------------------------
+pacman::p_load(tidyverse, foriegn, rgdal, sp)
 library(baear)
 library(gisr)
 options(stringsAsFactors = FALSE)
 options(row.names = FALSE)
 
+## Directories -----------------------------------------------------------------
 csv_output_dir = "Data/Nests/Nests_csv"
 kml_output_dir = "Data/Nests/Nests_kml"
 rds_output_dir = "Data/Nests/Nests_rds"

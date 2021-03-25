@@ -1,5 +1,5 @@
-library(pacman)
-p_load(DT, lubridate, tibble, tidyverse, ggplot2, readr, xtable)
+# Load Packages
+pacman::p_load(DT, lubridate, tibble, tidyverse, ggplot2, readr, xtable)
 suppressMessages(extrafont::loadfonts(device="win"))
 
 pkg_dir <- "C:/Users/Blake/OneDrive/Work/R/Projects/multiscale_optim"
@@ -338,25 +338,50 @@ for (i in unique(model_fits_compiled_refit_df$step_type_cap)){
 ## SSF Models Compiled Best ----------------------------------------------------
 
 model_fits_best_org <- readRDS(file.path("Output/Analysis/SSF/Models",
-  "model_fits_compiled_refit_best", "models_compiled_best.rds"))
+  "model_fits_best", "model_fits_best.rds"))
+
+step_types_df <- tribble(
+   ~step_type_group_name,  ~step_type_group, ~start_behavior, ~end_behavior,
+  "air to Cruise",        "ac", "cruise",  "cruise",
+  "air to Cruise",        "ac", "flight",  "cruise",
+  "air to Flight",        "af", "cruise",  "flight",
+  "air to Flight",        "af", "flight",  "flight",
+  "stationary to Cruise", "sc", "nest",    "cruise",
+  "stationary to Cruise", "sc", "perch",   "cruise",
+  "stationary to Flight", "sf", "nest",    "flight",
+  "stationary to Flight", "sf", "perch",   "flight",
+  "stationary to Flight", "sf", "roost",   "flight",
+  "air to Perch",         "ap",  "cruise", "perch",
+  "air to Perch",         "ap",  "flight", "perch",
+  "air to Roost",         "ar",  "flight", "roost",
+  "stationary to Perch",  "sp",  "nest",   "perch",
+  "stationary to Perch",  "sp",  "perch",  "perch",
+  "stationary to Perch",  "sp",  "roost",  "perch",
+  "stationary to Roost",  "sr",  "nest",   "roost",
+  "stationary to Roost",  "sr",  "perch",  "roost"
+)
 
 model_fits_best <- model_fits_best_org %>%
   mutate(start_behavior = word(step_type, 1, sep = "_")) %>%
-  mutate(end_behavior = word(step_type, 2, sep = "_"))
+  mutate(end_behavior = word(step_type, 2, sep = "_")) %>%
+  left_join(., step_types_df, by = c("start_behavior", "end_behavior"))
 
-start_step_types <- model_fits_best %>% pull(start_behavior) %>% unique(.)
+step_type_groups <- model_fits_best %>% pull(step_type_group_name) %>% unique(.)
 
-i <- start_step_types[1]; j <- 1  # for testing
-for (i in start_step_types){
-  model_fits_best_i <- model_fits_best %>% filter(start_behavior == i)
+i <- step_type_groups[2]; j <- 1  # for testing
+for (i in step_type_groups){
+  i_underscore <- str_replace_all(str_to_title(i), " ", "_")
+  model_fits_best_i <- model_fits_best %>% filter(step_type_group_name == i)
   xtable_list <- vector(mode = "list", length = nrow(model_fits_best_i))
   for (j in seq_len(nrow(model_fits_best_i))){
-    fit_ij <- model_fits_best_i %>% slice(j) %>% pull(clogit_fit) %>% pluck(1)
+    fit_terms <- model_fits_best_i %>% slice(j) %>%
+      pull(fit_covars_clean) %>% pluck(1)
+    xtable_fit_ij <- model_fits_best_i %>% slice(j) %>%
+      pull(clogit_fit_tbl) %>% pluck(1)  %>%
+      mutate(term = fit_terms) %>%
+      mutate(step_type = NA_character_)
     start_ij <- model_fits_best_i %>% slice(j) %>% pull(start_behavior)
     end_ij <- model_fits_best_i %>% slice(j) %>% pull(end_behavior)
-    xtable_fit_ij <- as.data.frame(xtable(fit_ij)) %>%
-      rownames_to_column(., var = "term") %>%
-      mutate(step_type = NA)
     xtable_fit_ij[1, "step_type"] <- paste(str_to_title(start_ij),
       "$\\rightarrow$", str_to_title(end_ij))
     xtable_list[[j]] <- xtable_fit_ij
@@ -366,9 +391,10 @@ for (i in start_step_types){
     mutate(term = str_replace_all(term, "_", " ")) %>%
     mutate(term = str_replace_all(str_to_title(term),
       "(?<=[:alpha:]) (?=[:alpha:])", "")) %>%
-    mutate(term = str_replace_all(term, "DevelopedDist0", "DevelopedDist"))%>%
-    mutate(term = str_replace_all(term, "HydroDist0", "HydroDist")) %>%
-    mutate(term = str_replace_all(term, "TurbineDist0", "TurbineDist")) %>%
+    mutate(term = str_replace_all(term, "DistDeveloped0", "DistDeveloped"))%>%
+    mutate(term = str_replace_all(term, "DistHydro0", "DistHydro")) %>%
+    mutate(term = str_replace_all(term, "DistTurbine0", "DistTurbine")) %>%
+    mutate(term = str_replace_all(term, "DistRoad0", "DistRoad")) %>%
     rename("Step Type" = step_type,
            "Term" = term,
            "Coefficient " = coef,
@@ -394,7 +420,8 @@ for (i in start_step_types){
 
   model_fits_best_tex <- print(model_fits_best_xtable,
     add.to.row = list(pos = as.list(hline), command = htype),
-    floating = FALSE, width = "\\textwidth",
+    floating = FALSE,
+    width = "\\textwidth",
     tabular.environment = "xltabular",
     caption.placement = "top",
     booktabs = TRUE,
@@ -406,11 +433,9 @@ for (i in start_step_types){
     print.results = FALSE)
 
   caption_label_tex <- paste0("\\\\caption[Step-selection Model Fits for ",
-    "Step-types with ", str_to_title(i) ," Start Behavior]\n",
-    "{\\\\label{tab:SSF_Fits_Terms_", str_to_title(i),
-    "} Step-selection model terms and metrics for ",
-    "step-types starting with ", str_to_title(i),
-    " behavior for Bald Eagles in Maine.}\\\\\\\\ \n ")
+    str_to_title(i), "]\n", "{\\\\label{tab:SSF_Fits_Terms_", i_underscore,
+    "} Step-selection model terms and metrics for step-types with ",
+    i, " behavior for Bald Eagles in Maine.}\\\\\\\\ \n ")
 
   # Make column header ("Step Type") horizontal, italicize 'p' in p-value
   model_fits_best_tex_update <- model_fits_best_tex %>%
@@ -432,7 +457,7 @@ for (i in start_step_types){
       "\\\\endlastfoot\n \\\\\\hline"))
   write_lines(model_fits_best_tex_final, file = file.path("C:/Users/blake",
     "OneDrive/Work/LaTeX/BMassey_Dissertation/Tables/Ch2",
-    paste0("SSF_Fits_Terms_", str_to_title(i), ".tex")))
+    paste0("SSF_Fits_Terms_", i_underscore, ".tex")))
 }
 
 # ---------------------------------------------------------------------------- #

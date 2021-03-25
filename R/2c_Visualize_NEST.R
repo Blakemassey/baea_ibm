@@ -2,7 +2,8 @@
 ### This script is for importing baea data (.csv) and nest data (.RData) to
 ### create raster layers of home dist and con dist
 --------------------------------------------------------------------------------
-source('C:/Work/R/Functions/all.R')
+
+## Set CRS ---------------------------------------------------------------------
 wgs84n19 <- CRS("+init=epsg:32619") # WGS84 UTM 19N
 
 ############################  IMPORT FILES  ####################################

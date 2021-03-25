@@ -3,11 +3,11 @@
 ### create raster layers of home dist and con dist
 ### ------------------------------------------------------------------------ ###
 
-## Import Packages and Scripts -------------------------------------------------
+## Load Packages ---------------------------------------------------------------
+pacman::p_load(lubridate)
 library(baear)
 library(gisr)
 library(dplyr)
-library(lubridate)
 
 ## Import Deployed BAEA Data ---------------------------------------------------
 load(file="Data/BAEA/baea.rds")

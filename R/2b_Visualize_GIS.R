@@ -2,17 +2,10 @@
 ### proper coordinate reference system (NAD83 UTM N19), extent, and resolution.
 ###-----------------------------------------------------------------------------
 
-## Import libraries ------------------------------------------------------------
-suppressPackageStartupMessages(library(foreign))
-suppressPackageStartupMessages(library(ggplot2))
-suppressPackageStartupMessages(library(ggthemes))
-suppressPackageStartupMessages(library(plyr))
-suppressPackageStartupMessages(library(dplyr))
-suppressPackageStartupMessages(library(plotKML))
-suppressPackageStartupMessages(library(raster))
-suppressPackageStartupMessages(library(rasterVis))
-suppressPackageStartupMessages(library(rgdal))
-options(stringsAsFactors=FALSE) # CRITICAL!!! Otherwise, map colors are wrong.
+## Load Packages ---------------------------------------------------------------
+pacman::p_load(foreign, ggplot2, ggthemes, plyr, dplyr, plotKML, raster,
+  rasterVis, rgdal)
+options(stringsAsFactors = FALSE) # CRITICAL!!! Otherwise, map colors are wrong.
 library(gisr)
 library(baear)
 

@@ -1,7 +1,7 @@
 ###################### ModelFit_SSF_Summarize ##################################
 
 ########################### LOAD PACKAGES AND DATA  ############################
-# Load libraries, scripts, and input parameters
+# Load packages, scripts, and input parameters
 pacman::p_load(AICcmodavg, plyr, dplyr, future, furrr, optimx, ggplot2,
   ggthemes, glmulti, lubridate, optimx, purrr, reproducible, rgenoud, stringr,
   summarytools, survival, surveybootstrap, tibble, tictoc, tidyr)
@@ -17,7 +17,7 @@ ua_data_dir <- "Output/Analysis/SSF/UA_Data"
 step_types <- list.dirs(file.path(mod_fit_dir, "model_fits"),
   full.names = FALSE, recursive = FALSE)
 
-############################### FUNCTIONS #####################################
+############################### FUNCTIONS ######################################
 
 PastePreds <- function(x, y){
   xy <- c(x[!is.na(x)], y[!is.na(y)])

@@ -1,4 +1,4 @@
-## BAEA Data -------------------------------------------------------------------
+## Load Packages, Scripts, Parameters, Etc. ------------------------------------
 
 pacman::p_load(CircStats, circular, fitdistrplus, ggplot2, ggthemes, momentuHMM,
   lubridate, padr, tidyverse)
@@ -6,6 +6,7 @@ theme_update(plot.title = element_text(hjust = 0.5))
 
 pacman::p_load(baear, gisr, ibmr)
 
+## BAEA Data -------------------------------------------------------------------
 baea_behavior_org <- readRDS(file = "Data/Baea/baea_behavior.rds")
 
 baea_behavior <- baea_behavior_org %>%

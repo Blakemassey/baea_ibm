@@ -4,7 +4,7 @@ digraph G {
   graph [margin = 0, pad = 0, ranksep = 1.9, nodesep = .75,  color = black];
 
   node [shape = plaintext, fontsize = 13; fontname = "Helvetica-Bold"];
-  start01[label = "Starting\nBehavior"]
+  start01[label = "Start\nBehavior"]
   end02[label = "End\nBehavior"]
 
   node [shape = oval, style = "filled",  fontsize = 11;

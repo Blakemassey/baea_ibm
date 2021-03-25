@@ -1,5 +1,8 @@
 ## Create "baea_steps" from baea_movements -------------------------------------
 
+## Load Packages, Scripts, Parameters, Etc. ------------------------------------
+
+## Import BAEA and Movement Data -----------------------------------------------
 baea <- readRDS(file="Data/BAEA/baea.rds")
 baea_movements <- readRDS(file="Data/BAEA/baea_movements.rds")
 

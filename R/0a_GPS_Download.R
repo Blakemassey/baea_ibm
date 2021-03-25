@@ -4,11 +4,11 @@
 # exporting KMLs and Shapefiles.
 #------------------------------------------------------------------------------#
 
-suppressPackageStartupMessages(library(lubridate))
+# Load packages
+pacman::p_load(lubridate, dplyr)
 library(baear)#devtools::reload("C:/Users/blake/OneDrive/Work/R/Packages/baear")
 library(gisr) #devtools::reload("C:/Users/blake/OneDrive/Work/R/Packages/gisr")
 library(ibmr) #devtools::reload("C:/Users/blake/OneDrive/Work/R/Packages/ibmr")
-library(dplyr)
 
 ## Download RECENT Deployed Data -----------------------------------------------
 DownloadCTT(units = "deployed", download = "recent")

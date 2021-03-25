@@ -1,4 +1,5 @@
 ################## ModelFit_SSF_Calculate_Covariates ###########################
+
 # Load libraries, scripts, and input parameters --------------------------------
 pacman::p_load(AICcmodavg, plyr, dplyr, ggplot2, ggthemes, optimx, raster,
   reproducible, rgdal, smoothie, stringr, survival, tictoc) #spatialfil
