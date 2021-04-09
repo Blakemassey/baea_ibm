@@ -87,7 +87,9 @@ ViewProbsNestMap <- function(nest_name,
     tm_basemap("Esri.NatGeoWorldMap") +  #"OpenStreetMap","Stamen.Watercolor"
     tm_shape(step_types_brick, name = "SSF Probability") +
     tm_raster(alpha = opacity, palette = "viridis", legend.reverse = TRUE,
-      n = 20, title = paste0(step_types_arrow, "<br>Probability")) +
+      n = 10,
+      #style = "cont",
+      title = paste0(step_types_arrow, "<br>Probability")) +
     tm_facets(free.scales.raster = FALSE, as.layers = FALSE, ncol = 3) +
     #tm_tiles("Stamen.TonerLabels") +
     tm_shape(nests_sim, name = "Nests") +
@@ -95,6 +97,7 @@ ViewProbsNestMap <- function(nest_name,
     tm_mouse_coordinates()  +
     tm_scale_bar(position=c("left", "bottom")) +
     tm_layout(
+      asp = 2,
      # title = names(ssf_prob_i_mask),
       title.position = c("left", "top"),
       legend.title.size = .75,
@@ -152,7 +155,8 @@ ViewProbNestMap <- function(nest_name,
       palette = "viridis", legend.reverse = TRUE) +
     tm_shape(nests_sim, name = "Nests") +
     tm_dots(col = "red", size = .35) +
-    tm_layout(title = nest_name, # Bug in tmap version keeps title from showing
+    tm_layout(asp = .5,
+      title = nest_name, # Bug in tmap version keeps title from showing
       title.size = 1,
       title.snap.to.legend = FALSE,
       title.position = c("left", "top")) +
@@ -261,10 +265,10 @@ if(!is.na(model_id) && !dir.exists(ssf_prob_model_id_dir)){
     covars_brick <- raster::brick(covars_list)
     rm(covars_list)
     # Generate formula
-    covars_clean_i <- ssf_fits_best %>% slice(i) %>% pluck("covar_fitted", 1) %>%
+    covars_clean_i <- ssf_fits_best %>% slice(i) %>% pluck("covar_fitted", 1)%>%
       pull("covar_clean")
     covars_i <- ifelse(str_detect(covars_clean_i, "\\^2"),
-      paste0("covars_brick[['", str_remove_all(covars_clean_i, "\\^2"), "']]^2"),
+      paste0("covars_brick[['", str_remove_all(covars_clean_i, "\\^2"),"']]^2"),
       paste0("covars_brick[['", covars_clean_i, "']]"))
     coefs_i <- ssf_fits_best %>% slice(i) %>% pluck("covar_fitted", 1) %>%
       pull("coef_signif")
@@ -292,16 +296,16 @@ if(!is.na(model_id) && !dir.exists(ssf_prob_model_id_dir)){
 nest_name <- nests_sim %>% slice(3) %>% pull(name)
 step_types <- ssf_fits_best %>% slice(1:nrow(ssf_fits_best)) %>% pull(step_type)
 
-ViewProbsNestMap(nest_name, step_types, model_id, opacity = .6)
+probs_nest_map <- ViewProbsNestMap(nest_name, step_types, model_id, opacity =.6)
 
 # Plot Single Probability Layer at Nest Map in Viewer --------------------------
 nest_name <- nests_sim %>% slice(1) %>% pull(name)
 step_type <- ssf_fits_best %>% slice(3) %>% pull(step_type)
 
-ViewProbNestMap(nest_name, step_type, model_id, opacity = .6)
+prob_nest_map <- ViewProbNestMap(nest_name, step_type, model_id, opacity = .6)
 
 # Plot Multiple Probability Layers at Nest in Viewer----------------------------
 nest_names <- nests_sim %>% slice(1:4) %>% pull(name)
 step_type <- ssf_fits_best %>% slice(6) %>% pull(step_type)
 
-ViewProbNestsMap(nest_names, step_type, model_id, opacity = .6)
+prob_nests_map <- ViewProbNestsMap(nest_names, step_type, model_id, opacity =.6)

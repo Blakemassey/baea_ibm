@@ -123,7 +123,10 @@ covar_matrix_sc <- tribble(
   ~covar, ~fixed, ~scale, ~scale_min, ~scale_max, ~scale_start, ~poly2,
   "forest",         FALSE, TRUE, 1, 100, 50, TRUE, # KEEP
   "open_water",     FALSE, TRUE, 1, 100, 50, TRUE, # KEEP
-  "wetland",        FALSE, TRUE, 1, 100, 50, TRUE,
+  "wetland",        FALSE, TRUE, 1, 100, 50, FALSE, # GOOD FOR N->C
+  "eastness",       FALSE, TRUE, 1, 100, 50, FALSE, # May work
+  "northness",      FALSE, TRUE, 1, 100, 50, FALSE, # May work
+  "wind_class",     FALSE, TRUE, 1, 100, 50, TRUE,
   "dist_hydro",     TRUE, FALSE, NA, NA, NA, FALSE, # KEEP
   "dist_turbine",   TRUE, FALSE, NA, NA, NA, FALSE  # KEEP
 )

@@ -19,7 +19,7 @@ sim <- readRDS("C:/Work/R/Data/Simulation/sim_20201106.rds")
 
 print(format(object.size(sim), units = "Mb"))
 
-sim_out_file <- "sim_20201106-03.rds"
+sim_out_file <- "sim_20200325-01.rds"
 
 sim_out_dir <- "C:/TEMP"
 sim_id <- tools::file_path_sans_ext(sim_out_file)

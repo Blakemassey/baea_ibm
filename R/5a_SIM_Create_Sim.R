@@ -275,7 +275,7 @@ sim <- NamedList(agents, pars, spatial)
 saveRDS(sim, file ="C:/Work/R/Data/Simulation/sim_20201106-01.rds")
 
 # Recompile sim
-sim <- readRDS(file="C:/Work/R/Data/Simulation/sim_20200823.rds")
+sim <- readRDS(file = "C:/Work/R/Data/Simulation/sim_20200823.rds")
 agents <- sim$agents
 pars <- sim$pars
 spatial <- sim$spatial

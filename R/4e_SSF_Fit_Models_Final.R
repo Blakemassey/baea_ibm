@@ -13,14 +13,13 @@ rasterOptions(maxmem = Inf, progress = "text", timer = TRUE,
   memfrac = .85)
 wbt_version() # check WhiteboxTools version
 
-
 ## Set run parameters ----------------------------------------------------------
 
 model_id <- GetDateTime()
 save_individual_maps <- FALSE
 
 # Groups to update SSF_Raster/Covars_Crop layers (e.g. 1_1.tif)
-step_type_group_updates <- c("ac", "af", "sc", "sf", "ap", "ar", "sp", "sr")[3]
+step_type_group_updates <- c("ac", "af", "sc", "sf", "ap", "ar", "sp", "sr")
 step_type_updates <- tribble(
    ~step_type,  ~step_type_group,
   "cruise_cruise", "ac",
@@ -178,62 +177,63 @@ maine_raster_trim <- raster(maine_raster_trim_file)
 ssf_fits_best_updates <- ssf_fits_best %>%
   filter(step_type %in% step_type_updates)
 
-for (i in 1:nrow(ssf_fits_best_updates)){
-  step_type_i <- ssf_fits_best_updates %>% slice(i) %>% pull(step_type)
-  writeLines(paste0("Creating SSF Layer for: ", step_type_i))
+if(nrow(ssf_fits_best_updates) > 0){
+  for (i in 1:nrow(ssf_fits_best_updates)){
+    step_type_i <- ssf_fits_best_updates %>% slice(i) %>% pull(step_type)
+    writeLines(paste0("Creating SSF Layer for: ", step_type_i))
 
-  covars_i <- ssf_fits_best_updates %>% slice(i) %>% pluck("covar_fitted", 1)%>%
-    pull("covar_clean") %>% str_remove_all("\\^2") %>% unique()
+    covars_i <- ssf_fits_best_updates %>% slice(i) %>% pluck("covar_fitted",
+      1) %>% pull("covar_clean") %>% str_remove_all("\\^2") %>% unique()
 
-  # Create Raster_Brick
-  covars_list <- vector(mode = "list", length = length(covars_i))
-  for (j in seq_along(covars_i)){
-    covars_i_j <- covars_i[j]
-    writeLines(paste0("covariates: ", covars_i_j))
-    raster_file <- file.path(covars_crop_dir, paste0(covars_i_j, ".tif"))
-    covars_list[[j]] <- raster(raster_file)
-    writeLines(paste0(extent(covars_list[[j]])))
+    # Create Raster_Brick
+    covars_list <- vector(mode = "list", length = length(covars_i))
+    for (j in seq_along(covars_i)){
+      covars_i_j <- covars_i[j]
+      writeLines(paste0("covariates: ", covars_i_j))
+      raster_file <- file.path(covars_crop_dir, paste0(covars_i_j, ".tif"))
+      covars_list[[j]] <- raster(raster_file)
+      writeLines(paste0(extent(covars_list[[j]])))
+    }
+    covars_brick <- raster::brick(covars_list)
+    rm(covars_list)
+
+    # Generate formula
+    covars_clean_i <- ssf_fits_best_updates %>% slice(i) %>%
+      pluck("covar_fitted", 1) %>%
+      pull("covar_clean")
+
+    covars_i <- ifelse(str_detect(covars_clean_i, "\\^2"),
+      paste0("covars_brick[['", str_remove_all(covars_clean_i, "\\^2"),"']]^2"),
+      paste0("covars_brick[['", covars_clean_i, "']]"))
+
+    coefs_i <- ssf_fits_best_updates %>% slice(i) %>% pluck("covar_fitted",
+      1) %>% pull("coef_signif")
+
+    # Generate formulas
+    ssf_formula <- paste0("(", paste0(paste0(coefs_i, "*",covars_i),
+      collapse = ") + ("), ")")
+    writeLines(ssf_formula)
+
+    # Create value raster, then crop and mask
+    ssf_value_raster <- eval(parse(text = ssf_formula))
+    #plot(ssf_value_raster, main = step_type_i)
+
+    # Calculate probability
+    ssf_prob_raster <- raster::calc(ssf_value_raster, fun = boot::inv.logit)
+    #plot(ssf_prob_raster, main = step_type_i)
+    #hist(ssf_prob_raster)
+
+    # Write Rasters to output dir
+    step_type_i_numeric <- step_type_i %>% str_replace_all(c("cruise" = "1",
+      "flight" = "2", "nest" = "3", "perch" = "4", "roost" = "5"))
+    writeRaster(ssf_value_raster, file.path(ssf_raster_dir, "Step_Types",
+      step_type_i_numeric), format = "GTiff", overwrite = TRUE)
+    writeRaster(ssf_prob_raster, file.path(ssf_prob_dir, step_type_i_numeric),
+      format = "GTiff", overwrite = TRUE)
+    rm(coefs_i, covars_brick, raster_file, ssf_formula, ssf_value_raster,
+      ssf_prob_raster, step_type_i_numeric)
+    gc()
   }
-  covars_brick <- raster::brick(covars_list)
-  rm(covars_list)
-
-  # Generate formula
-
-  covars_clean_i <- ssf_fits_best_updates %>% slice(i) %>%
-    pluck("covar_fitted", 1) %>%
-    pull("covar_clean")
-
-  covars_i <- ifelse(str_detect(covars_clean_i, "\\^2"),
-    paste0("covars_brick[['", str_remove_all(covars_clean_i, "\\^2"), "']]^2"),
-    paste0("covars_brick[['", covars_clean_i, "']]"))
-
-  coefs_i <- ssf_fits_best_updates %>% slice(i) %>% pluck("covar_fitted", 1) %>%
-    pull("coef_signif")
-
-  # Generate formulas
-  ssf_formula <- paste0("(", paste0(paste0(coefs_i, "*",covars_i),
-    collapse = ") + ("), ")")
-  writeLines(ssf_formula)
-
-  # Create value raster, then crop and mask
-  ssf_value_raster <- eval(parse(text = ssf_formula))
-  #plot(ssf_value_raster, main = step_type_i)
-
-  # Calculate probability
-  ssf_prob_raster <- raster::calc(ssf_value_raster, fun = boot::inv.logit)
-  #plot(ssf_prob_raster, main = step_type_i)
-  #hist(ssf_prob_raster)
-
-  # Write Rasters to output dir
-  step_type_i_numeric <- step_type_i %>% str_replace_all(c("cruise" = "1",
-    "flight" = "2", "nest" = "3", "perch" = "4", "roost" = "5"))
-  writeRaster(ssf_value_raster, file.path(ssf_raster_dir, "Step_Types",
-    step_type_i_numeric), format = "GTiff", overwrite = TRUE)
-  writeRaster(ssf_prob_raster, file.path(ssf_prob_dir, step_type_i_numeric),
-    format = "GTiff", overwrite = TRUE)
-  rm(coefs_i, covars_brick, raster_file, ssf_formula, ssf_value_raster,
-    ssf_prob_raster, step_type_i_numeric)
-  gc()
 }
 
 ######################### GENERATE MAPS FOR MAINE ##############################
@@ -398,9 +398,8 @@ tmap_save(tm = ssf_tmap_arrange, filename =  file.path("C:/TEMP/SSF_Maps/",
   paste0("SSF_Probability_Maps_Overview_", model_id, ".svg")), unit = "in",
   dpi = 300, height = 8, width = 6)
 
-# THIS MAY NOT WORK
-# If it fails, you can convert svg to pdf by opening file in Chrome and
-# printing to PDF
+##### THIS MAY NOT WORK!!!!!!!!
+# If it fails, convert svg to pdf by opening file in Chrome and printing to PDF
 rsvg::rsvg_pdf(file.path("C:/TEMP/SSF_Maps/",
   paste0("SSF_Probability_Maps_Overview_", model_id, ".svg")),
   file.path("C:/TEMP/SSF_Maps/",

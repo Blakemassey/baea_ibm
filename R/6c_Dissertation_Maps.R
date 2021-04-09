@@ -2,12 +2,11 @@
 
 # Load packages
 pacman::p_load(gisr, baear, cartography, dplyr, fasterize, ggplot2, ggthemes,
-  grid, leaflet, magick, mapview, OpenStreetMap, plotly, prettymapr, purrr,
-  raster, rosm, rsvg, sf, stars, stringr, tmap, tmaptools, viridis, units,
-  webshot, zoo)
+  grid, leaflet, lubridate, magick, maptiles, mapview, OpenStreetMap, plotly,
+  prettymapr, purrr, raster, rosm, rsvg, sf, stars, stringr, tmap, tmaptools,
+  viridis, units, webshot, zoo)
+suppressMessages(extrafont::loadfonts(device="win"))
 pacman::p_load(baear, gisr, ibmr)
-
-options(stringsAsFactors = FALSE)
 theme_update(plot.title = element_text(hjust = 0.5))
 
 # Coordinate systems
@@ -26,7 +25,11 @@ base <- raster(file.path("C:/ArcGIS/Data/BlankRaster/maine_30mc.tif"))
 baea_dir <- "C:/Users/blake/OneDrive/Work/R/Projects/baea_ibm/Data/BAEA"
 nests_dir <- file.path("C:/Users/blake/OneDrive/Work/R/Projects/baea_ibm",
   "Data/Nests/Nests_rds")
+places_fl_dir <- file.path("C:/ArcGIS/Data/Reference/cb_2018_12_place_500k")
+places_me_dir <- file.path("C:/ArcGIS/Data/Reference/cb_2018_23_place_500k")
 ssf_raster_dir = "C:/ArcGIS/Data/R_Input/BAEA/SSF_Rasters"
+states_dir <- file.path("C:/ArcGIS/Data/Reference/cb_2018_us_state_5m")
+roads_dir <- file.path("C:/ArcGIS/Data/Reference/tl_2016_us_primaryroads")
 tex_dir <- "C:/Users/Blake/OneDrive/Work/LaTeX/BMassey_Dissertation"
 turbine_dir <- file.path("C:/ArcGIS/Data/R_Input/BAEA")
 wind_dir <- file.path("C:/Users/blake/OneDrive/Work/R/Projects/baea_ibm",
@@ -34,6 +37,13 @@ wind_dir <- file.path("C:/Users/blake/OneDrive/Work/R/Projects/baea_ibm",
 maps_dir <- "C:/Users/blake/OneDrive/Work/R/Projects/baea_ibm/Products/Maps"
 report_maps_dir <- file.path("C:/Users/blake/Documents/PhD Program/Reports",
   "BAEA Project - 2018/Maps")
+mod_dir <- "Output/Analysis/SSF/Models"
+mod_fit_dir <- file.path(mod_dir, "model_fits")
+mod_best_dir <- file.path(mod_dir, "model_fits_best")
+
+# Model files
+fits_best_file <- file.path(mod_best_dir, "model_fits_best.rds")
+preds_tbl_file <- file.path(mod_best_dir, "preds_tbl.rds")
 
 # Nests
 nests_study_org <- readRDS(file.path(nests_dir, "nests_study.rds"))
@@ -50,6 +60,20 @@ maine <- read_sf(file.path("C:/ArcGIS/Data/BlankPolygon/MaineOutline.shp")) %>%
   st_transform(., crs = 4326) %>%
   mutate(state = "Maine")  %>%
   dplyr::select(state)
+
+# Florida Places
+places_fl <- read_sf(file.path(places_fl_dir, "cb_2018_12_place_500k.shp")) %>%
+  st_transform(crs = 4326)
+places_me <- read_sf(file.path(places_me_dir, "cb_2018_23_place_500k.shp")) %>%
+  st_transform(crs = 4326)
+
+# States
+states <- read_sf(file.path(states_dir, "cb_2018_us_state_5m.shp")) %>%
+  st_transform(crs = 4326)
+
+# Roads
+roads <- read_sf(file.path(roads_dir, "tl_2016_us_primaryroads.shp")) %>%
+  st_transform(crs = 4326)
 
 # Wind
 wind_class <- read_sf(file.path(wind_dir, "Maine_Wind_High_Resolution",
@@ -85,50 +109,410 @@ om_nat_geo <- paste0(esri_url, "NatGeo_World_Map", esri_tile)
 
 #### ----------------------- Nests Overview Map --------------------------------
 
-maine_bb_sf <- st_as_sfc(bb(maine, relative = TRUE, height = 1.15, width = 2))
-
-# Use "Tmap_baselayers.R" script to get other baselayers
-maine_om = read_osm(maine_bb_sf, zoom = 7, minNumTiles = 9, type = om_nat_geo)
-
+#maine_bb_sf <- st_as_sfc(bb(maine, relative = TRUE, height = 1.15, width = 2))
 maine_bb_sf <- st_as_sfc(bb(maine %>% st_transform(., crs = crs(maine_bb_sf)),
-  ext = 1.1))
+  ext = 1.15))
 
-maine_overview <- tm_layout(asp = .75) +
-  tm_shape(maine_bb_sf) +
+roads_crop <- st_crop(roads, maine_bb_sf) %>%
+  filter(RTTYP == "I") %>%
+  filter(FULLNAME == "I- 95" | FULLNAME == "I- 495") %>%
+  filter(LINEARID != "110455961121")
+mapview::mapview(roads_crop)
+
+# Basemaps
+fullserver <- paste0("https://server.arcgisonline.com/ArcGIS/rest/services/",
+  "/World_Street_Map/MapServer/tile/{z}/{y}/{x}.jpg")
+provider <- list(src = "Nat Geo", q = fullserver, sub = NA, cit = "")
+maine_natgeo_osm <- maptiles::get_tiles(x = maine_bb_sf,
+  cachedir = "C:/Temp/Maptiles", provider = provider, crop = TRUE,
+  verbose = TRUE, zoom = 7, forceDownload = TRUE)
+
+fullserver <- paste0("https://server.arcgisonline.com/ArcGIS/rest/services/",
+  "/World_Physical_Map/MapServer/tile/{z}/{y}/{x}.jpg")
+provider <- list(src = "Nat Geo", q = fullserver, sub = NA, cit = "")
+maine_physical_osm <- maptiles::get_tiles(x = maine_bb_sf,
+  cachedir = "C:/Temp/Maptiles", provider = provider, crop = TRUE,
+  verbose = TRUE, zoom = 8, forceDownload = TRUE)
+
+nests_study_sf <- nests_study %>%
+  filter(nest_site != "446R01")
+
+# Create States text layer
+nests_text <- nests_study_sf %>%
+  arrange(name) %>%
+  dplyr::select(name) %>%
+  st_centroid(.) %>%
+  mutate(long = unlist(map(.$geometry,1)),
+         lat = unlist(map(.$geometry,2))) %>%
+  mutate(long = long + .065) %>%
+  st_drop_geometry(.)
+
+nests_text[which(nests_text$name == "Branch"), "long"] <- -68.51
+nests_text[which(nests_text$name == "Branch"), "lat"] <- 44.628
+nests_text[which(nests_text$name == "Crooked"), "long"] <- -68.45
+nests_text[which(nests_text$name == "Crooked"), "lat"] <- 45.47
+nests_text[which(nests_text$name == "Ellis"), "long"] <- -70.61
+nests_text[which(nests_text$name == "Ellis"), "lat"] <- 44.635
+nests_text[which(nests_text$name == "Eskutassis"), "long"] <- -68.6
+nests_text[which(nests_text$name == "Eskutassis"), "lat"] <- 45.165
+nests_text[which(nests_text$name == "Madagascal"), "long"] <- -68.29
+nests_text[which(nests_text$name == "Madagascal"), "lat"] <- 45.248
+nests_text[which(nests_text$name == "Musquash"), "long"] <- -68.1
+nests_text[which(nests_text$name == "Musquash"), "lat"] <- 45.55
+nests_text[which(nests_text$name == "Norway"), "long"] <- -70.54
+nests_text[which(nests_text$name == "Norway"), "lat"] <- 44.275
+nests_text[which(nests_text$name == "Onawa"), "long"] <- -69.32574
+nests_text[which(nests_text$name == "Onawa"), "lat"] <- 45.415
+nests_text[which(nests_text$name == "Phillips"), "long"] <- -68.532
+nests_text[which(nests_text$name == "Phillips"), "lat"] <- 44.74
+nests_text[which(nests_text$name == "Sandy"), "long"] <- -69.252
+nests_text[which(nests_text$name == "Sandy"), "lat"] <- 44.575
+nests_text[which(nests_text$name == "Sheepscot"), "long"] <- -69.67
+nests_text[which(nests_text$name == "Sheepscot"), "lat"] <- 44.48
+nests_text[which(nests_text$name == "Three"), "long"] <- -68.1925
+nests_text[which(nests_text$name == "Three"), "lat"] <- 45.355
+nests_text[which(nests_text$name == "Webb"), "lat"] <- 44.75
+nests_text[which(nests_text$name == "Wilson"), "long"] <- -69.43
+nests_text[which(nests_text$name == "Wilson"), "lat"] <- 45.55
+nests_text_sf <- st_as_sf(nests_text, coords = c("long", "lat"), crs = 4326)
+
+# Create States text layer
+places_me_sub <- places_me %>%
+  filter(NAME %in% c("Bangor", "Augusta", "Lewiston", "Portland"))
+
+places_me_text <- places_me_sub %>%
+  dplyr::select(NAME) %>%
+  st_centroid(.) %>%
+  mutate(long = unlist(map(.$geometry, 1)),
+         lat = unlist(map(.$geometry, 2))) %>%
+  st_drop_geometry(.)
+
+places_me_text[which(places_me_text$NAME == "Augusta"), "lat"] <- 44.38
+places_me_text[which(places_me_text$NAME == "Augusta"), "long"] <- -70.33
+places_me_text[which(places_me_text$NAME == "Bangor"), "lat"] <- 44.90
+places_me_text[which(places_me_text$NAME == "Bangor"), "long"] <- -69.2
+places_me_text[which(places_me_text$NAME == "Lewiston"), "lat"] <- 44.05
+places_me_text[which(places_me_text$NAME == "Lewiston"), "long"] <- -70.16
+places_me_text[which(places_me_text$NAME == "Portland"), "lat"] <- 43.68
+places_me_text[which(places_me_text$NAME == "Portland"), "long"] <- -70.94
+
+places_me_text_sf <- places_me_text %>%
+  mutate(long = long + .05) %>%
+  mutate(lat = lat + .025) %>%
+  mutate(NAME = str_to_upper(NAME)) %>%
+  st_as_sf(., coords = c("long", "lat"), crs = 4326)
+
+nests_overview <- tm_layout(asp = .75, main.title = NULL) +
+  tm_shape(maine_bb_sf, is.master = TRUE, ext = .85) +
     tm_borders(col = NA) +
-  tm_shape(maine_om) +
-    tm_rgb()
-
-nests_overview <- maine_overview +
-  tm_layout(
-    main.title = NULL,
-    main.title.position = "center",
-    main.title.size = 1.15,
-    title.position = c(.65, .02),
-    title.snap.to.legend = TRUE) +
-  tm_legend(title.size = 1, text.size = .85, outside = FALSE,
+  tm_shape(maine_physical_osm) +
+    tm_rgb() +
+  tm_shape(nests_study_sf) +
+    tm_symbols("yellow", size = .4) +
+  tm_shape(nests_text_sf) +
+	  tm_text(text = "name", just = c("left", "top"), size = .9) +
+  tm_shape(roads_crop) +
+    tm_lines(col = "blue4", alpha = .8) +
+  tm_shape(states) +
+    tm_borders(col = "black", alpha = .8, lwd = 2.5) +
+  tm_shape(places_me_sub) +
+    tm_dots(shape = 21, col = "red", size = .25, border.lwd = 1,
+    border.col = "grey20") +
+  tm_shape(places_me_text_sf) +
+    tm_text(text = "NAME", just = c("left", "top"), size = .7) +
+  tm_credits("MAINE", size = 1.25, position = c(.44, .675)) +
+	tm_logo(paste0("https://upload.wikimedia.org/wikipedia/commons/thumb/6/61/",
+	  "I-95.svg/200px-I-95.svg.png"), height = 1, position = c(.39, .39)) +
+  tm_legend(title.size = 1, text.size = .9, outside = FALSE,
     position = c("right", "bottom")) +
-  tm_scale_bar(breaks = c(0, 50, 100), text.size = .75, position = c(.72, .01)) +
-  tm_compass(type = "4star",  show.labels = 1, size = 3,
-    position = c(.85, .88)) +
-  tm_grid(n.x = 4, n.y = 5, projection = 4326, col = "grey85", alpha = .75,
-    labels.col = "grey25", labels.format = list(format = "f", big.mark = ""),
-    labels.inside.frame = FALSE) +
-  tm_shape(maine) + tm_borders(col = "black") +  # ME outline overlays grid
-  tm_shape(nests_study %>% filter(nest_site != "446R01")) +
-  tm_symbols("yellow", size = .5) +
-	tm_text("name", shadow = TRUE, auto.placement = TRUE, size = .75) +
-  tm_xlab("") + tm_ylab("")
-
-nests_overview
+  tm_scale_bar(breaks = c(0, 50, 100), text.size = .9, position = c(.5, .01))+
+  tm_compass(type = "4star",  show.labels = 1, size = 3, text.size = 1,
+    position = c(.85, .05))
+#nests_overview
 
 tmap_save(tm = nests_overview, filename = file.path(tex_dir, "Figures/Ch2",
   "Trapping_Sites_Overview.svg"), unit = "in", dpi = 300, height = 8, width = 6)
 
+#### -------------------- Map of Webb Eagle Migration --------------------------
+
+baea_webb_bb_sfc <- bb(x = c(-86.5, 25, -66.5, 47.5),
+  current.projection = 4326) %>% st_bbox(.) %>% st_as_sfc(.)
+
+# Webb Eagle
+baea_webb <- baea %>% filter(id == "Webb") %>%
+  st_transform(., crs = 4326)
+
+# Basemaps
+fullserver <- paste0("https://server.arcgisonline.com/ArcGIS/rest/services/",
+  "/World_Physical_Map/MapServer/tile/{z}/{y}/{x}.jpg")
+provider <- list(src = "World Physical", q = fullserver, sub = NA, cit = "")
+webb_physical_osm <- maptiles::get_tiles(x = baea_webb_bb_sfc,
+  cachedir = "C:/Temp/Maptiles", provider = provider, crop = TRUE,
+  verbose = TRUE, zoom = 6, forceDownload = TRUE)
+
+tmap_mode("view")
+tmap_mode("plot")
+
+# Create States text layer
+states_text <- states %>%
+  filter(STUSPS %in% c("CT", "DE", "FL", "GA", "MA", "MD", "ME", "NC", "NH",
+    "NJ", "NY", "PA", "SC", "VA", "VT")) %>%
+  dplyr::select(STUSPS, NAME) %>%
+  st_centroid(.) %>%
+  mutate(long = unlist(map(.$geometry,1)),
+         lat = unlist(map(.$geometry,2))) %>%
+  st_drop_geometry(.)
+
+states_text[which(states_text$STUSPS == "CT"), "long"] <- -72.7
+states_text[which(states_text$STUSPS == "CT"), "lat"] <- 41.6
+states_text[which(states_text$STUSPS == "DE"), "long"] <- -75.2
+states_text[which(states_text$STUSPS == "DE"), "lat"] <- 38.71
+states_text[which(states_text$STUSPS == "FL"), "long"] <- -81.25
+states_text[which(states_text$STUSPS == "FL"), "lat"] <- 27.5
+states_text[which(states_text$STUSPS == "MA"), "long"] <- -71.8
+states_text[which(states_text$STUSPS == "ME"), "long"] <- -69.0
+states_text[which(states_text$STUSPS == "ME"), "lat"] <- 45.25
+states_text[which(states_text$STUSPS == "MA"), "lat"] <- 42.4
+states_text[which(states_text$STUSPS == "MD"), "long"] <- -76.95
+states_text[which(states_text$STUSPS == "MD"), "lat"] <- 39.45
+states_text[which(states_text$STUSPS == "NH"), "long"] <- -71.35
+states_text[which(states_text$STUSPS == "NH"), "lat"] <- 43.15
+states_text[which(states_text$STUSPS == "NJ"), "long"] <- -74.6
+states_text[which(states_text$STUSPS == "NJ"), "lat"] <- 39.8
+states_text[which(states_text$STUSPS == "NC"), "long"] <- -80.25
+states_text[which(states_text$STUSPS == "NC"), "lat"] <- 35.8
+states_text[which(states_text$STUSPS == "SC"), "long"] <- -81.7
+states_text[which(states_text$STUSPS == "SC"), "lat"] <- 34.3
+states_text_sf <- st_as_sf(states_text, coords = c("long", "lat"), crs = 4326)
+
+# Filter data, create fightpaths
+baea_webb_2015_summer <- baea_webb %>%
+  filter(datetime <= as_date("2015-09-02")) %>%
+  group_by(id) %>% arrange(datetime) %>%
+  summarize(id = first(id), do_union = FALSE) %>%
+  st_cast("LINESTRING")
+
+baea_webb_2015_south <- baea_webb %>%
+  filter(datetime > as_date("2015-09-02")) %>%
+  filter(datetime <= as_date("2015-10-18")) %>%
+  group_by(id) %>% arrange(datetime) %>%
+  summarize(id = first(id), do_union = FALSE) %>%
+  st_cast("LINESTRING")
+
+baea_webb_2015_winter <- baea_webb %>%
+  filter(datetime > as_date("2015-10-18")) %>%
+  filter(datetime <= as_date("2016-04-05")) %>%
+  group_by(id) %>% arrange(datetime) %>%
+  summarize(id = first(id), do_union = FALSE) %>%
+  st_cast("LINESTRING")
+
+baea_webb_2016_north <- baea_webb %>%
+  filter(datetime > as_date("2016-04-05")) %>%
+  filter(datetime <= as_date("2016-05-08")) %>%
+  group_by(id) %>% arrange(datetime) %>%
+  summarize(id = first(id), do_union = FALSE) %>%
+  st_cast("LINESTRING")
+
+baea_webb_2016_summer <- baea_webb %>%
+  filter(datetime > as_date("2016-05-08")) %>%
+  filter(datetime <= as_date("2016-08-19")) %>%
+  group_by(id) %>% arrange(datetime) %>%
+  summarize(id = first(id), do_union = FALSE) %>%
+  st_cast("LINESTRING")
+
+baea_webb_2016_south <- baea_webb %>%
+  filter(datetime > as_date("2016-08-19")) %>%
+  filter(datetime <= as_date("2016-10-18")) %>%
+  group_by(id) %>% arrange(datetime) %>%
+  summarize(id = first(id), do_union = FALSE) %>%
+  st_cast("LINESTRING")
+
+baea_webb_2016_winter <- baea_webb %>%
+  filter(datetime > as_date("2016-10-18")) %>%
+  filter(datetime <= as_date("2017-04-15")) %>%
+  group_by(id) %>% arrange(datetime) %>%
+  summarize(id = first(id), do_union = FALSE) %>%
+  st_cast("LINESTRING")
+
+baea_webb_2017_north <- baea_webb %>%
+  filter(datetime > as_date("2017-04-15")) %>%
+  filter(datetime <= as_date("2017-05-14")) %>%
+  group_by(id) %>% arrange(datetime) %>%
+  summarize(id = first(id), do_union = FALSE) %>%
+  st_cast("LINESTRING")
+
+baea_webb_2017_summer <- baea_webb %>%
+  filter(datetime > as_date("2017-05-14")) %>%
+  group_by(id) %>% arrange(datetime) %>%
+  summarize(id = first(id), do_union = FALSE) %>%
+  st_cast("LINESTRING")
+
+tmaptools::palette_explorer()
+col_south  <- viridisLite::plasma(6)[6] #brewer.pal(8, "Set1")[5]
+col_north  <- viridisLite::plasma(6)[5] #brewer.pal(8, "Set1")[6]
+col_winter <- viridisLite::plasma(6)[2] #brewer.pal(8, "Set1")[2]
+col_summer <- viridisLite::plasma(6)[3] #brewer.pal(8, "Set1")[3]
+
+flight_width = 2.5
+flight_alpha = .95
+
+# All flight paths and points
+tmap_webb <-
+  tm_layout(asp = .5) +
+  tm_shape(baea_webb_bb_sfc, is.master = TRUE, ext = .935) +
+    tm_borders(col = "red") +
+  tm_shape(webb_physical_osm, raster.downsample = FALSE) +
+     tm_rgb() +
+  tm_shape(states) +
+    tm_borders(col = "grey20", alpha = .8) +
+  tm_shape(states_text_sf) +
+    tm_text(text = "STUSPS", size = .8) +
+  tm_layout(main.title = NULL,
+    title.snap.to.legend = FALSE) +
+  tm_scale_bar(text.size = .9, breaks = c(0, 200, 400),
+    position = c(.525, 0)) +
+  tm_compass(type = "4star",  show.labels = 1, size = 2.25, text.size = .9,
+    position = c(.835, .025)) +
+  tm_legend(title.size = 1.25, text.size = .9,
+    outside = FALSE, position = c(.465, .2), legend.width = .65)
+
+tmap_webb_paths_2015_16 <- tmap_webb +
+  tm_shape(baea_webb_2015_summer) +
+    tm_lines(col = col_summer, lwd = flight_width, alpha = flight_alpha) +
+  tm_shape(baea_webb_2015_winter) +
+    tm_lines(col = col_winter, lwd = flight_width, alpha = flight_alpha) +
+  tm_shape(baea_webb_2015_south) +
+    tm_lines(col = col_south, lwd = flight_width, alpha = flight_alpha) +
+  tm_shape(baea_webb_2016_north) +
+    tm_lines(col = col_north, lwd = flight_width, alpha = flight_alpha) +
+  tm_add_legend('line',
+  	col = viridisLite::plasma(6)[c(3, 6, 2, 5)],
+  	border.col = "grey40", lwd = 3,
+    labels = c('2015 Breeding Season', '2015 Fall Migration',
+      '2015/2016 Winter Season', '2016 Spring Migration'),
+  	title = "     Flight Paths")
+
+tmap_webb_paths_2016_17 <- tmap_webb +
+  tm_shape(baea_webb_2016_summer) +
+    tm_lines(col = col_summer, lwd = flight_width, alpha = flight_alpha) +
+  tm_shape(baea_webb_2016_winter) +
+    tm_lines(col = col_winter, lwd = flight_width, alpha = flight_alpha) +
+  tm_shape(baea_webb_2016_south) +
+    tm_lines(col = col_south, lwd = flight_width, alpha = flight_alpha) +
+  tm_shape(baea_webb_2017_north) +
+    tm_lines(col = col_north, lwd = flight_width, alpha = flight_alpha) +
+  tm_add_legend('line',
+  	col = viridisLite::plasma(6)[c(3, 6, 2, 5)],
+  	border.col = "grey40", lwd = 3,
+    labels = c('2016 Breeding Season', '2016 Fall Migration',
+      '2016/2017 Winter Season', '2017 Spring Migration'),
+  	title = "     Flight Paths")
+
+tmap_webb_2015_2017 <- tmap_arrange(list(tmap_webb_paths_2015_16,
+  tmap_webb_paths_2016_17), ncol = 2, nrow = 1, widths = c(.5, .5), asp = NA)
+
+tmap_save(tm = tmap_webb_2015_2017, filename = file.path(tex_dir, "Figures/Ch2",
+  "Webb_Flights.svg"), unit = "in", dpi = 300, height = 6, width = 8, asp = NA)
+
+#### -------------------- Map of Webb Florida Sites ----------------------------
+
+# Florida Area
+baea_webb_fl_bb_sfc <- bb(x = c(-83, 27.1, -79.5, 31.1),
+  current.projection = 4326) %>% st_bbox(.) %>% st_as_sfc(.)
+
+# Create States text layer
+places_fl_sub <- places_fl %>%
+  filter(NAME %in% c("Gainesville", "Daytona Beach", "Jacksonville", "Orlando",
+    "Tampa"))
+
+places_fl_text <- places_fl_sub %>%
+  dplyr::select(NAME) %>%
+  st_centroid(.) %>%
+  mutate(long = unlist(map(.$geometry, 1)),
+         lat = unlist(map(.$geometry, 2))) %>%
+  st_drop_geometry(.)
+
+places_fl_text[which(places_fl_text$NAME == "Jacksonville"), "lat"] <- 30.275
+places_fl_text[which(places_fl_text$NAME == "Jacksonville"), "long"] <- -82
+places_fl_text[which(places_fl_text$NAME == "Orlando"), "long"] <- -81.89
+
+places_fl_text_sf <- places_fl_text %>%
+  mutate(long = long + .05) %>%
+  st_as_sf(., coords = c("long", "lat"), crs = 4326)
+
+# Basemaps
+fullserver <- paste0("https://server.arcgisonline.com/ArcGIS/rest/services/",
+  "/World_Physical_Map/MapServer/tile/{z}/{y}/{x}.jpg")
+provider <- list(src = "World Physical", q = fullserver, sub = NA, cit = "")
+webb_fl_physical_osm <- maptiles::get_tiles(x = baea_webb_fl_bb_sfc,
+  cachedir = "C:/Temp/Maptiles", provider = provider, crop = TRUE,
+  verbose = TRUE, zoom = 8, forceDownload = TRUE)
+
+# All flight paths and points
+tmap_webb_fl <-
+  tm_layout(asp = .7) +
+  tm_shape(baea_webb_fl_bb_sfc, is.master = TRUE, ext = .935) +
+    tm_borders(col = "red") +
+  tm_shape(webb_fl_physical_osm, raster.downsample = FALSE) +
+    tm_rgb() +
+  tm_shape(states) +
+    tm_borders(col = "grey20", alpha = .8) +
+  tm_layout(main.title = NULL,
+    title.snap.to.legend = FALSE) +
+  tm_scale_bar(text.size = .9, breaks = c(0, 25, 50, 75),
+    position = c(.3, 0)) +
+  tm_compass(type = "4star",  show.labels = 1, size = 2.25, text.size = .9,
+    position = c(.835, .025)) +
+  tm_legend(title.size = 1.25, text.size = .9, legend.width = .65,
+    outside = FALSE, position = c(.47, .82)) +
+  tm_credits("Florida", size = 1.1, position = c(.065, .75)) +
+  tm_credits("Georgia", size = 1.1, position = c(.033, .925))
+
+tmap_webb_fl_2015_16 <- tmap_webb_fl +
+  tm_shape(baea_webb_2015_winter) +
+    tm_lines(col = col_winter, lwd = flight_width, alpha = flight_alpha) +
+  tm_shape(baea_webb_2015_south) +
+    tm_lines(col = col_south, lwd = flight_width, alpha = flight_alpha) +
+  tm_shape(baea_webb_2016_north) +
+    tm_lines(col = col_north, lwd = flight_width, alpha = flight_alpha) +
+  tm_shape(places_fl_sub) +
+    tm_dots(shape = 21, col = "red", size = .25, border.lwd = 1,
+    border.col = "grey20") +
+  tm_shape(places_fl_text_sf) +
+    tm_text(text = "NAME", just = c("left", "top"), size = .9) +
+  tm_add_legend('line', col = viridisLite::plasma(6)[c(6, 2, 5)],
+    border.col = "grey40", size = 3, lwd = 3,
+    labels = c('2015 Fall Migration', '2015/2016 Winter Season',
+      '2016 Spring Migration'), title = "     Flight Paths")
+
+tmap_webb_fl_2016_17 <- tmap_webb_fl +
+  tm_shape(baea_webb_2016_winter) +
+    tm_lines(col = col_winter, lwd = flight_width, alpha = flight_alpha) +
+  tm_shape(baea_webb_2016_south) +
+    tm_lines(col = col_south, lwd = flight_width, alpha = flight_alpha) +
+  tm_shape(baea_webb_2017_north) +
+    tm_lines(col = col_north, lwd = flight_width, alpha = flight_alpha) +
+  tm_shape(places_fl_sub) +
+    tm_dots(shape = 21, col = "red", size = .25, border.lwd = 1,
+    border.col = "grey20") +
+  tm_shape(places_fl_text_sf) +
+    tm_text(text = "NAME", just = c("left", "top"), size = .9) +
+  tm_add_legend('line', col = viridisLite::plasma(6)[c(6, 2, 5)],
+    border.col = "grey40", size = 3, lwd = 3,
+    labels = c('2016 Fall Migration', '2016/2017 Winter Season',
+      '2017 Spring Migration'), title = "     Flight Paths")
+
+tmap_webb_fl_2015_2017 <- tmap_arrange(list(tmap_webb_fl_2015_16,
+  tmap_webb_fl_2016_17), ncol = 2, nrow = 1, widths = c(.5, .5), asp = NA)
+
+tmap_save(tm = tmap_webb_fl_2015_2017, filename = file.path(tex_dir,
+  "Figures/Ch2", "Webb_Florida.svg"), unit = "in", dpi = 300, height = 6,
+  width = 8, asp = NA)
+
 ### ------------------------- Home Range Maps ----------------------------------
 
 # Getting the ratio and background correct requires 3 components:
-# 1) Getting enough coverage of basemap by adjusting bb() 'height'/'weight' args
+# 1) Getting enough coverage of basemap by adjusting bb() 'height'/'width' args
 # 2) Adjusting the openmap() 'zoom' if needed
 # 3) Setting the tm_layout() 'asp' arg to a reasonable ratio
 
@@ -324,9 +708,10 @@ con_nest_map
 tmap_save(tm = con_nest_map, filename = file.path(tex_dir, "Figures/Ch2",
   "Con_Nest_Distance_Map.svg"), unit = "in", dpi = 300, height = 6, width = 6.1)
 
-#### ------------------ SSF Maps (WORK IN PROGRESS) ----------------------------
+#### ----------------- SSF for Maine - Individual ------------------------------
 
-#### ------------------------- Maine By Step_Type Maps -------------------------
+# This process assumes that the 'final' version of the SSF probablity layers
+# is in the ssf_prob_dir
 
 ssf_prob_dir <- file.path(ssf_raster_dir, "Step_Types_Prob")
 ssf_prob_files <- list.files(ssf_prob_dir, pattern = "\\.tif", full.names =TRUE)
@@ -381,12 +766,20 @@ for (i in seq_len(length(ssf_prob_files))){
       legend.text.fontfamily = "Latin Modern Roman",
       frame = FALSE) #+ tm_credits(step_type_arrow, position=c("right", "top"))
   ssf_prob_i_map
-  tmap_save(tm = ssf_prob_i_map, filename = file.path(tex_dir, "Figures/Ch2",
-    "SSF_Prob_Raster_Maps", paste0("SSF_Probability_Map_", step_type_text,
-    ".svg")), unit = "in", dpi = 300, height = 8, width = 6)
+
+  # NOT CURRENTLY INCLUDED IN TEXT
+  ssf_individual_maine <- FALSE
+  if(ssf_individual_maine){
+    tmap_save(tm = ssf_prob_i_map, filename = file.path(tex_dir, "Figures/Ch2",
+      "SSF_Prob_Raster_Maps", paste0("SSF_Probability_Map_", step_type_text,
+      ".png")), unit = "in", dpi = 300, height = 8, width = 6)
+  }
 }
 
-#### -------------------- All Maine Step_Type Maps Combined --------------------
+#### ----------------- SSF for Maine - Combined --------------------------------
+
+# This process assumes that the 'final' version of the SSF probablity layers
+# is in the ssf_prob_dir
 
 for (i in seq_len(length(ssf_prob_files))){
   print(i)
@@ -404,15 +797,16 @@ for (i in seq_len(length(ssf_prob_files))){
     tm_shape(ssf_prob_i, raster.downsample = FALSE) +
       tm_raster(palette = viridis(20, direction = 1),
         legend.reverse = TRUE, style = "cont", title = "Probability") +
-      tm_layout(asp = .75,
+      tm_layout(asp = .8,
         title.position = c("LEFT", "TOP"),
         title.fontfamily = "Latin Modern Roman",
         title = step_type,
         title.size = .5,
         title.snap.to.legend =  FALSE,
         legend.position = c("RIGHT", "BOTTOM"),
-        legend.height = .3,
-        legend.title.size = .65,
+        legend.height = .4,
+        legend.title.size = .45,
+        legend.text.size = .4,
         legend.title.fontfamily = "Latin Modern Roman",
         legend.text.fontfamily = "Latin Modern Roman",
         frame = FALSE)
@@ -425,19 +819,6 @@ tmap_blank <-
   tm_raster(palette = "white", style = "cont") +
   tm_layout(asp = .75, legend.show = FALSE, frame = FALSE)
 
-# TEST arrangement and position of main.title, legend, etc.
-ssf_tmap_arrange_test <- tmap_arrange(
-  tmap_blank, tmap_blank, tmap_blank, tmap_blank,
-  tmap_blank, tmap_blank, tmap_blank, tmap_blank,
-  tmap_blank, tmap_blank, ssf_tmap_list[[10]], tmap_blank,
-  tmap_blank, tmap_blank, tmap_blank, tmap_blank,
-  tmap_blank, tmap_blank, tmap_blank, tmap_blank,
-  ncol = 4)
-
-tmap_save(tm = ssf_tmap_arrange_test, filename =  file.path("C:/TEMP",
-  "SSF_Probability_Maps_Overview.svg"), unit = "in", dpi = 300, height = 8,
-  width = 6)
-
 ssf_tmap_arrange <- tmap_arrange(
   ssf_tmap_list[[1]], ssf_tmap_list[[2]], ssf_tmap_list[[3]], tmap_blank,
   ssf_tmap_list[[4]], ssf_tmap_list[[5]], ssf_tmap_list[[6]],
@@ -448,56 +829,141 @@ ssf_tmap_arrange <- tmap_arrange(
   ncol = 4)
 
 tmap_save(tm = ssf_tmap_arrange, filename = file.path(tex_dir, "Figures/Ch2",
-  "SSF_Prob_Raster_Maps", "SSF_Probability_Maps_Overview.svg"), unit = "in",
-  dpi = 300, height = 8, width = 6)
+  "SSF_Prob_Raster_Maps", "SSF_Probability_Maps_Overview.png"), unit = "in",
+  dpi = 300, height = 8, width = 8*(.8))
 
-#### ------------------------- Individual Nest Maps ----------------------------
+#### ----------------- SSF at Nests - Combined ---------------------------------
 
-# Directories and files
-mod_fit_dir = "Output/Analysis/SSF/Models"
-ssf_raster_dir = "C:/ArcGIS/Data/R_Input/BAEA/SSF_Rasters"
-covars_crop_dir = file.path(ssf_raster_dir, "Covars_Crop")
-step_type_dir = file.path(ssf_raster_dir, "Step_Type")
-maine_raster_trim_file = "C:/ArcGIS/Data/BlankRaster/maine_trim.tif"
+tmap_mode("plot")
 
-# ESRI Baselayers
-esri_url <- "https://server.arcgisonline.com/ArcGIS/rest/services/"
-esri_tile <- "/MapServer/tile/{z}/{y}/{x}"
-om_nat_geo <- paste0(esri_url, "NatGeo_World_Map", esri_tile)
+# Nests
+nests_sim <- nests_study %>% slice(c(2, 4, 7, 13)) %>% st_transform(wgs84n19)
 
-ssf_layers <- list.files(file.path(ssf_raster_dir, "Step_Types_Prob"),
-  pattern = "tif$")
-nests <- ssf_layers %>%
-  str_split(., pattern = "_") %>%
-  sapply("[", 1) %>%
-  unique(.)
+# SSF Fits
+ssf_fits_best_org <- readRDS(fits_best_file) #%>% slice(c(step_type_index))
+ssf_fits_best <- ssf_fits_best_org
 
-i <- nests[1] # FOR TESTING
-for (i in nests){
-  nest_ssfs_i <- str_subset(ssf_layers, i)
-  for (j in nest_ssfs_i){
-    j <- nest_ssfs_i[1] # FOR TESTING
-    ssf_i_j <- read_stars(file.path(ssf_raster_dir, "Step_Types_Prob",
-      j))
-    if (j == nest_i_rasters[1]){
-      bb_nest_i <- st_as_sf(ssf_i_j)
-      bb_nest_i_om = read_osm(bb_nest_i, type = om_nat_geo)
-      #zoom = 13, minNumTiles = 21,
+# For Individual Maps
+for (j in seq_len(nrow(nests_sim))){
+#for (j in c(2)){
+  # Get nest
+  nest_j <- nests_sim %>% slice(j)
+  nest_j_name <- nest_j %>% pull(name)
+  # List for output
+  ssf_tmap_list <- vector(mode = "list", length = 20)
+  for (i in seq_len(nrow(ssf_fits_best))){
+#  for (i in c(1)){
+    step_type_i_numeric <- ssf_fits_best %>% slice(i) %>% pull(step_type) %>%
+      str_replace_all(c("cruise" = "1", "flight" = "2", "nest" = "3",
+        "perch" = "4", "roost" = "5"))
+    ssf_prob_file <- list.files(ssf_prob_dir, pattern =
+      paste0(step_type_i_numeric, "\\.tif$"), full.names = TRUE)
+    if (i ==  1){
+      # Use "Tmap_baselayers.R" script to get other baselayers
+      nest_bbox <- st_as_sfc(st_bbox(st_buffer(nest_j, dist = 10000)))
+      nest_buffer <- st_buffer(nest_j, dist = 10000)
+      nest_bb_sf <- st_as_sfc(bb(nest_buffer, relative = TRUE, height = 1.35,
+        width = 1.35))
+      Sys.sleep(1)
+      nest_om = read_osm(nest_bb_sf, type = om_nat_geo, zoom = 11)
+        #type = "osm", minNumTiles=9,
+      nest_om_bb <- bb_poly(nest_om)
     }
-
-    # NEED TO ADD TO MAP BELOW (Compass, Scales, etc.)
-
-    tm_shape(bb_nest_i_om, raster.downsample = FALSE) +
-      tm_rgb() +
-    tm_shape(ssf_i_j, raster.downsample = FALSE) +
-      tm_raster(n = 20)
-
-    # NEED TO COMBINE MAPS (either by step_type or by est
-
+    ssf_prob_i <- raster(ssf_prob_file) #%>% slice(1)
+    ssf_prob_i_crop <- crop(ssf_prob_i, nest_buffer)
+    ssf_prob_i_mask <- mask(ssf_prob_i_crop, nest_buffer)
+    step_type_i_text <- step_type_i_numeric %>%
+      str_replace_all("1", "Cruise") %>%
+      str_replace_all("2", "Flight") %>%
+      str_replace_all("3", "Nest") %>%
+      str_replace_all("4", "Perch") %>%
+      str_replace_all("5", "Roost")
+    writeLines(paste0("Mapping: ", step_type_i_text))
+    step_type_i_arrow <- step_type_i_text %>%
+      str_replace_all("_", "$\\\\rightarrow$ ") %>%
+      latex2exp::TeX(.)
+    ssf_prob_i_nest_map <-
+      tm_shape(nest_om) +
+        tm_rgb() +
+     tm_shape(ssf_prob_i_mask, raster.downsample = FALSE) +
+     tm_raster(palette = viridis(20, direction = 1), alpha = .6,
+       legend.reverse = TRUE, style = "cont", title = "Probability") +
+      tm_scale_bar(breaks = c(0, 5, 10), text.size = .4, lwd = .25,
+        position = c(.03, .0)) +
+      tm_compass(type = "4star", text.size = 0.55, show.labels = 1, size = 1.75,
+        position = c(.8, .775), lwd = .25) +
+      tm_shape(nests_sim) +
+      tm_symbols(shape = 20, #border.col = "black", border.lwd = .5,
+        col = "black", size = .075) +
+      tm_layout(asp = .8,
+        frame = NA, #"black",
+        title.color = "black",
+        title.bg.color = NA, #"ivory3",
+        title.bg.alpha = .85,
+        title.position = c(.275,.95),
+        title.fontfamily = "Latin Modern Roman",
+        title = step_type_i_arrow,
+        title.size = .6,
+        title.snap.to.legend = FALSE,
+        legend.bg.color = "ivory1",
+        legend.frame = "grey",
+        legend.frame.lwd = 1,
+        legend.height = .4,
+        legend.title.size = .4,
+        legend.text.size = .35,
+        legend.position = c(.785,.007),
+        legend.outside = FALSE,
+        legend.title.fontfamily = "Latin Modern Roman",
+        legend.text.fontfamily = "Latin Modern Roman")
+        #+ tm_credits(step_type_arrow, position=c("right","top"))
+    #ssf_prob_i_nest_map
+    tmap_position <- switch(step_type_i_numeric,
+      "1_1" = 1,  "1_2" = 2,  "1_4" = 3,
+      "2_1" = 5,  "2_2" = 6,  "2_4" = 7,  "2_5" = 8,
+      "3_1" = 9,  "3_2" = 10, "3_4" = 11, "3_5" = 12,
+      "4_1" = 13, "4_2" = 14, "4_4" = 15, "4_5" = 16,
+                  "5_2" = 18, "5_4" = 19)
+    writeLines(as.character(tmap_position))
+    ssf_tmap_list[[tmap_position]] <- ssf_prob_i_nest_map
   }
+
+  tmap_blank <-
+    tm_shape(nest_om_bb, is.master = TRUE) +
+      tm_fill(col = "white") +
+    tm_shape(nest_buffer, is.master = TRUE) +
+      tm_polygons(col = "white", border.col = "white") +
+    tm_layout(asp = .8, legend.show = FALSE, frame = FALSE)
+
+  for (i in seq_len(length(ssf_tmap_list))){
+    if(is.null(ssf_tmap_list[[i]])) ssf_tmap_list[[i]] <- tmap_blank
+  }
+
+  # For testing
+  # ssf_tmap_nest_arrange <- tmap_arrange(
+  #   ssf_tmap_list[[1]], tmap_blank, tmap_blank, tmap_blank,
+  #   tmap_blank, tmap_blank, tmap_blank, tmap_blank,
+  #   tmap_blank, tmap_blank, tmap_blank, tmap_blank,
+  #   tmap_blank, tmap_blank, tmap_blank, tmap_blank,
+  #   tmap_blank, tmap_blank, tmap_blank, tmap_blank,
+  #   ncol = 4)
+
+  # Arrange map of probability surfaces for testing
+  ssf_tmap_nest_arrange <- tmap_arrange(
+    ssf_tmap_list[[1]], ssf_tmap_list[[2]], ssf_tmap_list[[3]],
+    ssf_tmap_list[[4]], ssf_tmap_list[[5]], ssf_tmap_list[[6]],
+    ssf_tmap_list[[7]], ssf_tmap_list[[8]], ssf_tmap_list[[9]],
+    ssf_tmap_list[[10]], ssf_tmap_list[[11]], ssf_tmap_list[[12]],
+    ssf_tmap_list[[13]], ssf_tmap_list[[14]], ssf_tmap_list[[15]],
+    ssf_tmap_list[[16]], ssf_tmap_list[[17]], ssf_tmap_list[[18]],
+    ssf_tmap_list[[19]], ssf_tmap_list[[20]], ncol = 4)
+
+  tmap_save(tm = ssf_tmap_nest_arrange, filename = file.path(tex_dir,
+    "Figures/Ch2/SSF_Prob_Raster_Maps", "Nests", paste0(
+    "SSF_Probability_Maps_", nest_j_name, ".png")), unit = "in", dpi = 300,
+    height = 8, width = 8*.8)
 }
 
-############################################################################# ##
+
 #### -------------------------- CHAPTER 4 --------------------------------- ####
 ############################################################################# ##
 
@@ -810,7 +1276,26 @@ ellis_map_polys
 ################################ OLD CODE ######################################
 # ---------------------------------------------------------------------------- #
 
-# ### Flightpath Maps ------------------------------------------------------------
+# tmap_blank <-
+#   tm_shape(ssf_prob_i, raster.downsample = TRUE) +
+#     tm_raster(col = "white", style = "cont") +
+#   tm_layout(asp = .8, legend.show = FALSE, frame = FALSE)
+#
+# # TEST arrangement and position of main.title, legend, etc.
+# ssf_tmap_arrange_test <- tmap_arrange(
+#   tmap_blank, tmap_blank, tmap_blank, tmap_blank,
+#   tmap_blank, tmap_blank, tmap_blank, tmap_blank,
+#   tmap_blank, tmap_blank, ssf_tmap_list[[10]], tmap_blank,
+#   tmap_blank, tmap_blank, tmap_blank, tmap_blank,
+#   tmap_blank, tmap_blank, tmap_blank, tmap_blank,
+#   ncol = 4)
+#
+#tmap_save(tm = ssf_tmap_arrange_test, filename =  file.path("C:/TEMP",
+#  "SSF_Probability_Maps_Overview.svg"), unit = "in", dpi = 300, height = 8,
+#  width = 6)
+
+
+# ### Flightpath Maps ------------------------------------------------------- ##
 #
 # id_i = "Sandy"
 # year_i = 2019
@@ -889,7 +1374,7 @@ ellis_map_polys
 # baea_i_smooth <- smooth_map(baea_i, cover = as(CreateExtentSF(baea_i, 1),
 #   "Spatial"), nlevels = 10)
 #
-# ### Isopleth Maps --------------------------------------------------------------
+# ### Isopleth Maps -------------------------------------------------------- ##
 #
 # # Drop lowest density polygon
 # baea_i_smooth_polys <- st_intersection(baea_i_smooth$polygons,
@@ -929,7 +1414,7 @@ ellis_map_polys
 # tm_borders()
 #
 #
-# ### ------------------------- Hexbin Maps --------------------------------------
+# ### ------------------------- Hexbin Maps -------------------------------- ##
 #
 # # Select id and year
 # table(baea$id, baea$year) # Determine available individual/year combos

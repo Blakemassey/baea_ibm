@@ -14,6 +14,13 @@ theme_latex <- theme(text = element_text(family = "Latin Modern Roman")) +
   theme(axis.title = element_text(size = 12)) +
   theme(plot.title = element_text(size = 14))
 
+# Directories
+mod_dir <- "Output/Analysis/SSF/Models"
+mod_fit_dir <- file.path(mod_dir, "model_fits")
+mod_best_dir <- file.path(mod_dir, "model_fits_best")
+
+# Model files
+fits_best_file <- file.path(mod_best_dir, "model_fits_best.rds")
 
 ############################################################################# ##
 #### -------------------------- CHAPTER 2 --------------------------------- ####
@@ -281,64 +288,11 @@ print(fits_move_pars_xtable,
   file = file.path("C:/Users/blake/OneDrive/Work/LaTeX/BMassey_Dissertation",
                    "Tables/Ch2/Movement_Pars.tex"))
 
-
-## SSF Models Compiled Refits --------------------------------------------------
-
-model_fits_compiled_refit_org <- readRDS(file.path("Output/Analysis/SSF/Models",
-  "model_fits_compiled_refit", "model_fits_compiled_refit.rds"))
-
-model_fits_compiled_refit_df  <- model_fits_compiled_refit_org %>%
-  dplyr::select(step_type, fit_aicc, delta_aicc, preds) %>%
-  mutate(step_type_cap = str_replace_all(step_type, "_", " ")) %>%
-  mutate(step_type_cap = str_to_title(step_type_cap)) %>%
-  mutate(step_type_cap = str_replace_all(step_type_cap, " ", "_")) %>%
-  mutate(preds = str_replace_all(preds, "_", " ")) %>%
-  mutate(preds = str_replace_all(str_to_title(preds),
-    "(?<=[:alpha:]) (?=[:alpha:])", "")) %>%
-  mutate(preds = str_replace_all(preds, "DevelopedDist0", "DevelopedDist")) %>%
-  mutate(preds = str_replace_all(preds, "HydroDist0", "HydroDist")) %>%
-  mutate(preds = str_replace_all(preds, "TurbineDist0", "TurbineDist")) %>%
-  mutate(preds = str_replace_all(preds, "RoadDist0", "RoadDist")) %>%
-  group_by(step_type_cap) %>%
-  mutate(mod_rank = 1:n()) %>%
-  ungroup(.) %>%
-  select(step_type_cap, mod_rank, fit_aicc, delta_aicc, preds)
-
-colnames(model_fits_compiled_refit_df) <-
-  colnames(model_fits_compiled_refit_df) %>%
-  str_replace(., "mod_rank", "Rank") %>%
-  str_replace(., "fit_aicc", "AICc") %>%
-  str_replace(., "delta_aicc", "$\\\\Delta$ AICc") %>%
-  str_replace(., "preds",
-    "Model Covariates (with $\\\\sigma$ bandwidth values)")
-
-for (i in unique(model_fits_compiled_refit_df$step_type_cap)){
-  model_fits_compiled_refit_df_i <- model_fits_compiled_refit_df %>%
-    filter(step_type_cap == i) %>%
-    select(-c(step_type_cap))
-  model_fits_compiled_xtable_i <- xtable(model_fits_compiled_refit_df_i,
-    digits = c(0, 0, 2, 2, 0))
-  align(model_fits_compiled_xtable_i) <- c("L{0}", "C{.3}", "C{.3}",
-    "C{.45}", "L{2.95}")
-  str_replace_all(align(model_fits_compiled_xtable_i), "[^[//.||0-9]]", "") %>%
-    str_subset(., "[0-9]") %>% as.numeric(.) %>% sum()
-  # should sum to 4 for the 4 columns
-  print(model_fits_compiled_xtable_i,
-    floating = FALSE, width = "\\textwidth",
-    tabular.environment = "tabularx",
-    booktabs = TRUE, # thick top/bottom line, Preamble: "\usepackage{booktabs}"
-    include.rownames = FALSE,
-    size = "\\fontsize{11pt}{12pt}\\selectfont",
-    sanitize.colnames.function = BoldText,
-    sanitize.text.function = identity,
-    file = file.path("C:/Users/blake/OneDrive/Work/LaTeX/BMassey_Dissertation",
-      "Tables/Ch2", paste0("SSF_Fits_", i,".tex")))
-}
-
 ## SSF Models Compiled Best ----------------------------------------------------
 
-model_fits_best_org <- readRDS(file.path("Output/Analysis/SSF/Models",
-  "model_fits_best", "model_fits_best.rds"))
+# SSF Fits
+ssf_fits_best_org <- readRDS(fits_best_file) #%>% slice(c(step_type_index))
+ssf_fits_best <- ssf_fits_best_org
 
 step_types_df <- tribble(
    ~step_type_group_name,  ~step_type_group, ~start_behavior, ~end_behavior,
@@ -361,32 +315,32 @@ step_types_df <- tribble(
   "stationary to Roost",  "sr",  "perch",  "roost"
 )
 
-model_fits_best <- model_fits_best_org %>%
+ssf_fits_best <- ssf_fits_best %>%
   mutate(start_behavior = word(step_type, 1, sep = "_")) %>%
   mutate(end_behavior = word(step_type, 2, sep = "_")) %>%
   left_join(., step_types_df, by = c("start_behavior", "end_behavior"))
 
-step_type_groups <- model_fits_best %>% pull(step_type_group_name) %>% unique(.)
+step_type_groups <- ssf_fits_best %>% pull(step_type_group_name) %>% unique(.)
 
-i <- step_type_groups[2]; j <- 1  # for testing
+i <- step_type_groups[8]; j <- 1  # for testing
 for (i in step_type_groups){
   i_underscore <- str_replace_all(str_to_title(i), " ", "_")
-  model_fits_best_i <- model_fits_best %>% filter(step_type_group_name == i)
-  xtable_list <- vector(mode = "list", length = nrow(model_fits_best_i))
-  for (j in seq_len(nrow(model_fits_best_i))){
-    fit_terms <- model_fits_best_i %>% slice(j) %>%
+  ssf_fits_best_i <- ssf_fits_best %>% filter(step_type_group_name == i)
+  xtable_list <- vector(mode = "list", length = nrow(ssf_fits_best_i))
+  for (j in seq_len(nrow(ssf_fits_best_i))){
+    fit_terms <- ssf_fits_best_i %>% slice(j) %>%
       pull(fit_covars_clean) %>% pluck(1)
-    xtable_fit_ij <- model_fits_best_i %>% slice(j) %>%
+    xtable_fit_ij <- ssf_fits_best_i %>% slice(j) %>%
       pull(clogit_fit_tbl) %>% pluck(1)  %>%
       mutate(term = fit_terms) %>%
       mutate(step_type = NA_character_)
-    start_ij <- model_fits_best_i %>% slice(j) %>% pull(start_behavior)
-    end_ij <- model_fits_best_i %>% slice(j) %>% pull(end_behavior)
+    start_ij <- ssf_fits_best_i %>% slice(j) %>% pull(start_behavior)
+    end_ij <- ssf_fits_best_i %>% slice(j) %>% pull(end_behavior)
     xtable_fit_ij[1, "step_type"] <- paste(str_to_title(start_ij),
       "$\\rightarrow$", str_to_title(end_ij))
     xtable_list[[j]] <- xtable_fit_ij
   }
-  model_fits_best_xtable <- xtable_list %>%
+  ssf_fits_best_xtable <- xtable_list %>%
     reduce(bind_rows) %>%
     mutate(term = str_replace_all(term, "_", " ")) %>%
     mutate(term = str_replace_all(str_to_title(term),
@@ -395,6 +349,7 @@ for (i in step_type_groups){
     mutate(term = str_replace_all(term, "DistHydro0", "DistHydro")) %>%
     mutate(term = str_replace_all(term, "DistTurbine0", "DistTurbine")) %>%
     mutate(term = str_replace_all(term, "DistRoad0", "DistRoad")) %>%
+    mutate(term = str_replace_all(term, "\\^2", "\\\\textsuperscript{2}")) %>%
     rename("Step Type" = step_type,
            "Term" = term,
            "Coefficient " = coef,
@@ -405,20 +360,20 @@ for (i in step_type_groups){
     dplyr::select("Step Type", "Term", "Coefficient ", "Exp(Coef)",
       "SE(Coef)", "Z Statistic", "p-value")
 
-  model_fits_best_xtable <- xtable(model_fits_best_xtable,
+  ssf_fits_best_xtable <- xtable(ssf_fits_best_xtable,
     digits = c(0, 0, 2, 3, 2, 2, 2, 2))
-  display(model_fits_best_xtable) = c("s", "s", "s", "g", "g", "g", "g", "g")
+  display(ssf_fits_best_xtable) = c("s", "s", "s", "g", "g", "g", "g", "g")
 
-  align(model_fits_best_xtable) <- c("L{0}", "L{1.8}", "H{1.25}", "R{1}",
+  align(ssf_fits_best_xtable) <- c("L{0}", "L{1.8}", "H{1.25}", "R{1}",
     "R{.9}", "R{.8}", "R{.45}", "R{.8}")
-  str_replace_all(align(model_fits_best_xtable), "[^[//.||0-9]]", "") %>%
+  str_replace_all(align(ssf_fits_best_xtable), "[^[//.||0-9]]", "") %>%
     str_subset(., "[0-9]") %>% as.numeric(.) %>% sum()
 
-  hline <- (which(str_detect(model_fits_best_xtable$`Step Type`,
+  hline <- (which(str_detect(ssf_fits_best_xtable$`Step Type`,
    "[:alpha:]"))-1)[-1]
   htype <- c(rep("\\midrule ", times = length(hline)))
 
-  model_fits_best_tex <- print(model_fits_best_xtable,
+  ssf_fits_best_tex <- print(ssf_fits_best_xtable,
     add.to.row = list(pos = as.list(hline), command = htype),
     floating = FALSE,
     width = "\\textwidth",
@@ -438,7 +393,7 @@ for (i in step_type_groups){
     i, " behavior for Bald Eagles in Maine.}\\\\\\\\ \n ")
 
   # Make column header ("Step Type") horizontal, italicize 'p' in p-value
-  model_fits_best_tex_update <- model_fits_best_tex %>%
+  ssf_fits_best_tex_update <- ssf_fits_best_tex %>%
     str_replace(., "\\\\toprule", paste0(caption_label_tex, "\\\\toprule")) %>%
     str_replace_all(., paste0("\\\\begin\\{sideways\\} ",
       "\\{\\\\textbf\\{Step Type\\}\\} \\\\end\\{sideways\\}"),
@@ -447,15 +402,15 @@ for (i in step_type_groups){
       "\\{\\\\textit\\{\\\\textbf\\{p\\}\\}\\\\textbf\\{-value\\}\\}")
 
   # Add column headers when table is split across pages
-  column_headers <- model_fits_best_tex_update %>%
+  column_headers <- ssf_fits_best_tex_update %>%
     str_match(., "(?s)toprule(.*?)\\\\midrule(?s)") %>% pluck(2) %>%
     str_replace_all(., "\\\\", "\\\\\\\\")
-  model_fits_best_tex_final <- model_fits_best_tex_update %>%
+  ssf_fits_best_tex_final <- ssf_fits_best_tex_update %>%
     str_replace(., "\\\\midrule",
     paste0("\\\\endfirsthead\n \\\\\\hline", column_headers,
       "\\\\\\hline\n \\\\endhead\n \\\\\\hline\n \\\\endfoot\n \\\\\\hline\n ",
       "\\\\endlastfoot\n \\\\\\hline"))
-  write_lines(model_fits_best_tex_final, file = file.path("C:/Users/blake",
+  write_lines(ssf_fits_best_tex_final, file = file.path("C:/Users/blake",
     "OneDrive/Work/LaTeX/BMassey_Dissertation/Tables/Ch2",
     paste0("SSF_Fits_Terms_", i_underscore, ".tex")))
 }
@@ -463,6 +418,60 @@ for (i in step_type_groups){
 # ---------------------------------------------------------------------------- #
 ################################ OLD CODE ######################################
 # ---------------------------------------------------------------------------- #
+
+
+## SSF Models Compiled Refits ----------------------------------------------- ##
+
+# model_fits_compiled_refit_org <- readRDS(file.path("Output/Analysis/SSF/Models",
+#   "model_fits_compiled_refit", "model_fits_compiled_refit.rds"))
+#
+# model_fits_compiled_refit_df  <- model_fits_compiled_refit_org %>%
+#   dplyr::select(step_type, fit_aicc, delta_aicc, preds) %>%
+#   mutate(step_type_cap = str_replace_all(step_type, "_", " ")) %>%
+#   mutate(step_type_cap = str_to_title(step_type_cap)) %>%
+#   mutate(step_type_cap = str_replace_all(step_type_cap, " ", "_")) %>%
+#   mutate(preds = str_replace_all(preds, "_", " ")) %>%
+#   mutate(preds = str_replace_all(str_to_title(preds),
+#     "(?<=[:alpha:]) (?=[:alpha:])", "")) %>%
+#   mutate(preds = str_replace_all(preds, "DevelopedDist0", "DevelopedDist")) %>%
+#   mutate(preds = str_replace_all(preds, "HydroDist0", "HydroDist")) %>%
+#   mutate(preds = str_replace_all(preds, "TurbineDist0", "TurbineDist")) %>%
+#   mutate(preds = str_replace_all(preds, "RoadDist0", "RoadDist")) %>%
+#   group_by(step_type_cap) %>%
+#   mutate(mod_rank = 1:n()) %>%
+#   ungroup(.) %>%
+#   select(step_type_cap, mod_rank, fit_aicc, delta_aicc, preds)
+#
+# colnames(model_fits_compiled_refit_df) <-
+#   colnames(model_fits_compiled_refit_df) %>%
+#   str_replace(., "mod_rank", "Rank") %>%
+#   str_replace(., "fit_aicc", "AICc") %>%
+#   str_replace(., "delta_aicc", "$\\\\Delta$ AICc") %>%
+#   str_replace(., "preds",
+#     "Model Covariates (with $\\\\sigma$ bandwidth values)")
+#
+# for (i in unique(model_fits_compiled_refit_df$step_type_cap)){
+#   model_fits_compiled_refit_df_i <- model_fits_compiled_refit_df %>%
+#     filter(step_type_cap == i) %>%
+#     select(-c(step_type_cap))
+#   model_fits_compiled_xtable_i <- xtable(model_fits_compiled_refit_df_i,
+#     digits = c(0, 0, 2, 2, 0))
+#   align(model_fits_compiled_xtable_i) <- c("L{0}", "C{.3}", "C{.3}",
+#     "C{.45}", "L{2.95}")
+#   str_replace_all(align(model_fits_compiled_xtable_i), "[^[//.||0-9]]", "") %>%
+#     str_subset(., "[0-9]") %>% as.numeric(.) %>% sum()
+#   # should sum to 4 for the 4 columns
+#   print(model_fits_compiled_xtable_i,
+#     floating = FALSE, width = "\\textwidth",
+#     tabular.environment = "tabularx",
+#     booktabs = TRUE, # thick top/bottom line, Preamble: "\usepackage{booktabs}"
+#     include.rownames = FALSE,
+#     size = "\\fontsize{11pt}{12pt}\\selectfont",
+#     sanitize.colnames.function = BoldText,
+#     sanitize.text.function = identity,
+#     file = file.path("C:/Users/blake/OneDrive/Work/LaTeX/BMassey_Dissertation",
+#       "Tables/Ch2", paste0("SSF_Fits_", i,".tex")))
+# }
 
 
 ## SSF Fits ----------------------------------------------------------------- ##
