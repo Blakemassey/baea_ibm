@@ -11,8 +11,8 @@ theme_update(plot.title = element_text(hjust = 0.5))
 #devtools::reload("C:/Users/blake/OneDrive/Work/R/Packages/ibmr")
 
 # Sim file and code Boolean parameters
-sim_rds <- "sim_20201106-02.rds"
-create_kml = TRUE
+sim_rds <- "sim_20210505-01.rds"
+create_kml = FALSE
 calculate_akde = TRUE
 map_akde = TRUE
 view_maps = FALSE
@@ -110,7 +110,7 @@ for (i in seq_len(length(sim_runs))){
         sim_hr_j <- sim_step_data %>% filter(id == j) %>% arrange(datetime)
         for (k in unique(year(sim_hr_j$datetime))){
           sim_hr_k <- sim_hr_j %>% filter(year(datetime) == k)
-          print(paste0("Run:" ,i, "; ID:", j, "; Year: ", k))
+          print(paste0("Run:" ,i, ", ID:", j, ", Year:", k))
           move_k <- move::move(x = sim_hr_k$x, y = sim_hr_k$y,
             time = as.POSIXct(sim_hr_k$datetime, format = "%Y-%m-%d %H:%M:%S",
             tz = "NYC"), data = sim_hr_k, proj = crs_wgs84n19, animal = j,
@@ -301,6 +301,11 @@ for (i in seq_len(length(sim_runs))){
     }
   }
 }
+
+#------------------------------------------------------------------------------#
+################################ OLD CODE ######################################
+#------------------------------------------------------------------------------#
+
 # Maps of Point Locations and Path Maps
 
 # Rasters of Location Density

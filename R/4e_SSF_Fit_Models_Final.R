@@ -408,7 +408,6 @@ rsvg::rsvg_pdf(file.path("C:/TEMP/SSF_Maps/",
 file.remove(file.path("C:/TEMP/SSF_Maps/",
   paste0("SSF_Probability_Maps_Overview_", model_id, ".svg")))
 
-
 #### -------------------- All Nest Step_Type Maps Combined --------------------
 
 tmap_mode("plot")
@@ -530,15 +529,14 @@ for (j in seq_len(nrow(nests_sim))){
 ##################### GENERATE COVARIATE TABLE #################################
 
 for (i in seq_len(nrow(ssf_fits_best))){
-
   step_type_i_latex <- ssf_fits_best %>%
-      slice(i) %>%
-      pull(step_type) %>%
-      str_replace_all("cruise", "Cruise") %>%
-      str_replace_all("flight", "Flight") %>%
-      str_replace_all("nest", "Nest") %>%
-      str_replace_all("perch", "Perch") %>%
-      str_replace_all("roost", "Roost") #%>%
+    slice(i) %>%
+    pull(step_type) %>%
+    str_replace_all("cruise", "Cruise") %>%
+    str_replace_all("flight", "Flight") %>%
+    str_replace_all("nest", "Nest") %>%
+    str_replace_all("perch", "Perch") %>%
+    str_replace_all("roost", "Roost") #%>%
     #  str_replace_all("_", "$\\\\rightarrow$ ") #%>%
     #  latex2exp::TeX(.)
 

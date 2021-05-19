@@ -169,7 +169,7 @@ for (i in unique(names(con_nest_dist))){
   maine_outline_i <- crop(maine_outline_raster, con_nest_dist_i)
   maine_outline_i <- extend(maine_outline_i, con_nest_dist_i, value = 0)
   maine_outline_mask_i <- mask(maine_outline_i, con_nest_dist_i)
-  plot(maine_outline_mask_i)
+  #plot(maine_outline_mask_i)
   maine_outline_list[[which(names(maine_outline_list) == i)]] <-
     maine_outline_mask_i
 }
@@ -228,13 +228,13 @@ for (i in seq_along(ssf_layers)){
     con_nest_dist_j <- con_nest_dist[[which(names(con_nest_dist) == j)]]
     #plot(con_nest_dist_j)
     ssf_i_j_ext <- extend(ssf_i, con_nest_dist_j, value = NA)
-    plot(ssf_i_j_ext)
+    #plot(ssf_i_j_ext)
     ssf_i_j_crop <- crop(ssf_i_j_ext, con_nest_dist_j)
-    plot(ssf_i_j_crop)
+    #plot(ssf_i_j_crop)
     ssf_i_j_mask <- mask(ssf_i_j_crop, con_nest_dist_j)
     plot(ssf_i_j_mask, main = paste0(i, ": ", j))
 
-    # NEW SECTION - NO TRANSFORMATION (RESCALING DONE AT STEP-LEVEL)
+    # NEW SECTION - NO TRANSFORMATION
     ssf_i_j_final <- ssf_i_j_mask
     writeRaster(ssf_i_j_final, file.path(ssf_raster_dir,
       "Step_Types_Prob_Crop", paste0(j, "_", ssf_layer_i)),
@@ -272,10 +272,10 @@ sim[["spatial"]] <- spatial
 
 sim <- NamedList(agents, pars, spatial)
 #RemoveExcept("sim")
-saveRDS(sim, file ="C:/Work/R/Data/Simulation/sim_20201106-01.rds")
+saveRDS(sim, file ="C:/Work/Sim_Data/sim_20210505-01.rds")
 
 # Recompile sim
-sim <- readRDS(file = "C:/Work/R/Data/Simulation/sim_20200823.rds")
+sim <- readRDS(file = "C:/Work/Sim_Data/sim_20210505-01.rds")
 agents <- sim$agents
 pars <- sim$pars
 spatial <- sim$spatial
@@ -285,7 +285,6 @@ saveRDS(sim, file = "C:/Work/R/Data/Simulation/sim_20201016.rds")
 
 RemoveExcept(c("baea", "nest_set", "base", "max_r", "write_home_dist",
   "write_con_dist", "write_con_dist_nest", "write_con_dist"))
-
 
 #------------------------------------------------------------------------------#
 ################################ OLD CODE ######################################

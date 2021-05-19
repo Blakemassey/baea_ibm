@@ -1,5 +1,4 @@
 ## Load Packages, Scripts, Parameters, Etc. ------------------------------------
-
 pacman::p_load(CircStats, circular, fitdistrplus, ggplot2, ggthemes, momentuHMM,
   lubridate, padr, tidyverse)
 theme_update(plot.title = element_text(hjust = 0.5))
@@ -8,7 +7,6 @@ pacman::p_load(baear, gisr, ibmr)
 
 ## BAEA Data -------------------------------------------------------------------
 baea_behavior_org <- readRDS(file = "Data/Baea/baea_behavior.rds")
-
 baea_behavior <- baea_behavior_org %>%
 #  filter(id == "Norway" | id == "Ellis") %>%
   group_by(id) %>%
@@ -21,8 +19,12 @@ baea_behavior <- baea_behavior_org %>%
     behavior_num = as.numeric(behavior),
     ID = as.factor(id)) %>%
   dplyr::select(id, ID, datetime, behavior, behavior_num, julian_date, long_utm,
-    lat_utm, sex,
-    step_length, step_time, speed, alt, agl, turn_angle, time_proportion)
+    lat_utm, sex, nest_dist, # added nest_dist
+    step_length, step_time, speed, alt, agl, turn_angle, time_proportion) %>%
+  mutate(nest_dist = round(nest_dist/1000))
+  # Had an error 'fitHMM produces "Error in nlm"', when running my data with
+  # nest_dist, so I rescaled the values, as recommended here:
+  # launch*"https://github.com/bmcclintock/momentuHMM/issues/41")
 
 # Cruise = 1, Flight = 2, Nest = 3, Perch = 4, Roost = 5
 
@@ -37,7 +39,7 @@ PlotLocationSunriseSunset(df = baea_behavior %>% as.data.frame %>%
 weibull_pars <- baea_behavior %>%
   group_by(behavior) %>%
   summarize() %>%
-  mutate(count = NA, min_step = NA, max_step = NA)
+  mutate(count = NA_integer_, min_step = NA_real_, max_step = NA_real_)
 
 weibull_weights <- baea_behavior %>%
   group_by(behavior, id) %>%
@@ -86,8 +88,8 @@ von_mises_pars <- baea_behavior %>%
   filter(step_length > 0 & count > 1) %>%
   summarize(count = n()) %>%
   ungroup() %>%
-  mutate(vm_mu = NA,
-    vm_kappa = NA)
+  mutate(vm_mu = NA_real_,
+    vm_kappa = NA_real_)
 
 von_mises_weights <- baea_behavior %>%
   group_by(behavior, id) %>%
@@ -135,8 +137,13 @@ step_dist <- "weibull"
 angle_dist <- "vm"
 step_par <- c(redist_pars$weibull_shape, redist_pars$weibull_scale)
 angle_par <- c(redist_pars$vm_kappa)
-formula <- ~cosinor(julian_date, period = 365) + cosinor(time_proportion,
-  period = 1)
+
+# OLD FORMULA
+#formula <- ~cosinor(julian_date, period = 365) + cosinor(time_proportion,
+#  period = 1)
+
+# NEW FORMULA
+formula <- ~cosinor(time_proportion, period = 1) + nest_dist
 
 library(msm)
 statetable.msm(behavior, ID, data=baea_behavior_prep)
@@ -179,7 +186,8 @@ baea_hmm_full <- fitHMM(
   estAngleMean = list(angle=FALSE),
   verbose = 2)
 toc()
-seconds_to_period(10794.17) # Took ~3 hours on 2019-11-07
+seconds_to_period(13723)
+# Took ~3 hours on 2019-11-07; Took ~3.75 hours on 2021-05-09
 
 saveRDS(baea_hmm_full, file = "Output/Analysis/Transitions/baea_hmm_full.rds")
 baea_hmm_full <- readRDS(file = "Output/Analysis/Transitions/baea_hmm_full.rds")
@@ -187,7 +195,7 @@ baea_hmm_full <- readRDS(file = "Output/Analysis/Transitions/baea_hmm_full.rds")
 plot(baea_hmm_full, plotCI = TRUE)
 names(baea_hmm_full)
 
-# Transition Matrix Probabilities ----
+# Transition Matrix Probabilities ----------------------------------------------
 library(broom)
 library(stringr)
 betas_full <- CIbeta(baea_hmm_full)
@@ -241,7 +249,8 @@ baea_hmm_full <- readRDS(file = "Output/Analysis/Transitions/baea_hmm_full.rds")
 plot(baea_hmm_full)
 
 # For plotting of transitions in dissertation
-df_trans <- ExtractTransitionProbabilities(x = baea_hmm_full)
+df_trans <- ExtractTransitionProbabilities(baea_hmm_full)
+
 saveRDS(df_trans, file = "Output/Analysis/Transitions/df_trans.rds")
 
 #------------------------------------------------------------------------------#

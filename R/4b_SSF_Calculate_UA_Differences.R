@@ -1,7 +1,7 @@
 ################## ModelFit_SSF_Calculate_Covariates ###########################
 # Load packages, scripts, and input parameters ---------------------------------
-pacman::p_load(plyr, dplyr, forcats, ggplot2, ggthemes, purrr, stringr, tidyr,
-  tibble)
+pacman::p_load(plyr, dplyr, forcats, ggplot2, ggthemes, purrr, pryr, stringr,
+  tidyr, tibble)
 pacman::p_load(baear, gisr, ibmr)
 
 # Directories
@@ -27,9 +27,12 @@ colnames(ua_steps) <- colnames(ua_steps) %>%
   str_replace_all("road_dist0", "dist_road0") %>%
   str_replace_all("turbine_dist0", "dist_turbine0")
 
-# Limits the dist_turbine to 20km
+# Limits the dist_turbine to 20km (others not implemented yet)
 ua_steps_dist <- ua_steps %>%
-  mutate(dist_turbine0 = if_else(dist_turbine0 < 20000, dist_turbine0, 20000))
+  mutate(dist_turbine0 = if_else(dist_turbine0 < 20000, dist_turbine0, 20000)) %>%
+  mutate(dist_hydro0 = if_else(dist_hydro0 < 5000, dist_hydro0, 5000)) %>%
+  mutate(dist_developed0 = if_else(dist_developed0 < 2000, dist_developed0, 2000)) %>%
+  mutate(dist_road0 = if_else(dist_road0 < 2000, dist_road0, 2000))
 
 # Find rows with missing data
 ua_steps_na <- ua_steps_dist %>%
@@ -45,8 +48,18 @@ unique(colnames(ua_steps_all %>% select(!matches("[0-9]"))))
 unique(str_remove_all(colnames(ua_steps_all %>% select(matches("[0-9]"))),
   "[:digit:]"))
 
-# Calculate differences for each of the behavior_behaviors
-ua_steps_diff <- ua_steps_all %>%
+# Calculate squared values
+square <- function(x) {
+  out <- x^2
+  return(out)
+}
+
+# Test procedure
+ua_steps_squared <- ua_steps_all %>%
+  mutate(across(matches("[0-9]"), square, .names = "{col}^2"))
+
+# Calculate differences for each behavior_behavior
+ua_steps_diff <- ua_steps_squared %>%
   group_by(behavior_behavior, step_id) %>%
   arrange(behavior_behavior, step_id, case) %>%
   mutate(across(matches("[0-9]"), diff)) %>%
@@ -54,29 +67,14 @@ ua_steps_diff <- ua_steps_all %>%
   filter(case == 1) %>%
   select(-c(step_id))
 
-square <- function(x) {
-  out <- x^2
-  return(out)
+
+# Check object sizes (>100 Mb is too large for GitHub)
+for(i in unique(ua_steps_diff$behavior_behavior)){
+  ua_steps_diff_i <- ua_steps_diff %>%
+    filter(behavior_behavior == i)
+  print(paste0(i))
+  print(object_size(ua_steps_diff_i))
 }
-
-ua_steps_squared_diff <- ua_steps_all %>%
-  dplyr::select(behavior_behavior, step_id, case, developed0:developed30) %>%
-  #group_by(behavior_behavior) %>%
-  slice(1:100) %>%
-  arrange(behavior_behavior, step_id, case) %>%
-  ungroup() %>%
-  mutate(across(matches("[0-9]"), square, .names = "add1_{col}")) %>%
-  #filter(case == 1) %>%
-  select(-c(step_id)) %>%
-  head
-
-ames_data %>%
-  group_by(neighborhood) %>%
-  summarize(across(where(is.numeric), mean, .names = "mean_{col}")) %>%
-  head()
-
-# Check size (>100 Mb is too large for GitHub)
-format(object.size(ua_steps_diff), units = 'MB')
 
 # Split up into behaviors and save RDS
 for (i in unique(ua_steps_diff$behavior_behavior)){
@@ -95,6 +93,16 @@ for (i in unique(ua_steps_diff$behavior_behavior)){
 ############################### OLD CODE #######################################
 ### ------------------------------------------------------------------------ ###
 
+# # Run procedure to calculate differences0545
+# ua_steps_squared_diff <- ua_steps_squared %>%
+#   group_by(behavior_behavior, step_id) %>%
+#   arrange(behavior_behavior, step_id, case) %>%
+#   mutate(across(matches("[0-9]"), diff)) %>%
+#   ungroup() %>%
+#   filter(case == 1) %>%
+#   select(-c(step_id))
+
+
 # ua_steps_all <- list.files(path = file.path(ua_data_dir),
 #     pattern = "^ua_steps_*")
 
@@ -109,3 +117,4 @@ for (i in unique(ua_steps_diff$behavior_behavior)){
 #
 # saveRDS(ua_steps_i_combine, file.path(ua_data_dir, ua_steps_i[1]))
 # rm(ua_steps_i, ua_steps_i_org, ua_steps_i_rd, ua_steps_i_combine)
+

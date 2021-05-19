@@ -1,6 +1,7 @@
 ########################### CALIBRATION CHECK ##################################
 # This script checks the sim run output and calculates the calibration metrics
 # ---------------------------------------------------------------------------- #
+
 # Load packages
 pacman::p_load(cartography,ctmm, dplyr, fasterize, forcats, gplots, ggplot2,
   ggthemes, ggpubr, grid, leaflet, lubridate, magick, mapview, move,
@@ -15,7 +16,7 @@ rasterOptions(maxmem = Inf, progress = "text", timer = TRUE, chunksize=1e9,
   memfrac=.9)
 
 # Sim file
-sim_rds <- "sim_20201106-03.rds"
+sim_rds <- "sim_20210505-01.rds"
 sim_id <- tools::file_path_sans_ext(sim_rds)
 
 # Directories
@@ -79,7 +80,7 @@ if(!dir.exists(file.path(sim_dir, sim_id, sim_calibration_dir))){
 
 # Hydro Dist file
 input_dir <- "C:/ArcGIS/Data/R_Input/BAEA"
-hydro_dist_ras <- raster(file.path(input_dir, "hydro_dist_30mc.tif"))
+hydro_dist_ras <- raster(file.path(input_dir, "dist_hydro_30mc.tif"))
 
 # File Directory and ID
 sim_runs <- readRDS(file.path(sim_dir, sim_id, sim_rds))

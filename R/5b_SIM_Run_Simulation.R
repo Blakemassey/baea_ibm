@@ -13,14 +13,13 @@ toc_msg <- function(tic, toc, msg, info){
 
 source('R/5c_SIM_MovementSubmodelBAEA.R')
 
-sim <- readRDS("C:/Work/R/Data/Simulation/sim_20201106.rds")
+sim <- readRDS("C:/Work/Sim_Data/sim_20210505-01.rds")
 
 #sim$agents$input <- sim$agents$input %>% slice(c(1,3,5,7))
 
-print(format(object.size(sim), units = "Mb"))
+pryr::object_size(sim)
 
-sim_out_file <- "sim_20200325-01.rds"
-
+sim_out_file <- "sim_20210505-01.rds"
 sim_out_dir <- "C:/TEMP"
 sim_id <- tools::file_path_sans_ext(sim_out_file)
 
@@ -106,14 +105,16 @@ RunSimulationBAEA <- function(sim = sim,
   return(runs)
 }
 
-tic()
+# Run simulation!
+tic() #Started at 2021-05-05-2141
 sim_out <- RunSimulationBAEA(sim = sim, runs = 3, write = FALSE,
   output_dir = getwd())
 toc(func.toc = toc_msg)
 
 # Check object size
-#format(object.size(sim_out), units = "Mb")
+pryr::object_size(sim_out)
 
+# Save sim as .rds
 saveRDS(sim_out, file.path(sim_out_dir, sim_id, sim_out_file))
 
 sim_out1 <- sim_out[[1]]
@@ -132,7 +133,12 @@ sim_step_data$behavior <- fct_recode(sim_step_data$behavior, "Cruise" = "1",
 sim_step_data$behavior <- as.character(sim_step_data$behavior)
 
 # KMLs of Points and Flights
-kml_dir = file.path(sim_out_dir, sim_id)
+kml_dir = file.path(sim_out_dir, sim_id, "KMLs")
+
+if(!dir.exists(file.path(kml_dir))){
+  dir.create(file.path(kml_dir))
+}
+
 for (i in unique(sim_step_data$id)){
   sim_step_data_i <- sim_step_data %>% filter(id == i)
   ExportKMLTelemetry(sim_step_data_i, lat = "lat", long = "long", alt = NULL,

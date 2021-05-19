@@ -41,10 +41,13 @@ ua_steps_diff <- list.files(path = ua_data_diff_dir,
     reduce(bind_rows) %>%
     as_tibble(.)
 
+test <- colnames(ua_steps_diff)[900:length(ua_steps_diff)]
+tail(colnames(ua_steps_diff))
+
 # Check histogram of a test value
 ua_steps_diff %>%
-  filter(behavior_behavior == "Nest -> Perch") %>%
-  pull(road_dist0) %>%
+  filter(behavior_behavior == "Perch -> Perch") %>%
+  pull("open_water90^2") %>%
   hist()
 
 # Summarize mean values for each of the differences
@@ -97,11 +100,12 @@ ua_steps_stats <- ua_steps_mean %>%
   left_join(., ua_steps_prob_50) %>%
   left_join(., ua_steps_prob_75) %>%
   left_join(., ua_steps_prob_95) %>%
-  mutate(
-    covar_alpha = str_replace_all(covar, "[0-9]", ""),
-    covar_num = as.numeric(str_replace_all(covar, "[^0-9]", "")),
-    covar_sigma = covar_num/30,
-    covar = paste0(covar_alpha, covar_num))
+  mutate(covar_squared = str_extract_all(covar, "\\^2", simplify = TRUE)) %>%
+  mutate(covar = str_replace_all(covar, "\\^2", "")) %>%
+  mutate(covar_alpha = str_replace_all(covar, "[0-9]", "")) %>%
+  mutate(covar_num = as.numeric(str_replace_all(covar, "[^0-9]", ""))) %>%
+  mutate(covar_sigma = covar_num/30) %>%
+  mutate(covar = paste0(covar_alpha, covar_num, covar_squared))
 
 rm(ua_steps_prob_05, ua_steps_prob_25, ua_steps_prob_50, ua_steps_prob_75,
   ua_steps_prob_95)
@@ -127,8 +131,11 @@ ribbon_fill2 <-  NA
 ribbon_color2 <- viridis::viridis(5)[4]
 ribbon_alpha2 <- .5
 
+
+ua_steps_stats <- ua_steps_stats %>% filter(covar_squared == "")
+
 for (i in unique(ua_steps_stats %>% pull(behavior_behavior))){
-  #i <- "Nest -> Perch"
+  i <- "Perch -> Perch"
   gg_covar_land <-  ggplot(ua_steps_stats %>%
       filter(behavior_behavior == i) %>% filter(covar_alpha %in% landcover)) +
     geom_ribbon(aes(x = covar_sigma, ymin = prob_05, ymax = prob_95),

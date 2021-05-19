@@ -717,6 +717,9 @@ ssf_prob_dir <- file.path(ssf_raster_dir, "Step_Types_Prob")
 ssf_prob_files <- list.files(ssf_prob_dir, pattern = "\\.tif", full.names =TRUE)
 ssf_tmap_list <- vector(mode = "list", length = length(ssf_prob_files))
 
+# Set to TRUE to run - NOT CURRENTLY INCLUDED IN TEXT
+ssf_individual_maine <- TRUE
+
 # For Individual Maps
 for (i in seq_len(length(ssf_prob_files))){
   print(i)
@@ -767,8 +770,6 @@ for (i in seq_len(length(ssf_prob_files))){
       frame = FALSE) #+ tm_credits(step_type_arrow, position=c("right", "top"))
   ssf_prob_i_map
 
-  # NOT CURRENTLY INCLUDED IN TEXT
-  ssf_individual_maine <- FALSE
   if(ssf_individual_maine){
     tmap_save(tm = ssf_prob_i_map, filename = file.path(tex_dir, "Figures/Ch2",
       "SSF_Prob_Raster_Maps", paste0("SSF_Probability_Map_", step_type_text,
@@ -845,14 +846,12 @@ ssf_fits_best <- ssf_fits_best_org
 
 # For Individual Maps
 for (j in seq_len(nrow(nests_sim))){
-#for (j in c(2)){
   # Get nest
   nest_j <- nests_sim %>% slice(j)
   nest_j_name <- nest_j %>% pull(name)
   # List for output
   ssf_tmap_list <- vector(mode = "list", length = 20)
   for (i in seq_len(nrow(ssf_fits_best))){
-#  for (i in c(1)){
     step_type_i_numeric <- ssf_fits_best %>% slice(i) %>% pull(step_type) %>%
       str_replace_all(c("cruise" = "1", "flight" = "2", "nest" = "3",
         "perch" = "4", "roost" = "5"))

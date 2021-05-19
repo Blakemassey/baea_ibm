@@ -18,10 +18,10 @@ file_dir <- "C:/ArcGIS/Data/R_Input/BAEA"
 elev_file <- file.path(file_dir, "elev_30mc.tif")
 
 # Extract class
-dist_developed_file <- file.path(file_dir, "developed_dist_30mc.tif")
-dist_hydro_file <- file.path(file_dir, "hydro_dist_30mc.tif")
-dist_turbine_file <- file.path(file_dir, "turbine_dist_30mc.tif")
-dist_road_file <- file.path(file_dir, "road_dist_30mc.tif")
+dist_developed_file <- file.path(file_dir, "dist_developed_30mc.tif")
+dist_hydro_file <- file.path(file_dir, "dist_hydro_30mc.tif")
+dist_turbine_file <- file.path(file_dir, "dist_turbine_30mc.tif")
+dist_road_file <- file.path(file_dir, "dist_road_30mc.tif")
 
 # Kernel class
 developed_file <- file.path(file_dir, "developed_30mc.tif")
@@ -40,9 +40,9 @@ baea_steps_file <- "Data/BAEA/baea_steps.rds"
 move_pars_file <- "Output/Analysis/Movements/move_pars.rds"
 
 # Subsetting Variables
-subsetting_bandwidths <- FALSE
+subsetting_bandwidths <- TRUE
 subsetting_covars <- TRUE
-subsetting_ids <- FALSE
+subsetting_ids <- TRUE
 subsetting_step_types <- TRUE
 
 ## Import Base Raster, Steps Data, and Movement Parameters ---------------------

@@ -13,6 +13,9 @@ rasterOptions(maxmem = Inf, progress = "text", timer = TRUE,
   memfrac = .85)
 wbt_version() # check WhiteboxTools version
 
+# Set working directory (needed for running as a Local Job)
+setwd("C:/Users/blake/OneDrive/Work/R/Projects/baea_ibm")
+
 # Important: set new_fit to TRUE or set previous model_id
 new_fit <- TRUE
 model_id <- ifelse(new_fit, GetDateTime(), "")
@@ -77,7 +80,7 @@ wgs84n19 <- CRS("+init=epsg:32619") # WGS84 UTM 19N
 
 ## Set run parameters ----------------------------------------------------------
 
-step_type_name = "sc"
+step_type_name = "sp"
 
 step_types_df <- tribble(
    ~step_type_full_name,  ~step_type, ~step_type_index,
@@ -133,41 +136,63 @@ covar_matrix_sc <- tribble(
 
 covar_matrix_sf <- tribble(
   ~covar, ~fixed, ~scale, ~scale_min, ~scale_max, ~scale_start, ~poly2,
-  "open_water",     FALSE, TRUE, 1, 100, 50, FALSE,
-  "road",           FALSE, TRUE, 1, 100, 50, FALSE,
-  "shrub_herb",     FALSE, TRUE, 1, 100, 50, FALSE,
-  "wetland",        FALSE, TRUE, 1, 100, 50, FALSE,
-  "dist_hydro",     TRUE, FALSE, NA, NA, NA, FALSE,
-  "dist_turbine",   TRUE, FALSE, NA, NA, NA, FALSE
+#  "road",           FALSE, TRUE, 1, 100, 50, FALSE, # IN ORIGINALLY, HELD OUT
+  "open_water",     FALSE, TRUE, 1, 100, 50, FALSE, # Trying
+#  "roughness",      FALSE, TRUE, 1,  50, 25, FALSE, # Trying
+  "tri",            FALSE, TRUE, 1,  50, 25, FALSE, # Trying
+#  "tpi",            FALSE, TRUE, 1,  50, 25, FALSE, # Trying
+#  "shrub_herb",     FALSE, TRUE, 1, 100, 50, FALSE, # IN ORIGINALLY
+#  "wetland",        FALSE, TRUE, 1, 100, 50, FALSE, # IN ORIGINALLY
+  "dist_hydro",     TRUE, FALSE, NA, NA, NA, FALSE, # IN ORIGINALLY
+#  "dist_turbine",   TRUE, FALSE, NA, NA, NA, FALSE # IN ORIGINALLY
 )
 
 covar_matrix_ap <- tribble(
   ~covar, ~fixed, ~scale, ~scale_min, ~scale_max, ~scale_start, ~poly2,
-  "forest",         FALSE, TRUE, 1, 100, 50, TRUE,
-  "open_water",     FALSE, TRUE, 1, 100, 50, FALSE,
-  "dist_hydro",     TRUE, FALSE, NA, NA, NA, FALSE
+  "forest",         FALSE, TRUE, 1, 100, 50, TRUE, #KEEP
+  "open_water",     FALSE, TRUE, 1, 100, 50, TRUE, #KEEP (NEW)
+#  "dist_developed", TRUE, FALSE, NA, NA, NA, TRUE,
+  "dist_road",      TRUE, FALSE, NA, NA, NA, TRUE,
+  "dist_hydro",     TRUE, FALSE, NA, NA, NA, FALSE #KEEP
 )
 
+# WORKING ON THIS CURRENTLY
 covar_matrix_sp <- tribble(
   ~covar, ~fixed, ~scale, ~scale_min, ~scale_max, ~scale_start, ~poly2,
-  "developed",      FALSE, TRUE, 1, 100, 50, FALSE,
-  "open_water",     FALSE, TRUE, 1, 100, 50, FALSE,
-  "road",           FALSE, TRUE, 1, 100, 50, FALSE,
-  "wetland",        FALSE, TRUE, 1, 100, 50, FALSE,
-  "dist_hydro",     TRUE, FALSE, NA, NA, NA, FALSE
+#  "developed",      FALSE, TRUE, 1, 5, 2, FALSE,  # Maxed out at 5
+  "open_water",     FALSE, TRUE, 1, 10, 2, FALSE,  # KEEP
+  "forest",         FALSE, TRUE, 1, 10, 2, FALSE,  # KEEP
+  "wetland",        FALSE, TRUE, 1, 10, 5, FALSE,  # KEEP
+  "shrub_herb",     FALSE, TRUE, 1, 10, 5, FALSE,  # KEEP
+#  "road",           FALSE, TRUE, 1, 10, 5, FALSE
+#  "roughness",      FALSE, TRUE, 1, 10, 5, FALSE # Maybe worth keeping
+#  "tpi",            FALSE, TRUE, 1,  10, 5, FALSE,
+  "tri",            FALSE, TRUE, 1,  10, 5,  FALSE,
+#  "dist_developed", TRUE, FALSE, NA, NA, NA, FALSE # Poor improvement
+#  "dist_hydro",     TRUE, FALSE, NA, NA, NA, FALSE # Swamps other covars
+#  "dist_road",      TRUE, FALSE, NA, NA, NA, FALSE # TRYING
 )
 
 covar_matrix_ar <- tribble(
   ~covar, ~fixed, ~scale, ~scale_min, ~scale_max, ~scale_start, ~poly2,
-  "wetland",        FALSE, TRUE, 1, 100, 50, FALSE,
-  "dist_hydro",     TRUE, FALSE, NA, NA, NA, FALSE
+#  "open_water",     FALSE, TRUE, 1, 100, 50, FALSE,
+#  "forest",         FALSE, TRUE, 1, 100, 50, TRUE,  # Trying this.
+#  "wind_class",     FALSE, TRUE, 1, 100, 50, FALSE, # DOES NOT WORK
+#  "roughness",      FALSE, TRUE, 1,  50, 25, FALSE, # NOT INCLUDED ^2
+#  "tpi",            FALSE, TRUE, 1,  50, 25, FALSE, # NOT INCLUDED 1, ^2
+#  "tri",            FALSE, TRUE, 1,  50, 25,  FALSE, # NOT INCLUDED 1,^2
+  "eastness",       FALSE, TRUE, 1, 100, 50, FALSE, # May Keep
+  "northness",      FALSE, TRUE, 1, 100, 50, FALSE, # May Keep
+  "dist_hydro",     TRUE, FALSE, NA, NA, NA, FALSE   # KEEP
 )
 
 covar_matrix_sr <- tribble(
   ~covar, ~fixed, ~scale, ~scale_min, ~scale_max, ~scale_start, ~poly2,
   "northness",      FALSE, TRUE, 1, 100, 50, FALSE,
   "open_water",     FALSE, TRUE, 1, 100, 50, TRUE,
-  "tri",            FALSE, TRUE, 1,  50, 25, FALSE,
+  "roughness",      FALSE, TRUE, 1,  50, 25,  TRUE,
+  "tpi",            FALSE, TRUE, 1,  50, 25,  TRUE,
+  "tri",            FALSE, TRUE, 1,  50, 25,  TRUE,
   "dist_hydro",     TRUE, FALSE, NA, NA, NA, FALSE
 )
 
@@ -262,8 +287,8 @@ GetPopSize <- function(covars_scale){
   } else {
     if(nrow(covars_scale) <= 1) pop_size = 100
     if(nrow(covars_scale) == 2) pop_size = 2000
-    if(nrow(covars_scale) == 3) pop_size = 20000
-    if(nrow(covars_scale) >= 4) pop_size = 50000
+    if(nrow(covars_scale) == 3) pop_size = 10000        #20000
+    if(nrow(covars_scale) >= 4) pop_size = 20000 #50000
   }
   return(pop_size)
 }
@@ -310,10 +335,10 @@ RunClogitFit <- function(model_formula){
 ########################### OPTIMIZATION PROCEDURE  ############################
 
 # Optimization parameters
-max_generations <- ifelse(testing, 25, 25)
-wait_generations = 5
-burnin_generations = 5
-iter_max = 50
+max_generations <- 10
+wait_generations = 3
+burnin_generations = 3
+iter_max = 10
 
 # Pull files
 ua_files <- dir(ua_data_dir)[step_type_index]
@@ -957,7 +982,7 @@ if(save_individual_maps){
       tm_symbols(shape = 8, col = "black", size = .4) +
       tm_layout(#asp = .75,
         title.bg.color = "white",
-        title.position = c("left", "top"),
+        title.position = c(0, .95), #c("left", "top"),
         title.fontfamily = "Latin Modern Roman",
         title = step_type_i_arrow,
         #title.size = ,
@@ -1133,7 +1158,7 @@ for (j in seq_len(nrow(nests_sim))){
       tm_symbols(shape = 8, col = "red", size = .075) +
       tm_layout(#asp = .75,
         title.bg.color = "white",
-        title.position = c("left", "top"),
+        title.position = c(0, .95), # c("left", "top"),
         title.fontfamily = "Latin Modern Roman",
         title = step_type_i_arrow,
         title.size = .4,
