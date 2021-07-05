@@ -40,10 +40,10 @@ baea_steps_file <- "Data/BAEA/baea_steps.rds"
 move_pars_file <- "Output/Analysis/Movements/move_pars.rds"
 
 # Subsetting Variables
-subsetting_bandwidths <- TRUE
+subsetting_bandwidths <- FALSE
 subsetting_covars <- TRUE
-subsetting_ids <- TRUE
-subsetting_step_types <- TRUE
+subsetting_ids <- FALSE
+subsetting_step_types <- FALSE
 
 ## Import Base Raster, Steps Data, and Movement Parameters ---------------------
 
@@ -113,10 +113,10 @@ if (subsetting_bandwidths == TRUE){  # subset data for testing
 }
 
 if (subsetting_covars == TRUE){  # subset data for testing
-  extract_class <- c("dist_road")
-  kernel_class <- c("road")
+  extract_class <- c("dist_developed", "dist_hydro", "dist_turbine", "dist_road")
+  kernel_class <- c()
   terrain_class <- c()
-  covar_stack <- stack(dist_road, road)
+  covar_stack <- stack(dist_developed, dist_hydro, dist_turbine, dist_road)
   names(covar_stack) <- str_replace_all(names(covar_stack), "_30mc", "")
   covar_types <- c(extract_class, kernel_class, terrain_class)
   covariate_cols <- c(paste0(rep(extract_class, each = 1), 0),
@@ -345,6 +345,54 @@ for (i in seq_along(unique(baea_steps$behavior_behavior))){
 ### ------------------------------------------------------------------------ ###
 ############################### OLD CODE #######################################
 ### ------------------------------------------------------------------------ ###
+
+
+#
+# library(tidyverse)
+#
+# # Set directories
+# ua_data_dir <- "Output/Analysis/SSF/UA_Data"
+# ua_data_dist_dir <- "Output/Analysis/SSF/Archive/UA_Data_Dist"
+# ua_data_notrescaled_dir <- "Output/Analysis/SSF/Archive/UA_Data_NotRescaled"
+#
+# # Import rescaled ua_steps distance covariates
+# ua_dist <- map(list.files(ua_data_dist_dir, full.names = TRUE), readRDS) %>%
+#   bind_rows()
+#
+# # Subset to only the needed columns
+# ua_dist_sub <- ua_dist %>%
+#   select(case, step_id, id, datetime, behavior_behavior,
+#     dist_developed0:dist_road0)
+# colnames(ua_dist_sub)
+#
+# # Import *not* rescaled ua_steps distance covariates
+# ua_notrescaled <- map(list.files(ua_data_notrescaled_dir, full.names = TRUE),
+#   readRDS) %>% bind_rows()
+#
+# # Subset to only the needed columns
+# ua_notrescaled_sub <- ua_notrescaled %>%
+#   select(-c("developed_dist0", "hydro_dist0", "turbine_dist0", "road_dist0"))
+#
+# # Join data together
+# ua_steps <- right_join(ua_notrescaled_sub, ua_dist_sub, by = c("case",
+#   "step_id", "id", "datetime", "behavior_behavior"))
+#
+# # Check that rescaled distance values look correct
+# ua_steps_check <- ua_steps %>%
+#   select(case, step_id, id, datetime, behavior_behavior, dist_developed0,
+#     dist_hydro0, dist_turbine0, dist_road0)
+#
+# # Split up into behaviors and save RDS
+# for (i in unique(ua_steps$behavior_behavior)){
+#   ua_steps_i <- ua_steps %>% filter(behavior_behavior == i)
+#   step_type_numeric <- i %>%
+#     fct_drop() %>%
+#     str_to_lower() %>%
+#     str_replace_all(" -> ", "_")
+#   saveRDS(ua_steps_i, file.path(ua_data_dir, paste0("ua_steps_",
+#     step_type_numeric, ".rds")))
+# }
+
 
 ############## FIT UNIVARIATE MODELS AT FIXED BANDWIDTHS #######################
 #

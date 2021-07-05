@@ -80,7 +80,7 @@ wgs84n19 <- CRS("+init=epsg:32619") # WGS84 UTM 19N
 
 ## Set run parameters ----------------------------------------------------------
 
-step_type_name = "sp"
+step_type_name = "af"
 
 step_types_df <- tribble(
    ~step_type_full_name,  ~step_type, ~step_type_index,
@@ -100,21 +100,22 @@ step_type_index <- step_types_df %>%
 
 covar_matrix_ac <- tribble(
   ~covar, ~fixed, ~scale, ~scale_min, ~scale_max, ~scale_start, ~poly2,
-  "eastness",       FALSE, TRUE, 1, 100, 50, FALSE,
-  "roughness",      FALSE, TRUE, 1,  50, 25, FALSE,
+  "tpi",            FALSE, TRUE, 1,  50, 25, FALSE,
+  "wetland",        FALSE, TRUE, 1, 100, 50, FALSE,
   "dist_hydro",     TRUE, FALSE, NA, NA, NA, FALSE,
   "dist_turbine",   TRUE, FALSE, NA, NA, NA, FALSE
 )
 
 covar_matrix_af <- tribble(
   ~covar, ~fixed, ~scale, ~scale_min, ~scale_max, ~scale_start, ~poly2,
+  "tpi",            FALSE, TRUE, 1,  50, 25, FALSE, # TRYING
   "eastness",       FALSE, TRUE, 1, 100, 50, FALSE,
   "roughness",      FALSE, TRUE, 1,  50, 25, FALSE,
   "dist_hydro",     TRUE, FALSE, NA, NA, NA, FALSE,
   "dist_turbine",   TRUE, FALSE, NA, NA, NA, FALSE
 )
 
-covar_matrix_sc_STABLE <- tribble(
+covar_matrix_sc <- tribble(
   ~covar, ~fixed, ~scale, ~scale_min, ~scale_max, ~scale_start, ~poly2,
   "forest",         FALSE, TRUE, 1, 100, 50, TRUE, # Added 2021-03-07
   "open_water",     FALSE, TRUE, 1, 100, 50, TRUE, # Added 2021-03-07
@@ -122,78 +123,45 @@ covar_matrix_sc_STABLE <- tribble(
   "dist_turbine",   TRUE, FALSE, NA, NA, NA, FALSE
 )
 
-covar_matrix_sc <- tribble(
-  ~covar, ~fixed, ~scale, ~scale_min, ~scale_max, ~scale_start, ~poly2,
-  "forest",         FALSE, TRUE, 1, 100, 50, TRUE, # KEEP
-  "open_water",     FALSE, TRUE, 1, 100, 50, TRUE, # KEEP
-  "wetland",        FALSE, TRUE, 1, 100, 50, FALSE, # GOOD FOR N->C
-  "eastness",       FALSE, TRUE, 1, 100, 50, FALSE, # May work
-  "northness",      FALSE, TRUE, 1, 100, 50, FALSE, # May work
-  "wind_class",     FALSE, TRUE, 1, 100, 50, TRUE,
-  "dist_hydro",     TRUE, FALSE, NA, NA, NA, FALSE, # KEEP
-  "dist_turbine",   TRUE, FALSE, NA, NA, NA, FALSE  # KEEP
-)
-
 covar_matrix_sf <- tribble(
   ~covar, ~fixed, ~scale, ~scale_min, ~scale_max, ~scale_start, ~poly2,
-#  "road",           FALSE, TRUE, 1, 100, 50, FALSE, # IN ORIGINALLY, HELD OUT
   "open_water",     FALSE, TRUE, 1, 100, 50, FALSE, # Trying
-#  "roughness",      FALSE, TRUE, 1,  50, 25, FALSE, # Trying
   "tri",            FALSE, TRUE, 1,  50, 25, FALSE, # Trying
-#  "tpi",            FALSE, TRUE, 1,  50, 25, FALSE, # Trying
-#  "shrub_herb",     FALSE, TRUE, 1, 100, 50, FALSE, # IN ORIGINALLY
-#  "wetland",        FALSE, TRUE, 1, 100, 50, FALSE, # IN ORIGINALLY
   "dist_hydro",     TRUE, FALSE, NA, NA, NA, FALSE, # IN ORIGINALLY
-#  "dist_turbine",   TRUE, FALSE, NA, NA, NA, FALSE # IN ORIGINALLY
 )
 
 covar_matrix_ap <- tribble(
   ~covar, ~fixed, ~scale, ~scale_min, ~scale_max, ~scale_start, ~poly2,
-  "forest",         FALSE, TRUE, 1, 100, 50, TRUE, #KEEP
-  "open_water",     FALSE, TRUE, 1, 100, 50, TRUE, #KEEP (NEW)
-#  "dist_developed", TRUE, FALSE, NA, NA, NA, TRUE,
-  "dist_road",      TRUE, FALSE, NA, NA, NA, TRUE,
-  "dist_hydro",     TRUE, FALSE, NA, NA, NA, FALSE #KEEP
+  "forest",         FALSE, TRUE, 1, 10, 5, FALSE, #KEEP
+  "open_water",     FALSE, TRUE, 1, 10, 5, FALSE,  #Poly2 TRUE results are bad
+  "shrub_herb",     FALSE, TRUE, 1, 10, 5, FALSE,  # KEEP
+  "wetland",        FALSE, TRUE, 1, 10, 5, FALSE,  # KEEP
+  "tri",            FALSE, TRUE, 1, 10, 5,  FALSE, # KEEP or swap w/Roughness
+  "dist_hydro",     TRUE, FALSE, NA, NA, NA, FALSE # KEEP
 )
 
-# WORKING ON THIS CURRENTLY
 covar_matrix_sp <- tribble(
   ~covar, ~fixed, ~scale, ~scale_min, ~scale_max, ~scale_start, ~poly2,
-#  "developed",      FALSE, TRUE, 1, 5, 2, FALSE,  # Maxed out at 5
-  "open_water",     FALSE, TRUE, 1, 10, 2, FALSE,  # KEEP
   "forest",         FALSE, TRUE, 1, 10, 2, FALSE,  # KEEP
-  "wetland",        FALSE, TRUE, 1, 10, 5, FALSE,  # KEEP
+  "open_water",     FALSE, TRUE, 1, 10, 2, FALSE,  # KEEP
   "shrub_herb",     FALSE, TRUE, 1, 10, 5, FALSE,  # KEEP
-#  "road",           FALSE, TRUE, 1, 10, 5, FALSE
-#  "roughness",      FALSE, TRUE, 1, 10, 5, FALSE # Maybe worth keeping
-#  "tpi",            FALSE, TRUE, 1,  10, 5, FALSE,
-  "tri",            FALSE, TRUE, 1,  10, 5,  FALSE,
-#  "dist_developed", TRUE, FALSE, NA, NA, NA, FALSE # Poor improvement
-#  "dist_hydro",     TRUE, FALSE, NA, NA, NA, FALSE # Swamps other covars
-#  "dist_road",      TRUE, FALSE, NA, NA, NA, FALSE # TRYING
+  "tri",            FALSE, TRUE, 1, 10, 5,  FALSE, # KEEP or swap w/Roughness
+  "wetland",        FALSE, TRUE, 1, 10, 5, FALSE,  # KEEP
 )
 
 covar_matrix_ar <- tribble(
   ~covar, ~fixed, ~scale, ~scale_min, ~scale_max, ~scale_start, ~poly2,
-#  "open_water",     FALSE, TRUE, 1, 100, 50, FALSE,
-#  "forest",         FALSE, TRUE, 1, 100, 50, TRUE,  # Trying this.
-#  "wind_class",     FALSE, TRUE, 1, 100, 50, FALSE, # DOES NOT WORK
-#  "roughness",      FALSE, TRUE, 1,  50, 25, FALSE, # NOT INCLUDED ^2
-#  "tpi",            FALSE, TRUE, 1,  50, 25, FALSE, # NOT INCLUDED 1, ^2
-#  "tri",            FALSE, TRUE, 1,  50, 25,  FALSE, # NOT INCLUDED 1,^2
-  "eastness",       FALSE, TRUE, 1, 100, 50, FALSE, # May Keep
-  "northness",      FALSE, TRUE, 1, 100, 50, FALSE, # May Keep
-  "dist_hydro",     TRUE, FALSE, NA, NA, NA, FALSE   # KEEP
+  "eastness",       FALSE, TRUE, 1, 10, 5, FALSE,
+  "northness",      FALSE, TRUE, 1, 10, 5, FALSE,
+  "dist_hydro",     TRUE, FALSE, NA, NA, NA, FALSE
 )
 
 covar_matrix_sr <- tribble(
   ~covar, ~fixed, ~scale, ~scale_min, ~scale_max, ~scale_start, ~poly2,
-  "northness",      FALSE, TRUE, 1, 100, 50, FALSE,
-  "open_water",     FALSE, TRUE, 1, 100, 50, TRUE,
-  "roughness",      FALSE, TRUE, 1,  50, 25,  TRUE,
-  "tpi",            FALSE, TRUE, 1,  50, 25,  TRUE,
-  "tri",            FALSE, TRUE, 1,  50, 25,  TRUE,
-  "dist_hydro",     TRUE, FALSE, NA, NA, NA, FALSE
+  "northness",      FALSE, TRUE, 1, 10, 5, FALSE, # May Keep
+  "open_water",     FALSE, TRUE, 1, 10, 5, FALSE, # KEEP
+  "wetland",        FALSE, TRUE, 1, 10, 5, FALSE, # KEEP
+  "dist_hydro",     TRUE, FALSE, NA, NA, NA, FALSE # KEEP
 )
 
 # Covariates matrix
@@ -209,9 +177,9 @@ covar_matrix_all <- tribble(
   "eastness",       FALSE, TRUE, 1, 100, 50, FALSE,
   "northness",      FALSE, TRUE, 1, 100, 50, FALSE,
   "wind_class",     FALSE, TRUE, 1, 100, 50, FALSE,
-  "roughness",      FALSE, TRUE, 1,  50, 25,  TRUE,
-  "tpi",            FALSE, TRUE, 1,  50, 25,  TRUE,
-  "tri",            FALSE, TRUE, 1,  50, 25,  TRUE,
+  "roughness",      FALSE, TRUE, 1,  50, 25, FALSE,
+  "tpi",            FALSE, TRUE, 1,  50, 25, FALSE,
+  "tri",            FALSE, TRUE, 1,  50, 25, FALSE,
   "dist_developed", TRUE, FALSE, NA, NA, NA, FALSE,
   "dist_hydro",     TRUE, FALSE, NA, NA, NA, FALSE,
   "dist_road",      TRUE, FALSE, NA, NA, NA, FALSE,
@@ -287,7 +255,7 @@ GetPopSize <- function(covars_scale){
   } else {
     if(nrow(covars_scale) <= 1) pop_size = 100
     if(nrow(covars_scale) == 2) pop_size = 2000
-    if(nrow(covars_scale) == 3) pop_size = 10000        #20000
+    if(nrow(covars_scale) == 3) pop_size = 10000 #20000
     if(nrow(covars_scale) >= 4) pop_size = 20000 #50000
   }
   return(pop_size)
@@ -319,7 +287,7 @@ PrepUAStepDataForOptimization <- function(ua_data, keep_covars){
     dplyr::select(dummy, everything())
   # Find rows with missing data
   ua_data_na <- ua_data %>%
-    filter_all(any_vars(is.na(.))) %>%
+    filter(if_any(everything(), is.na)) %>%
     dplyr::select(case, step_id)
   # Remove step_id pairs where any data is missing
   ua_data_final <- ua_data %>% anti_join(., ua_data_na,

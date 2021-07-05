@@ -4,7 +4,7 @@
 # exporting KMLs and Shapefiles.
 #------------------------------------------------------------------------------#
 
-# Load packages
+## Load Packages ---------------------------------------------------------------
 pacman::p_load(lubridate, dplyr)
 library(baear)#devtools::reload("C:/Users/blake/OneDrive/Work/R/Packages/baear")
 library(gisr) #devtools::reload("C:/Users/blake/OneDrive/Work/R/Packages/gisr")

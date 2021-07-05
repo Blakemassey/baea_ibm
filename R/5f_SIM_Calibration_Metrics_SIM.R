@@ -3,7 +3,7 @@
 # ---------------------------------------------------------------------------- #
 
 # Load packages
-pacman::p_load(cartography,ctmm, dplyr, fasterize, forcats, gplots, ggplot2,
+pacman::p_load(cartography, ctmm, dplyr, fasterize, forcats, gplots, ggplot2,
   ggthemes, ggpubr, grid, leaflet, lubridate, magick, mapview, move,
   OpenStreetMap, patchwork, plotly, prettymapr, purrr, raster,readr, rosm, rsvg,
   sf, s2, tmap, tmaptools, viridis, units, webshot, zoo)
@@ -16,7 +16,7 @@ rasterOptions(maxmem = Inf, progress = "text", timer = TRUE, chunksize=1e9,
   memfrac=.9)
 
 # Sim file
-sim_rds <- "sim_20210505-01.rds"
+sim_rds <- "sim_20210616-09.rds"
 sim_id <- tools::file_path_sans_ext(sim_rds)
 
 # Directories
@@ -322,7 +322,7 @@ gg_combine_ridge
 
 ggsave(filename = "gg_combine_ridge.png", plot = gg_combine_ridge,
   path = file.path(sim_dir, sim_id, sim_calibration_dir), scale = 1, width = 6,
-  height = 4, units = "in", dpi = 300)
+  height = 4, units = "in", dpi = 300, bg = "white")
 
 
 ## Behavior Data ---------------------------------------------------------------
@@ -554,7 +554,7 @@ sim_behavior_sum <- sim_behavior %>%
   mutate(bins = CutProportion(time_proportion, breaks)) %>%
   mutate(bins_mid = factor(CutProportionMid(time_proportion, breaks))) %>%
   group_by(bins_mid) %>%   #group_by(sex, bins_mid) %>%
-  count(behavior) %>%
+  dplyr::count(behavior) %>%
   mutate(value = n/sum(n)) %>%
   mutate(bins_mid = as.numeric(as.character(bins_mid))) %>%
   ungroup(.) %>%
@@ -696,10 +696,11 @@ rm(i, tex_df, tex_name_i, tex_str_i, tex_i, tex_head)
 backgrd <- image_blank(2700, 1800, color = "white")
 # Create Final Plot and Export to Dissertation
 behavior_baea_no_label_fig <- image_read(gg_baea_no_label_fig_file)
-behavior_sim_no_label_fig <- image_read(gg_sim_no_label_fig_file)
+behavior_sim_no_label_fig <- image_read(gg_sim_no_label_fig_file) %>%
+  image_chop(., "0x60")
 behavior_daily_label_fig <- backgrd %>%
-  image_composite(., behavior_sim_no_label_fig, offset = "+100+800") %>%
   image_composite(., behavior_baea_no_label_fig, offset = "+100+50") %>%
+  image_composite(., behavior_sim_no_label_fig, offset = "+100+860") %>%
   image_composite(., image_rotate(tex_lab_prop, 270), offset = "+70+700") %>%
   image_composite(., image_rotate(tex_lab_emp, 90), offset = "+2375+390") %>%
   image_composite(., image_rotate(tex_lab_sim, 90), offset = "+2375+1100") %>%

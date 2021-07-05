@@ -1,20 +1,106 @@
 # sim
 # agent_states
-# step_data[i + 1, "behavior"] <- 4
+# step_data[i + 1, "behavior"] <- 2
 # step
+
+BehaviorSubModelBAEA2 <- function(sim = sim,
+                                 agent_states = agent_states,
+                                 step_data = step_data,
+                                 step = step){
+  sex <- agent_states$sex
+  beta <- as.matrix(sim$pars$classes[[sex]]$constant$fixed$behavior_betas)
+  step_row <- which(step_data$datetime == step)
+  current_behavior <- as.numeric(step_data[step_row, "behavior"])
+  current_time_prop <- as.numeric(step_data[step_row, "time_proportion"])
+  next_time_prop <- as.numeric(step_data[step_row + 1, "time_proportion"])
+  step_data <- as.data.frame(step_data)
+
+  print(paste0("Current behavior: ", current_behavior))
+
+  gamma <- diag(5)
+  g <- beta[1, ]  #  g = state transition probabilities intercepts
+  g <- g +
+    beta[2, ] * cos(2*pi * current_time_prop) +
+    beta[3, ] * sin(2*pi * current_time_prop) +
+    exp(g)
+  gamma[!gamma] <- exp(g) # Beta values in non-diagonal locations in matrix
+  gamma2 <- t(gamma) # probabilities for state transitions are now in rows
+  gamma3 <- gamma2/apply(gamma2, 1, sum) # rows sum to 1
+  if(current_time_prop <= .5 & current_behavior != 5){
+    gamma3[, 5] <- 0
+    gamma3 <- gamma3/apply(gamma3, 1, sum)
+    gamma3[, 5] <- 0
+  }
+  # next control is new - it forces agent to leave roost after .3 time prop
+  if(current_time_prop >= .3 & current_time_prop <= .5 & current_behavior == 5){
+    gamma3[, 5] <- 0
+    gamma3 <- gamma3/apply(gamma3, 1, sum)
+    gamma3[, 5] <- 0
+  }
+  if(current_time_prop > .5 & current_behavior == 5){
+    gamma3[, 1:4] <- 0
+    gamma3[, 5] <- 1
+    #gamma3 <- gamma3/apply(gamma3, 1, sum)
+  }
+  if(current_behavior == 1){ # prevents 1->5 (Cruise to Roost)
+    gamma3[, 5] <- 0
+    gamma3 <- gamma3/apply(gamma3, 1, sum)
+    gamma3[, 5] <- 0
+  }
+  if(current_behavior == 5){ # prevents 5->1 (Roost to Cruise)
+    gamma3[, 1] <- 0
+    gamma3 <- gamma3/apply(gamma3, 1, sum)
+    gamma3[, 1] <- 0
+  }
+
+  # NEW STEP - Reduce the probability of perching behavior by 25%
+  gamma4 <- gamma3
+  if(current_time_prop >= .25 & current_time_prop <= .85){
+    gamma4[current_behavior, 4] <- gamma4[current_behavior, 4]*(.75)
+  }
+  gamma4 <- gamma4/apply(gamma4, 1, sum)
+
+  # trans prob. given current behavior
+  next_behavior <- sample(1:5, size = 1, prob = gamma4[current_behavior, ])
+  print(paste0("Next behavior: ", next_behavior))
+
+  if(step_row != nrow(step_data)) { # prevent the creation of an "extra" step
+    if(next_time_prop == 1){ # select Nest or Roost only for last location of day
+      if (next_behavior %in% c(3,5)){
+        step_data[step_row + 1, "behavior"] <- next_behavior
+      } else { # forces selection of Nest or Roost
+        gamma3[, c(1,2,4)] <- 0
+        gamma3 <- gamma3/apply(gamma3, 1, sum)
+        gamma3[, c(1,2,4)] <- 0
+        print("End of day")
+        print("prob: ", gamma3[current_behavior,])
+        next_behavior <- sample(1:5, size = 1, prob = gamma3[current_behavior,])
+        step_data[step_row + 1, "behavior"] <- next_behavior
+      }
+    }
+    if(current_time_prop == 1){
+      step_data[step_row + 1, "behavior"] <- current_behavior
+    }
+    step_data[step_row + 1, "behavior"] <- next_behavior
+  }
+  return(step_data)
+}
 
 MovementSubModelBAEA2 <- function(sim = sim,
                                   agent_states = agent_states,
                                   step_data = step_data,
                                   step = step) {
+  verbose <- FALSE
   plotting <- FALSE #TRUE
   base <- sim$spatial$base
   cellsize <- raster::res(sim$spatial$base)[1]
   i <- which(step_data$datetime == step)
+
   current_behavior <- as.numeric(step_data[i, "behavior"])
   next_behavior <- as.numeric(step_data[i + 1, "behavior"])
   behavior_trans <- paste0(current_behavior, "_", next_behavior)
   sex <- agent_states$sex
+  home_xy <- c(agent_states$start_x, agent_states$start_y)
 
   if (i == 1) {
     step_data[1, "exp_angle"] <- sample(x=seq(from=0, to=(2*pi), by=(2*pi/360)),
@@ -22,7 +108,7 @@ MovementSubModelBAEA2 <- function(sim = sim,
   } else {
     step_data$exp_angle[i] <- step_data$abs_angle[i-1]
   }
-  print(paste("behavior_trans:", behavior_trans))
+  if(verbose) print(paste("behavior_trans:", behavior_trans))
 
   if (i == nrow(step_data)){
     print(paste("Last step for :", agent_states$id))
@@ -39,23 +125,26 @@ MovementSubModelBAEA2 <- function(sim = sim,
   } else {
     step_type <- "Move"
   }
-  print(paste("step_type:", step_type))
+  if(verbose) print(paste("step_type:", step_type))
   if (i == nrow(step_data)){
     step_data$abs_angle[i] <- NA
     step_data$step_length[i] <- NA
   } else if (step_type == "None") { # no movement
-    step_data$x[i+1] <- step_data$x[i]
-    step_data$y[i+1] <- step_data$y[i]
-    step_data$abs_angle[i] <- 0
-    step_data$step_length[i] <- 0
+    step_data[i+1, "x"] <- step_data[i, "x"]
+    step_data[i+1, "y"] <- step_data[i, "y"]
+    step_data[i, "abs_angle"] <- 0
+    step_data[i, "step_length"] <- 0
+    step_data[i+1, "nest_dist"] <- as.integer(sqrt((home_xy[[1]] -
+      step_data[i+1, "x"])^2 + (home_xy[[2]] - step_data[i+1, "y"])^2))
   } else if (step_type == "To Nest" & i != nrow(step_data)) {
-    home_xy <- c(agent_states$start_x, agent_states$start_y)
     step_data$x[i+1] <- home_xy[[1]]
     step_data$y[i+1] <- home_xy[[2]]
     step_data$abs_angle[i] <- CalculateAngleToPoint(step_data$x[i],
       step_data$y[i], step_data$x[i+1], step_data$y[i+1])
     step_data$step_length[i] <- as.integer(sqrt((step_data[i, "x"] -
       step_data[i+1, "x"])^2 + (step_data[i, "y"]-step_data[i+1, "y"])^2))
+    step_data[i+1, "nest_dist"] <- as.integer(sqrt((home_xy[[1]] -
+      step_data[i+1, "x"])^2 + (home_xy[[2]] - step_data[i+1, "y"])^2))
   } else if (step_type == "Move"){
 
     # x <- step_data$x[i] + 1500;y <- step_data$y[i] + 1500
@@ -68,14 +157,15 @@ MovementSubModelBAEA2 <- function(sim = sim,
     move_rotated <- suppressWarnings(RotateRaster(move_org,
       Rad2Deg(step_data$exp_angle[i]), resolution=raster::res(base)))
     move_crop <- raster::crop(move_rotated, move_org, snap = "near")
-    move_resample <- raster::resample(move_rotated, move_org, method = "ngb")
+    move_resample <- raster::resample(move_rotated, move_org, method = "ngb",
+      progress = FALSE)
     move_shift <- raster::shift(move_resample, dx = step_data$x[i],
       dy = step_data$y[i])
     raster::crs(move_shift) <- raster::crs(base)
 
     move_shift_ext <- raster::extend(move_shift, move_org_shift, value = NA)
-    move_shift_crop <- raster::crop(move_shift_ext, move_org_shift, snap="in")
-    move_kernel <- raster::mask(move_shift_crop, move_org_shift, value=NA)
+    move_shift_crop <- raster::crop(move_shift_ext, move_org_shift, snap = "in")
+    move_kernel <- raster::mask(move_shift_crop, move_org_shift, value = NA)
     if(plotting) plot(move_kernel)
 
     # Con_Nest Kernel
@@ -84,12 +174,12 @@ MovementSubModelBAEA2 <- function(sim = sim,
     pars_rescale <- sim$pars$classes[[sex]]$constant$fixed$con_nest_pars$rescale
     con_nest_prob <- CreateRasterConNestDistProb(con_nest_raster,
       raster_extent = raster::extent(move_kernel), pars_gamma = pars_gamma,
-      pars_rescale = pars_rescale, x=step_data$x[i], y=step_data$y[i],
-      base= base)
+      pars_rescale = pars_rescale, x = step_data$x[i], y = step_data$y[i],
+      base = base)
     raster::crs(con_nest_prob) <- raster::crs(base)
     con_nest_ext <- raster::extend(con_nest_prob, move_kernel, value = NA)
     con_nest_crop <- raster::crop(con_nest_ext, move_kernel, snap = "in")
-    con_nest_kernel <- raster::mask(con_nest_crop, move_kernel, value=NA)
+    con_nest_kernel <- raster::mask(con_nest_crop, move_kernel, value = NA)
     if(plotting) plot(con_nest_kernel)
 
     # Maine_Outline Kernel
@@ -101,8 +191,6 @@ MovementSubModelBAEA2 <- function(sim = sim,
       value = NA)
     if(plotting) plot(maine_outline_kernel)
 
-    #print(paste0("nest_id: ", agent_states$nest_id))
-
     # SSF Layer
     ssf_org <-sim$spatial$ssf_layers[[`behavior_trans`]][[agent_states$nest_id]]
     ssf_ext <- raster::extend(ssf_org, move_kernel, value = NA)
@@ -110,21 +198,9 @@ MovementSubModelBAEA2 <- function(sim = sim,
     ssf_mask <- raster::mask(ssf_crop, move_kernel, snap = "in")
     if(plotting) plot(ssf_mask)
 
-    # ORIGINAL WAY TO CALCULATE THE KERNEL
+    # Calculate the SSF Kernel
     ssf_kernel <- raster::extend(ssf_mask, move_kernel, value = NA)
     if(plotting) plot(ssf_kernel)
-
-    # # NEW SECTION THAT DOES A RESCALE AT EVERY STEP
-    # ssf_rescale <- ssf_mask
-    # ssf_rescale[] <- scales::rescale(ssf_mask[], to = c(-4, 4)) # Tried 4, 4
-    # if(plotting) plot(ssf_rescale)
-
-    # if(behavior_trans == "3_4"){
-    #   ssf_rescale <- ssf_mask
-    # }
-    # ssf_kernel <- raster::calc(ssf_rescale, fun = boot::inv.logit)
-    # if(plotting) plot(ssf_kernel)
-    #raster::writeRaster(ssf_kernel, "C:/Temp/Sim6/ssf_kernel.tif")
 
     # Restrictions for different next_behavior
     # 1 (cruise), 2 (flight) = no restrictions
@@ -134,8 +210,8 @@ MovementSubModelBAEA2 <- function(sim = sim,
     if (next_behavior %in% c(4,5)){
       land <- sim$spatial$landscape$land[[agent_states$nest_id]]
     } else {
-     land <- move_kernel
-     land[land > 0] <- 1
+      land <- move_kernel
+      land[land > 0] <- 1
     }
     land_ext <- raster::extend(land, move_kernel, value = 0)
     land_crop <- raster::crop(land_ext, move_kernel, snap = "in")
@@ -144,37 +220,52 @@ MovementSubModelBAEA2 <- function(sim = sim,
 
     ### FINAL PROBABILITY LAYER (use geometric mean for final probability layer)
 
-    move_kernel_log <- log(move_kernel)
-    if(plotting) plot(move_kernel_log)
-    con_nest_kernel_log <- log(con_nest_kernel)
-    if(plotting) plot(con_nest_kernel_log)
-    land_log <- log(land_kernel)
-    if(plotting) plot(land_log)
-    maine_outline_log <- log(maine_outline_kernel)
-    if(plotting) plot(maine_outline_log)
-    ssf_kernel_log <- log(ssf_kernel)
-    if(plotting) plot(ssf_kernel_log)
-    # print(paste0("move_kernel_log:", raster::extent(move_kernel_log)))
-    # print(paste0("con_nest_kernel_log:", raster::extent(con_nest_kernel)))
-    # print(paste0("land_log:", raster::extent(land_log)))
-    # print(paste0("maine_outline_log:", raster::extent(maine_outline_log)))
+    move_kernel_1 <- move_kernel/raster::cellStats(move_kernel, stat = "sum")
+    con_nest_kernel_1 <- con_nest_kernel/raster::cellStats(con_nest_kernel,
+      stat = "sum")
+    ssf_kernel_1 <- ssf_kernel/raster::cellStats(ssf_kernel, stat = "sum")
 
+    move_kernel_log <- log(move_kernel_1)
+    if(plotting) plot(move_kernel_log)
+    con_nest_kernel_log <- log(con_nest_kernel_1)
+    if(plotting) plot(con_nest_kernel_log)
+
+    ssf_kernel_log <- log(ssf_kernel_1)
+    if(plotting) plot(ssf_kernel_log)
+
+    land_log <- log(land_kernel) # All 0 or 1, so no need to standardize
+    if(plotting) plot(land_log)
+    maine_outline_log <- log(maine_outline_kernel) # All 0 or 1
+    if(plotting) plot(maine_outline_log)
+
+    # ORIGINAL VERSION
+    # if (next_behavior %in% c(4,5)){
+    #   # If end behavior is perch or roost - Exclude water
+    #   kernel_stack <- raster::stack(list(con_nest_kernel_log, land_log,
+    #     maine_outline_log, move_kernel_log, ssf_kernel_log))
+    # } else {
+    #   # If end behavior is cruise or flight - Include water
+    #   kernel_stack <- raster::stack(list(con_nest_kernel_log,
+    #     maine_outline_log, move_kernel_log, ssf_kernel_log))
+    # }
+
+    # NEW VERSION (Without con_nest_kernel_log)
     if (next_behavior %in% c(4,5)){
-      # If end behavior is perch or roost - SSF, Maine, and Land
-      kernel_stack <- raster::stack(list(land_log, maine_outline_log,
-        con_nest_kernel_log, ssf_kernel_log))
+      # If end behavior is perch or roost - Exclude water
+      kernel_stack <- raster::stack(list(land_log,
+        maine_outline_log, move_kernel_log, move_kernel_log, ssf_kernel_log))
     } else {
-      # If end behavior is cruise or flight - SSF, Con_Nest, Maine, and Land
-      kernel_stack <- raster::stack(list(move_kernel_log, con_nest_kernel_log,
-        maine_outline_log, ssf_kernel_log))
+      # If end behavior is cruise or flight - Include water
+      kernel_stack <- raster::stack(list(
+        maine_outline_log, move_kernel_log, move_kernel_log, ssf_kernel_log))
     }
 
     kernel_stack_mean <- raster::calc(kernel_stack, fun = mean, na.rm = TRUE)
 
     if(plotting) plot(kernel_stack_mean)
     prob_raster <- exp(kernel_stack_mean)
-    #prob_raster <- prob_raster/raster::cellStats(prob_raster, stat = "sum")
     prob_raster[is.na(prob_raster)] <- 0
+    #prob_raster <- prob_raster/cellStats(prob_raster, stat = "sum")
 
     raster::crs(prob_raster) <- raster::crs(sim$spatial$base)
     if(plotting) plot(prob_raster)
@@ -186,30 +277,15 @@ MovementSubModelBAEA2 <- function(sim = sim,
     if(plotting) raster::hist(prob_raster)
     ### END OF OTHER PROBABILITY LAYERS
 
-    ## OLD SECTION ##########
-
-    # destination_cell <- suppressWarnings(sampling::strata(data = data.frame(
-    #   cell = 1:raster::ncell(prob_raster)), stratanames = NULL, size=1,
-    #   method = "systematic", pik = prob_raster@data@values))
-    # while(is.na(destination_cell[1,1])) {
-    #   destination_cell <- suppressWarnings(sampling::strata(data=data.frame(
-    #     cell = 1:raster::ncell(prob_raster)), stratanames = NULL, size = 1,
-    #     method = "systematic", pik = prob_raster@data@values))
-    # }
-
-    ## NEW SECTION ##########
-    #print(paste0("Sample proportion: 500 out of ", raster::ncell(prob_raster),
-    #  " (", 500/raster::ncell(prob_raster), ")"))
-
     destination_cell <- suppressWarnings(sampling::strata(data = data.frame(
-      cell = 1:raster::ncell(prob_raster)), stratanames = NULL, size = 50,
-      method = "systematic", pik = prob_raster@data@values)) %>%
-    mutate(prob_rank = rank(-Prob, na.last = NA, ties.method = "random")) %>%
-    filter(prob_rank == 1)
+        cell = 1:raster::ncell(prob_raster)), stratanames = NULL, size = 100,
+        method = "systematic", pik = prob_raster@data@values)) %>%
+      mutate(prob_rank = rank(-Prob, na.last = NA, ties.method = "random")) %>%
+      filter(prob_rank == 1)
 
     while(is.na(destination_cell[1,1])) {
       destination_cell <- suppressWarnings(sampling::strata(data = data.frame(
-        cell = 1:raster::ncell(prob_raster)), stratanames = NULL, size = 50,
+        cell = 1:raster::ncell(prob_raster)), stratanames = NULL, size = 100,
         method = "systematic", pik = prob_raster@data@values)) %>%
       mutate(prob_rank = rank(-Prob, na.last = NA, ties.method = "random")) %>%
       filter(prob_rank == 1)
@@ -218,13 +294,83 @@ MovementSubModelBAEA2 <- function(sim = sim,
     destination_xy <- raster::xyFromCell(prob_raster, destination_cell[1,1])
     step_data[i+1, "x"] <- destination_xy[1]
     step_data[i+1, "y"] <- destination_xy[2]
-    step_data$abs_angle[i] <- CalculateAngleToPoint(step_data$x[i],
-      step_data$y[i], step_data$x[i+1], step_data$y[i+1])
-    step_data$step_length[i] <- as.integer(sqrt((step_data[i, "x"] -
+    step_data[i, "abs_angle"] <- CalculateAngleToPoint(step_data[i, "x"],
+      step_data[i, "y"], step_data[i+1, "x"], step_data[i+1, "y"])
+    step_data[i, "step_length"] <- as.integer(sqrt((step_data[i, "x"] -
       step_data[i+1, "x"])^2 + (step_data[i, "y"] - step_data[i+1, "y"])^2))
+    step_data[i+1, "nest_dist"] <- as.integer(sqrt((home_xy[[1]] -
+      step_data[i+1, "x"])^2 + (home_xy[[2]] - step_data[i+1, "y"])^2))
   }
   return(step_data)
 }
+
+
+UpdateAgentStepDataBAEA2 <- function(step_data = NULL,
+                                    sim = sim,
+                                    init = FALSE,
+                                    rep_intervals = rep_intervals) {
+  if (init == TRUE){
+    sim_start <- sim$pars$global$sim_start
+    all <- sim$agents$all
+    for (i in 1:length(all)) {
+      agent <- all[[i]]
+      print(paste("Creating initial 'step_data' dataframe for", i, "of",
+        length(all)))
+      all_time_steps <- as.POSIXct(NA)
+      for (j in 1:length(rep_intervals)){
+        #j <- 1
+        step_intervals <- CreateStepIntervals(rep_intervals[[j]],
+          step_period = sim$pars$global$step_period)
+        for (k in 1:length(step_intervals)){
+          #k <- 1
+          time_steps <- CreateTimeStepsBAEA(step_intervals[[k]], agent = agent,
+            sim = sim)
+          for (m in 1:length(time_steps)){
+            all_time_steps <- append(all_time_steps, int_start(time_steps[[m]]))
+            if (m == length(time_steps)) all_time_steps <- append(all_time_steps,
+              int_end(time_steps[[m]]))
+          }
+        }
+      }   # this is all about getting 'all_time_steps'
+      if(is.na(all_time_steps[1])) all_time_steps <- all_time_steps[-1]
+      time_steps_df <- data.frame(datetime = all_time_steps) %>%
+        mutate(julian = yday(datetime)) %>%
+        group_by(julian) %>%
+        mutate(day_start = min(datetime),
+          day_end = max(datetime),
+          day_minutes = as.integer(difftime(day_end,day_start,units="mins"))) %>%
+        ungroup() %>%
+        mutate(time_after_start = as.integer(difftime(datetime, day_start,
+          units="mins"))) %>%
+        mutate(time_proportion = time_after_start/day_minutes) %>%
+        dplyr::select(datetime, time_proportion)
+      step_data <- time_steps_df %>%
+        mutate(id = agent$states$id,
+          behavior = NA_integer_,
+          x = NA_real_,
+          y = NA_real_,
+          nest_dist = NA_real_,
+          exp_angle = NA_real_,
+          abs_angle = NA_real_) %>%
+        dplyr::select(id, datetime, behavior, x, y, exp_angle, abs_angle,
+          nest_dist, time_proportion) %>%
+        as.data.frame() # when saved as a tibble, broke BehaviorSubModel
+      step_data[1, "behavior"] <- 3
+      step_data[1, "nest_dist"] <- 0
+      step_data[1, "x"] <- agent$states$start_x
+      step_data[1, "y"] <- agent$states$start_y
+      agent <- append(agent, NamedList(step_data))
+      all[[i]] <- agent
+    }
+    sim$agents$all <- all
+    return(sim)
+  } else {
+    step_data <- step_data
+    return(step_data)
+  }
+}
+
+
 
 
 # IMPORTANT - Process to plot probability plot
@@ -411,10 +557,125 @@ CreateStepIntervals <- function(rep_interval = rep_interval,
 }
 
 
+#------------------------------------------------------------------------------#
+################################ OLD CODE ######################################
+#------------------------------------------------------------------------------#
 
 
+# BehaviorSubModelBAEA2 <- function(sim = sim,
+#                                  agent_states = agent_states,
+#                                  step_data = step_data,
+#                                  step = step){
+#   sex <- agent_states$sex
+#   beta <- as.matrix(sim$pars$classes[[sex]]$constant$fixed$behavior_betas)
+#   step_row <- which(step_data$datetime == step)
+#   current_behavior <- as.numeric(step_data[step_row, "behavior"])
+#   current_time_prop <- as.numeric(step_data[step_row, "time_proportion"])
+#   next_time_prop <- as.numeric(step_data[step_row + 1, "time_proportion"])
+#   current_nest_dist <- round(step_data[step_row, "nest_dist"]/500)
+#   step_data <- as.data.frame(step_data)
+#
+#   print(paste0("Current behavior: ", current_behavior))
+#   print(paste0("nest_dist: ", current_nest_dist))
+#
+#   gamma <- diag(5)
+#   g <- beta[1, ]  #  g = state transition probabilities intercepts
+#   g <- g +
+#     beta[2, ] * current_nest_dist +
+#     beta[3, ] * cos(2*pi * current_time_prop) +
+#     beta[4, ] * sin(2*pi * current_time_prop) +
+#     exp(g)
+#   gamma[!gamma] <- exp(g) # Beta values in non-diagonal locations in matrix
+#   gamma2 <- t(gamma) # probabilities for state transitions are now in rows
+#   gamma3 <- gamma2/apply(gamma2, 1, sum) # rows sum to 1
+#   if(current_time_prop <= .5 & current_behavior != 5){
+#     gamma3[, 5] <- 0
+#     gamma3 <- gamma3/apply(gamma3, 1, sum)
+#     gamma3[, 5] <- 0
+#   }
+#   # next control is new - it forces agent to leave roost after .3 time prop
+#   if(current_time_prop >= .3 & current_time_prop <= .5 & current_behavior == 5){
+#     gamma3[, 5] <- 0
+#     gamma3 <- gamma3/apply(gamma3, 1, sum)
+#     gamma3[, 5] <- 0
+#   }
+#   if(current_time_prop > .5 & current_behavior == 5){
+#     gamma3[, 1:4] <- 0
+#     gamma3[, 5] <- 1
+#     #gamma3 <- gamma3/apply(gamma3, 1, sum)
+#   }
+#   if(current_behavior == 1){ # prevents 1->5 (Cruise to Roost)
+#     gamma3[, 5] <- 0
+#     gamma3 <- gamma3/apply(gamma3, 1, sum)
+#     gamma3[, 5] <- 0
+#   }
+#   if(current_behavior == 5){ # prevents 5->1 (Roost to Cruise)
+#     gamma3[, 1] <- 0
+#     gamma3 <- gamma3/apply(gamma3, 1, sum)
+#     gamma3[, 1] <- 0
+#   }
+#
+#   # NEW STEP - Reduce the probability of nesting behavior by 20%
+#   gamma4 <- gamma3
+#   gamma4[current_behavior, 3] <- gamma4[current_behavior, 3]*(.80)
+#   if(current_time_prop >= .25 & current_time_prop <= .85){
+#     gamma4[current_behavior, 1] <- gamma4[current_behavior, 1]*(1.5)
+#   }
+#   if(current_time_prop >= .35 & current_time_prop <= .55){
+#     gamma4[current_behavior, 2] <- gamma4[current_behavior, 2]*(1.5)
+#   }
+#   gamma4 <- gamma4/apply(gamma4, 1, sum)
+#
+#   # trans prob. given current behavior
+#   next_behavior <- sample(1:5, size = 1, prob = gamma4[current_behavior, ])
+#   print(paste0("Next behavior: ", next_behavior))
+#
+#   if(step_row != nrow(step_data)) { # prevent the creation of an "extra" step
+#     if(next_time_prop == 1){ # select Nest or Roost only for last location of day
+#       if (next_behavior %in% c(3,5)){
+#         step_data[step_row + 1, "behavior"] <- next_behavior
+#       } else { # forces selection of Nest or Roost
+#         gamma3[, c(1,2,4)] <- 0
+#         gamma3 <- gamma3/apply(gamma3, 1, sum)
+#         gamma3[, c(1,2,4)] <- 0
+#         print("End of day")
+#         print("prob: ", gamma3[current_behavior,])
+#         next_behavior <- sample(1:5, size = 1, prob = gamma3[current_behavior,])
+#         step_data[step_row + 1, "behavior"] <- next_behavior
+#       }
+#     }
+#     if(current_time_prop == 1){
+#       step_data[step_row + 1, "behavior"] <- current_behavior
+#     }
+#     step_data[step_row + 1, "behavior"] <- next_behavior
+#   }
+#   return(step_data)
+# }
 
 
+# # NEW SECTION THAT DOES A RESCALE AT EVERY STEP
+# ssf_rescale <- ssf_mask
+# ssf_rescale[] <- scales::rescale(ssf_mask[], to = c(-4, 4)) # Tried 4, 4
+# if(plotting) plot(ssf_rescale)
+
+# if(behavior_trans == "3_4"){
+#   ssf_rescale <- ssf_mask
+# }
+# ssf_kernel <- raster::calc(ssf_rescale, fun = boot::inv.logit)
+# if(plotting) plot(ssf_kernel)
+#raster::writeRaster(ssf_kernel, "C:/Temp/Sim6/ssf_kernel.tif")
+
+# destination_cell <- suppressWarnings(sampling::strata(data = data.frame(
+#   cell = 1:raster::ncell(prob_raster)), stratanames = NULL, size=1,
+#   method = "systematic", pik = prob_raster@data@values))
+# while(is.na(destination_cell[1,1])) {
+#   destination_cell <- suppressWarnings(sampling::strata(data=data.frame(
+#     cell = 1:raster::ncell(prob_raster)), stratanames = NULL, size = 1,
+#     method = "systematic", pik = prob_raster@data@values))
+# }
+
+#print(paste0("Sample proportion: 500 out of ", raster::ncell(prob_raster),
+#  " (", 500/raster::ncell(prob_raster), ")"))
 
 
 

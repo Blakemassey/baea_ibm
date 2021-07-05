@@ -1,6 +1,6 @@
 ## Load Packages, Scripts, Parameters, Etc. ------------------------------------
 pacman::p_load(CircStats, circular, fitdistrplus, ggplot2, ggthemes, momentuHMM,
-  lubridate, padr, tidyverse)
+  msm, lubridate, padr, tictoc, tidyverse)
 theme_update(plot.title = element_text(hjust = 0.5))
 
 pacman::p_load(baear, gisr, ibmr)
@@ -21,18 +21,48 @@ baea_behavior <- baea_behavior_org %>%
   dplyr::select(id, ID, datetime, behavior, behavior_num, julian_date, long_utm,
     lat_utm, sex, nest_dist, # added nest_dist
     step_length, step_time, speed, alt, agl, turn_angle, time_proportion) %>%
-  mutate(nest_dist = round(nest_dist/1000))
+  mutate(nest_dist = if_else(nest_dist >= 20000, 20000, nest_dist)) %>%
+  mutate(nest_dist = round(nest_dist/500))
   # Had an error 'fitHMM produces "Error in nlm"', when running my data with
   # nest_dist, so I rescaled the values, as recommended here:
-  # launch*"https://github.com/bmcclintock/momentuHMM/issues/41")
+  # browseURL("https://github.com/bmcclintock/momentuHMM/issues/41")
+
+range(baea_behavior %>% filter(year(datetime) == 2016) %>% pull(datetime))
+range(baea_behavior %>% filter(year(datetime) == 2016) %>% pull(datetime))
+length(baea_behavior %>% filter(year(datetime) == 2015) %>% pull(datetime))
+length(baea_behavior %>% filter(year(datetime) == 2016) %>% pull(datetime))
+
+ggplot(baea_behavior) +
+  geom_histogram(aes(x = nest_dist), binwidth = .1)
+
+# Check that the locations with "Nest" behavior are actually at the nest
+baea_behavior_lead_nest <- baea_behavior %>%
+  dplyr::select(datetime, id, behavior, nest_dist) %>%
+  mutate(lead_behavior = lead(behavior)) %>%
+  filter(lead_behavior == "Nest") %>%
+  filter(behavior != "Nest")
+ggplot(baea_behavior_lead_nest) +
+  geom_histogram(aes(nest_dist), binwidth = .5)
+# Hist of nest_dist for locations (not Nest) where the next behavior was "Nest"
+
+baea_behavior_lag_nest <- baea_behavior %>%
+  dplyr::select(datetime, id, behavior, nest_dist) %>%
+  mutate(lag_behavior = lag(behavior)) %>%
+  filter(lag_behavior == "Nest") %>%
+  mutate(behavior != "Nest")
+ggplot(baea_behavior_lag_nest) +
+  geom_histogram(aes(nest_dist), binwidth = .5)
+# Hist of nest_dist for locations (not Nest) where the previous behavior was "Nest"
 
 # Cruise = 1, Flight = 2, Nest = 3, Perch = 4, Roost = 5
 
+if(FALSE){
 PlotLocationSunriseSunset(df = baea_behavior %>% as.data.frame %>%
     filter(id == "Norway"),
   by = "id", color_factor = "behavior",
   individual = "", start = "", end = "", breaks = "3 days", tz = "Etc/GMT+5",
   addsolartimes = TRUE, wrap = TRUE)
+}
 
 # Fitting Weibull  ####
 
@@ -117,13 +147,13 @@ for (i in unique(baea_behavior$behavior)){
   rm(baea_behavior_von_mises_i, vm_pars, rows_i)
 }
 
-redist_pars <- full_join(weibull_pars, von_mises_pars, by=c("behavior"))
+redist_pars <- full_join(weibull_pars, von_mises_pars, by = c("behavior"))
 
 RemoveExcept(c("baea_behavior", "redist_pars"))
 
 baea_behavior_prep <- prepData(baea_behavior %>% dplyr::select(-c(id,
   turn_angle)), type = "UTM", coordNames = c("long_utm", "lat_utm"),
-  covNames = c("julian_date", "time_proportion", "nest_dist"))
+  covNames = c("time_proportion", "nest_dist"))
 
 if (min(baea_behavior_prep$step, na.rm = TRUE) == 0){
   baea_behavior_prep$step <- baea_behavior_prep$step + 1
@@ -138,14 +168,6 @@ angle_dist <- "vm"
 step_par <- c(redist_pars$weibull_shape, redist_pars$weibull_scale)
 angle_par <- c(redist_pars$vm_kappa)
 
-# OLD FORMULA
-#formula <- ~cosinor(julian_date, period = 365) + cosinor(time_proportion,
-#  period = 1)
-
-# NEW FORMULA
-formula <- ~cosinor(time_proportion, period = 1) + nest_dist
-
-library(msm)
 statetable.msm(behavior, ID, data=baea_behavior_prep)
 
 beta_0 <- rbind(c(0.25, 0.25, 0.25, 0.00,  # Cruise to Roost not allowed
@@ -157,7 +179,7 @@ beta_0 <- rbind(c(0.25, 0.25, 0.25, 0.00,  # Cruise to Roost not allowed
 # Initial HMM Model Fit --------------------------------------------------------
 
 # No formula = to get starting estimates for Par0 & beta0
-baea_hmm_start <- fitHMM(
+baea_hmm_start <- momentuHMM::fitHMM(
   data = baea_behavior_prep,
   nbStates = n_states,
   dist = list(step=step_dist, angle=angle_dist),
@@ -165,29 +187,40 @@ baea_hmm_start <- fitHMM(
   beta0 = beta_0,
   knownStates = as.numeric(baea_behavior_prep$behavior),
   stateNames = state_names,
+ # optMethod = "Nelder-Mead",
   estAngleMean = list(angle=FALSE))
 
 saveRDS(baea_hmm_start, file = "Output/Analysis/Transitions/baea_hmm_start.rds")
 
-Par0_baea_hmm_start <- getPar0(baea_hmm_start, formula = formula)
+baea_hmm_start <- readRDS("Output/Analysis/Transitions/baea_hmm_start.rds")
+
+# OLD FORMULA
+#hmm_formula <- ~cosinor(julian_date, period = 365) + cosinor(time_proportion,
+#  period = 1) #cosinor(julian_date, period = 365) +
+
+# NEW FORMULA
+hmm_formula <- ~nest_dist + cosinor(time_proportion, period = 1)
+
+Par0_baea_hmm_start <- getPar0(baea_hmm_start, formula = hmm_formula)
 
 # Fitting with starting values
-library(tictoc)
 tic()
-baea_hmm_full <- fitHMM(
+baea_hmm_full <- momentuHMM::fitHMM(
   data = baea_behavior_prep,
   nbStates = n_states,
   dist = list(step=step_dist, angle=angle_dist),
   Par0 = Par0_baea_hmm_start$Par,
   beta0 = Par0_baea_hmm_start$beta,
-  formula = formula,
+  formula = hmm_formula,
   knownStates = as.numeric(baea_behavior_prep$behavior),
   stateNames = state_names,
+#  optMethod = "Nelder-Mead",
   estAngleMean = list(angle=FALSE),
   verbose = 2)
 toc()
-seconds_to_period(13723)
+seconds_to_period(15699)
 # Took ~3 hours on 2019-11-07; Took ~3.75 hours on 2021-05-09
+# Took 2.5 hours on 2021-05-20; Took ~3 and 4.33 hours on 2021-05-21
 
 saveRDS(baea_hmm_full, file = "Output/Analysis/Transitions/baea_hmm_full.rds")
 baea_hmm_full <- readRDS(file = "Output/Analysis/Transitions/baea_hmm_full.rds")

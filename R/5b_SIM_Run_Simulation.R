@@ -13,13 +13,47 @@ toc_msg <- function(tic, toc, msg, info){
 
 source('R/5c_SIM_MovementSubmodelBAEA.R')
 
-sim <- readRDS("C:/Work/Sim_Data/sim_20210505-01.rds")
+sim <- readRDS("C:/Work/Sim_Data/sim_20210616.rds")
+
+# 20210615-01 = Reduce nesting by 20%, Dest. cell n=500
+# 20210615-02 = Reduce nesting by 20%, Increase cruise(btwn .25-.85) by 50%
+#               Increase flight(btwn .35-.75) by 50%, Dest. cell n=1000
+# 20210616-02 = Increase cruise(btwn .25-.85) by 50%
+#               Increase flight(btwn .35-.75) by 50%, Dest. cell n=500
+#               Removed nest_dist in hmm
+# 20210616-03 = Increase cruise(btwn .25-.85) by 50%
+#               Increase flight(btwn .35-.75) by 50%, Dest. cell n=100
+#               Removed nest_dist in hmm
+#               No con_nest_kernel_log in redist_kernel
+# 20210616-04 = Increase cruise(btwn .25-.85) by 50%
+#               Increase flight(btwn .35-.75) by 50%, Dest. cell n=500
+#               Removed nest_dist in hmm
+#               No con_nest_kernel_log in redist_kernel
+# 20210616-05 = Increase cruise(btwn .25-.85) by 50%
+#               Increase flight(btwn .35-.75) by 50%, Dest. cell n=1000
+#               Removed nest_dist in hmm
+#               No con_nest_kernel_log in redist_kernel
+# 20210616-06 = Increase cruise(btwn .25-.85) by 50%
+#               Increase flight(btwn .35-.75) by 50%, Dest. cell n=50
+#               Removed nest_dist in hmm
+#               No con_nest_kernel_log in redist_kernel
+# 20210616-07 = Reduce perch (btwn .25-.85) by 25%, Dest. cell n=100
+#               Removed nest_dist in hmm
+#               No con_nest_kernel_log in redist_kernel
+# 20210616-08 = Reduce perch (btwn .25-.85) by 25%, Dest. cell n=100
+#               Removed nest_dist in hmm
+#               No con_nest_kernel_log in redist_kernel
+#               Included ssf_kernel_log twice in kernel_stack
+# 20210616-09 = Reduce perch (btwn .25-.85) by 25%, Dest. cell n=100
+#               Removed nest_dist in hmm
+#               No con_nest_kernel_log in redist_kernel
+#               Included move_kernel_log twice in kernel_stack
+
 
 #sim$agents$input <- sim$agents$input %>% slice(c(1,3,5,7))
-
 pryr::object_size(sim)
 
-sim_out_file <- "sim_20210505-01.rds"
+sim_out_file <- "sim_20210616-09.rds"
 sim_out_dir <- "C:/TEMP"
 sim_id <- tools::file_path_sans_ext(sim_out_file)
 
@@ -29,17 +63,19 @@ if(!dir.exists(file.path(sim_out_dir, sim_id))){
 
 # Modify 'sim' (modify start/end dates, slice agents, etc.)
 #sim$pars$global$sim_start <- as.POSIXct("2015-03-15", tz = "UTC")
-#sim$pars$global$sim_end <- as.POSIXct("2015-05-15", tz = "UTC")
+#sim$pars$global$sim_end <- as.POSIXct("2015-08-15", tz = "UTC")
 #sim$agents$input <- sim$agents$input %>% slice(c(1,3))
 
 # Set up simulation run
-runs = 3
-write = FALSE
-output_dir = getwd()
-
-# i <- j <- k <- m <- n <- o <- 1
-# m <- 5
-
+testing <- FALSE
+if(testing){
+  runs = 1
+  write = FALSE
+  output_dir = getwd()
+  i <- j <- k <- m <- n <- o <- 1
+  m <- 5
+}
+source('R/5c_SIM_MovementSubmodelBAEA.R')
 RunSimulationBAEA <- function(sim = sim,
                           runs = 1,
                           write = FALSE,
@@ -48,8 +84,9 @@ RunSimulationBAEA <- function(sim = sim,
   for (i in 1:length(runs)){
     rep_intervals <- CreateReportIntervals(sim)
     sim <- UpdateAgentStates(init = TRUE, sim = sim)
-    sim <- UpdateAgentStepDataBAEA(init = TRUE, sim = sim,
+    sim <- UpdateAgentStepDataBAEA2(init = TRUE, sim = sim,
       rep_intervals = rep_intervals)
+    step_data <- sim$agents$all[[1]][["step_data"]]
     sim <- UpdateAgentParsData(init = TRUE, sim = sim)
     sim <- UpdateSpatialBAEA(init = TRUE, sim = sim)
     for (j in 1:length(rep_intervals)) {
@@ -67,7 +104,7 @@ RunSimulationBAEA <- function(sim = sim,
             agent_states <- sim$agents$all[[n]][["states"]]
             step_data <- sim$agents$all[[n]][["step_data"]]
             pars_data <- sim$agents$all[[n]][["pars_data"]]
-            if (any(step_data$datetime %within% time_step, na.rm=TRUE)){
+            if(any(step_data$datetime %within% time_step, na.rm = TRUE)){
               steps <- which(step_data$datetime %within% time_step)
               for (o in steps){
                 step <- step_data$datetime[o]
@@ -75,11 +112,9 @@ RunSimulationBAEA <- function(sim = sim,
                 print(paste("step:", step))
                 # START Submodels #
                 #agent_states <- AgingSubModel(agent_states, step_data, step)
-
-                step_data <- BehaviorSubModelBAEA(sim, agent_states, step_data,
+                step_data <- BehaviorSubModelBAEA2(sim, agent_states, step_data,
                   step)
-                #step_data[o + 1, "behavior"] <- 4
-
+                #step_data[o + 1, "behavior"] <- 1
                 step_data <- MovementSubModelBAEA2(sim, agent_states, step_data,
                   step)
               }
@@ -106,43 +141,48 @@ RunSimulationBAEA <- function(sim = sim,
 }
 
 # Run simulation!
-tic() #Started at 2021-05-05-2141
-sim_out <- RunSimulationBAEA(sim = sim, runs = 3, write = FALSE,
+source('R/5c_SIM_MovementSubmodelBAEA.R')
+tic()
+sim_out <- RunSimulationBAEA(sim = sim, runs = 2, write = FALSE,
   output_dir = getwd())
 toc(func.toc = toc_msg)
-
-# Check object size
-pryr::object_size(sim_out)
 
 # Save sim as .rds
 saveRDS(sim_out, file.path(sim_out_dir, sim_id, sim_out_file))
 
-sim_out1 <- sim_out[[1]]
-sim_step_data <- CompileAllAgentsStepData(sim=sim_out1) %>%
-  mutate(behavior = as.factor(behavior)) %>%
-  group_by(id) %>%
-    mutate(step_type = paste0(behavior, "_", lead(behavior))) %>%
-    mutate(previous_step_type = lag(step_type)) %>%
-  ungroup() %>%
-  filter(!is.na(datetime))
-sim_step_data <- ConvertStepDataCoordinates(sim_step_data)
+# Check object size
+pryr::object_size(sim_out)
 
-nest_locs <- sim_step_data %>% dplyr::filter(behavior == 3)
-sim_step_data$behavior <- fct_recode(sim_step_data$behavior, "Cruise" = "1",
-  "Flight" = "2", "Nest" = "3", "Perch" = "4", "Roost" = "5")
-sim_step_data$behavior <- as.character(sim_step_data$behavior)
+#------------------------------------------------------------------------------#
+################################ OLD CODE ######################################
+#------------------------------------------------------------------------------#
 
-# KMLs of Points and Flights
-kml_dir = file.path(sim_out_dir, sim_id, "KMLs")
-
-if(!dir.exists(file.path(kml_dir))){
-  dir.create(file.path(kml_dir))
-}
-
-for (i in unique(sim_step_data$id)){
-  sim_step_data_i <- sim_step_data %>% filter(id == i)
-  ExportKMLTelemetry(sim_step_data_i, lat = "lat", long = "long", alt = NULL,
-    speed = NULL, file = paste0("Sim_", str_pad(i, 2, side = "left", "0"),
-    ".kml"), icon_by_sex = TRUE, behavior = "behavior", point_color ="behavior",
-    output_dir = kml_dir)
-}
+# sim_out1 <- sim_out[[1]]
+# sim_step_data <- CompileAllAgentsStepData(sim=sim_out1) %>%
+#   mutate(behavior = as.factor(behavior)) %>%
+#   group_by(id) %>%
+#     mutate(step_type = paste0(behavior, "_", lead(behavior))) %>%
+#     mutate(previous_step_type = lag(step_type)) %>%
+#   ungroup() %>%
+#   filter(!is.na(datetime))
+# sim_step_data <- ConvertStepDataCoordinates(sim_step_data)
+#
+# nest_locs <- sim_step_data %>% dplyr::filter(behavior == 3)
+# sim_step_data$behavior <- fct_recode(sim_step_data$behavior, "Cruise" = "1",
+#   "Flight" = "2", "Nest" = "3", "Perch" = "4", "Roost" = "5")
+# sim_step_data$behavior <- as.character(sim_step_data$behavior)
+#
+# # KMLs of Points and Flights
+# kml_dir = file.path(sim_out_dir, sim_id, "KMLs")
+#
+# if(!dir.exists(file.path(kml_dir))){
+#   dir.create(file.path(kml_dir))
+# }
+#
+# for (i in unique(sim_step_data$id)){
+#   sim_step_data_i <- sim_step_data %>% filter(id == i)
+#   ExportKMLTelemetry(sim_step_data_i, lat = "lat", long = "long", alt = NULL,
+#     speed = NULL, file = paste0("Sim_", str_pad(i, 2, side = "left", "0"),
+#     ".kml"), icon_by_sex = TRUE, behavior = "behavior",point_color="behavior",
+#     output_dir = kml_dir)
+# }

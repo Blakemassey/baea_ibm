@@ -270,9 +270,9 @@ sim[["agents"]] <- agents
 sim[["pars"]] <- pars
 sim[["spatial"]] <- spatial
 
-sim <- NamedList(agents, pars, spatial)
+#sim <- NamedList(agents, pars, spatial)
 #RemoveExcept("sim")
-saveRDS(sim, file ="C:/Work/Sim_Data/sim_20210505-01.rds")
+saveRDS(sim, file = "C:/Work/Sim_Data/sim_20210616.rds")
 
 # Recompile sim
 sim <- readRDS(file = "C:/Work/Sim_Data/sim_20210505-01.rds")
@@ -281,7 +281,7 @@ pars <- sim$pars
 spatial <- sim$spatial
 sim$spatial$ssf_layers <- ssf_layers
 sim <- NamedList(agents, pars, spatial)
-saveRDS(sim, file = "C:/Work/R/Data/Simulation/sim_20201016.rds")
+saveRDS(sim, file = "C:/Work/Sim_Data/sim_20210519-01.rds")
 
 RemoveExcept(c("baea", "nest_set", "base", "max_r", "write_home_dist",
   "write_con_dist", "write_con_dist_nest", "write_con_dist"))

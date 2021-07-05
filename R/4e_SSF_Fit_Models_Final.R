@@ -19,7 +19,8 @@ model_id <- GetDateTime()
 save_individual_maps <- FALSE
 
 # Groups to update SSF_Raster/Covars_Crop layers (e.g. 1_1.tif)
-step_type_group_updates <- c("ac", "af", "sc", "sf", "ap", "ar", "sp", "sr")
+#step_type_group_updates <- c("ac", "af", "sc", "sf", "ap", "ar", "sp", "sr")
+step_type_group_updates <- c()
 step_type_updates <- tribble(
    ~step_type,  ~step_type_group,
   "cruise_cruise", "ac",
@@ -573,7 +574,8 @@ for (i in seq_len(nrow(ssf_fits_best))){
     dplyr::rename(covar_sigma = covar_clean) %>%
     dplyr::select(-covar)
 
-  covar_table_i <- left_join(covars_all_matrix_i, covar_fitted_i)
+  covar_table_i <- left_join(covars_all_matrix_i, covar_fitted_i) %>%
+    filter(!is.na(covar_sigma))
 
   step_type_col <- c(step_type_i_latex, rep(NA, nrow(covar_table_i)-1))
 

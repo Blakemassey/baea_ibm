@@ -226,7 +226,7 @@ developed_30mc_calc <- calc(developed_30mc, develop_fun)
 mapview(developed_30mc_calc)
 
 ## Output Files
-developed_dist_output <- "C:/ArcGIS/Data/R_Input/BAEA/developed_dist_30mc.tif"
+developed_dist_output <- "C:/ArcGIS/Data/R_Input/BAEA/dist_developed_30mc.tif"
 
 # tic()
 # developed_dist_30mc <- distance(developed_30mc_calc, doEdge = TRUE)
@@ -234,6 +234,11 @@ developed_dist_output <- "C:/ArcGIS/Data/R_Input/BAEA/developed_dist_30mc.tif"
 # Ended up doing above calcuation in ArcGIS - cannot allocate vector length of
 # sufficent size
 
+# Rescale max distance to 5000m (New step aadded in 2021-06)
+developed_dist_30mc <- raster(developed_dist_output)
+developed_dist_30mc[developed_dist_30mc > 5000] <- 5000
+
+# Write raster
 writeRaster(developed_dist_30mc, developed_dist_output, progress = "text",
   datatype = 'INT2U', overwrite = TRUE)
 
@@ -310,7 +315,7 @@ writeRaster(hydro_30mc, hydro_output, progress = "text", datatype = 'INT2U',
 ## Distance to Water ----
 
 ## Output Files
-hydro_dist_output <- "C:/ArcGIS/Data/R_Input/BAEA/hydro_dist_30mc.tif"
+hydro_dist_output <- "C:/ArcGIS/Data/R_Input/BAEA/dist_hydro_30mc.tif"
 
 # tic()
 # hydro_dist_30mc <- distance(develop_dist_30mc, doEdge = TRUE)
@@ -318,6 +323,11 @@ hydro_dist_output <- "C:/ArcGIS/Data/R_Input/BAEA/hydro_dist_30mc.tif"
 # Ended up doing above calcuation in ArcGIS - cannot allocate vector length of
 # sufficent size
 
+# Rescale max distance to 5000m (New step added in 2021-06)
+hydro_dist_30mc <- raster(hydro_dist_output)
+hydro_dist_30mc[hydro_dist_30mc > 5000] <- 5000
+
+# Write raster
 writeRaster(hydro_dist_30mc, hydro_dist_output, progress = "text",
   datatype = 'INT2U', overwrite = TRUE)
 
@@ -373,7 +383,7 @@ st_write(wt, wt_shp_output, delete_layer = TRUE) # overwrites
 
 # Output File
 wt_rast_output <- "C:/ArcGIS/Data/R_Input/BAEA/windturb_30mc.tif"
-wt_dist_output <- "C:/ArcGIS/Data/R_Input/BAEA/turbine_dist_30mc.tif"
+wt_dist_output <- "C:/ArcGIS/Data/R_Input/BAEA/dist_turbine_30mc.tif"
 
 wind_turbines_30mc <- rasterize(wt, raster = base, field = 'case_id')
 writeRaster(wind_turbines_30mc, wt_rast_output, progress = "text",
@@ -384,6 +394,13 @@ writeRaster(wind_turbines_30mc, wt_rast_output, progress = "text",
 # turbine_dist_30mc <- distance(wind_turbines_30mc, doEdge = TRUE)
 # toc()
 
+# Rescale max distance to 20km (New step added in 2021-06)
+turbine_dist_30mc <- raster(wt_dist_output)
+turbine_dist_30mc[turbine_dist_30mc > 20000] <- 20000
+turbine_dist_30mc[is.na(turbine_dist_30mc[])] <- 20000
+plot(turbine_dist_30mc)
+
+# Write raster
 writeRaster(turbine_dist_30mc, wt_dist_output, progress = "text",
   datatype = 'INT2U', overwrite = TRUE)
 
@@ -574,7 +591,7 @@ ext <- extent(335000, 668000, 4750000, 5257000)
 
 ## Output Files
 road_output <- "C:/ArcGIS/Data/R_Input/BAEA/road_30mc.tif"
-road_dist_output <- "C:/ArcGIS/Data/R_Input/BAEA/road_dist_30mc.tif"
+road_dist_output <- "C:/ArcGIS/Data/R_Input/BAEA/dist_road_30mc.tif"
 
 ## Import Raster layers
 base <- raster(base_file)
@@ -595,6 +612,14 @@ wbt_vector_lines_to_raster(file.path(dirname(roads_file), "roads.shp"),
 
 ## Distance to Roads ----
 wbt_euclidean_distance(road_output, road_dist_output, verbose_mode = FALSE)
+
+# Rescale max distance to 20km (New step added in 2021-06)
+road_dist_30mc <- raster(road_dist_output)
+road_dist_30mc[road_dist_30mc > 5000] <- 5000
+
+# Write raster
+writeRaster(road_dist_30mc, road_dist_output, progress = "text",
+  datatype = 'INT2U', overwrite = TRUE)
 
 ######## ----------------------- RIDGE LINES ----------------------- ###########
 # Set options

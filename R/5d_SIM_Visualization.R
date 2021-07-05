@@ -1,7 +1,7 @@
 ####################### VISUALIZE SIM ##########################################
 ### This script is used to create visual a 'sim' object
 
-pacman::p_load(cartography,ctmm, dplyr, fasterize, forcats, ggplot2, ggthemes,
+pacman::p_load(cartography, ctmm, dplyr, fasterize, forcats, ggplot2, ggthemes,
   grid, leaflet, lubridate, magick, mapview, move, OpenStreetMap, plotly,
   prettymapr, purrr, raster, rosm, rsvg, sf, stringr, s2, tmap, tmaptools,
   viridis, units, webshot, zoo)
@@ -11,7 +11,7 @@ theme_update(plot.title = element_text(hjust = 0.5))
 #devtools::reload("C:/Users/blake/OneDrive/Work/R/Packages/ibmr")
 
 # Sim file and code Boolean parameters
-sim_rds <- "sim_20210505-01.rds"
+sim_rds <- "sim_20210616-08.rds"
 create_kml = FALSE
 calculate_akde = TRUE
 map_akde = TRUE
@@ -140,6 +140,7 @@ for (i in seq_len(length(sim_runs))){
 
   # Map akde -------------------------------------------------------------------
   if(map_akde){
+    akde_dir = file.path(sim_dir, sim_id, "AKDEs")
     # Check for akde
     if(!file.exists(file.path(akde_dir, paste0(sim_id, "_", str_pad(i, 2,
       side = "left", "0"), ".rds")))){
@@ -282,7 +283,7 @@ for (i in seq_len(length(sim_runs))){
             # Export to TEMP Folder
             tmap_save(tm = sim_k_hr_paths, filename = file.path(akde_dir,
               paste0(sim_id, "_", str_pad(i, 2, side = "left", "0"), "-",
-                str_pad(j, 2, side = "left", "0"), ".svg")),
+                str_pad(j, 2, side = "left", "0"), ".png")),
               insets_tm = maine_overview,
               insets_vp =  viewport(x = 0.881, y = 0.147, width = 0.2,
                 height = 0.2),

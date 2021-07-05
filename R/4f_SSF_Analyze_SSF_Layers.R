@@ -3,14 +3,15 @@
 ########################### LOAD PACKAGES AND DATA  ############################
 # Load libraries, scripts, and input parameters
 pacman::p_load(plyr, dplyr, optimx, ggplot2, ggthemes, lubridate, optimx, purrr,
-  raster, readr, reproducible, rgenoud, stringr, summarytools, survival,
+  raster, readr, reproducible, rgenoud, rlang, stringr, summarytools, survival,
   surveybootstrap, tibble, tictoc, tidyr, xtable)
-library(baear, gisr)
+pacman::p_load(baear, gisr)
 
 # Model directories
 covars_crop_dir = "C:/ArcGIS/Data/R_Input/BAEA/SSF_Rasters/Covars_Crop"
 mod_dir <- "Output/Analysis/SSF/Models"
 mod_best_dir <- file.path(mod_dir, "model_fits_best")
+margin_plots_dir <- "C:/TEMP/Covar_Figures"
 
 # Set to "" for "model_best_fits.rds"
 model_id <- NA
@@ -87,8 +88,7 @@ saveRDS(quantile_tbl, quantile_tbl_file)
 
 rm(covars_crop_dir, covar_quantile, covar_raster_file, covar_raster,
   covar_sigma,  covar_tbl, i, preds_tbl, preds_tbl_file, preds_tbl_i, probs,
-  probs_char, probs_names, prob_tbl, quantile_row_i, quantile_tbl,
-  quantile_tbl_file)
+  probs_char, probs_names, prob_tbl, quantile_row_i, quantile_tbl)
 
 # Extract model data (terms, coefs, etc.) from best_ssf_fit_models -------------
 
@@ -107,17 +107,20 @@ for (i in seq_len(nrow(ssf_fits_best))){
   pred_list_i <- vector(mode = "list", length = length(covars_i))
   for (j in seq_len(length(covars_i))){
     covar_ij <- covars_i[j]
+    #covarij_enquo <- enquo(covar_ij)
     print(paste0("covar_ij(", i, "-", j, "): ", covar_ij))
     covar_tbl_ij <- quantile_tbl %>%
       filter(covar == covar_ij) %>%
       pivot_longer(starts_with("p_"), names_to = "percentile") %>%
       mutate(percentile = parse_number(percentile)) %>%
       mutate(covar_value = value) %>%
-      rename(!!covar_ij := value)
+      #rename(!!covar_ij := value) %>%
+      dplyr::rename(!!covar_ij := value)
+
     other_covars_tbl_ij  <- quantile_tbl %>%
       filter(covar %in% covars_i[-j]) %>%
       dplyr::select(covar, p_50) %>%
-      rename(value = p_50) %>%
+      dplyr::rename(value = p_50) %>%
       pivot_wider(names_from = covar, values_from = value)
     if(nrow(other_covars_tbl_ij) > 0){
       covars_tbl_ij <- bind_cols(covar_tbl_ij, other_covars_tbl_ij)
@@ -133,8 +136,8 @@ for (i in seq_len(nrow(ssf_fits_best))){
         eval(parse(text = sub("z = s", s, deparse(q))))
     }
     preds_tbl_ij <- AddPredictions(covars_tbl_ij, ssf_formula) %>%
-      mutate(step_type = step_type_i) %>%
-      mutate(coef = )
+      mutate(step_type = step_type_i) #%>%
+      #mutate(coef = ) #Not sure where I was going with this
     pred_list_i[[j]] <- preds_tbl_ij
     print("done")
   }
@@ -170,30 +173,6 @@ for (i in step_types) {
     predictions_ij <- predictions_step_type_i %>%
       filter(term == j)
 
-    # Predicted Value (not converted to inverse logit)
-    gg_predict_ij <- ggplot(predictions_ij, aes(x = covar_value, y = pred)) +
-      geom_line(color = "blue", size = 1.5) +
-      #geom_smooth() +
-      xlab(j_name) +
-      ylab("Value") +
-      ggtitle("") + guides(NA) + theme_latex + theme(legend.position = "none") +
-      theme_minimal() +
-      theme_latex +
-      theme(axis.text = element_text(size = 7)) +
-      theme(axis.title = element_text(size = 9)) +
-      theme(plot.title = element_text(size = 11)) +
-      guides(shape = guide_legend(override.aes = list(size = pointSize)),
-        color = guide_legend(override.aes = list(size = pointSize))) +
-      theme(legend.title = element_text(size = textSize),
-        legend.text  = element_text(size = textSize),
-        legend.key.size = unit(spaceLegend, "lines")) +
-      theme(panel.grid.major.x = element_blank()) +
-      scale_x_continuous(expand = expansion(mult = c(0.01, 0.01)))
-    ggsave(filename = paste0("Predict_", ij_name, ".png"), plot = gg_predict_ij,
-      path = file.path(tex_dir, "Figures/Ch2/Step_Type_Covar_Predict"),
-      scale = 1, width = 6, height = 4, units = "in",
-      dpi = 300)
-
     # Probability Value (after converted using inverse logit)
     gg_prob_ij <- ggplot(predictions_ij, aes(x = covar_value, y = prob)) +
       geom_line(color = "blue", size = 1.5) +
@@ -215,11 +194,11 @@ for (i in step_types) {
       scale_x_continuous(expand = expansion(mult = c(0.01, 0.01))) +
       ylim(c(0, 1))
     ggsave(filename = paste0("Prob_", ij_name), plot = gg_prob_ij,
-      path = file.path(file_dir, "Margin_Plots"),
+      path = file.path(margin_plots_dir, "Margin_Plots"),
       scale = 1, width = 6, height = 4, units = "in",
       dpi = 300)
     # SAVE FOR DISSERTATION FIGURES
-    # ggsave(filename = paste0("Prob_", ij_name, ".png"), plot = gg_prob_ij,
+    # ggsave(filename = paste0("Prob_", ij_name), plot = gg_prob_ij,
     #   path = file.path(tex_dir, "Figures/Ch2/Step_Type_Covar_Prob"),
     #   scale = 1, width = 6, height = 4, units = "in",
     #   dpi = 300)
@@ -227,9 +206,36 @@ for (i in step_types) {
 }
 
 
+
 #------------------------------------------------------------------------------#
 ################################ OLD CODE ######################################
 #------------------------------------------------------------------------------#
+
+
+# # Predicted Value (not converted to inverse logit)
+# gg_predict_ij <- ggplot(predictions_ij, aes(x = covar_value, y = pred)) +
+#   geom_line(color = "blue", size = 1.5) +
+#   #geom_smooth() +
+#   xlab(j_name) +
+#   ylab("Value") +
+#   ggtitle("") + guides(NA) + theme_latex + theme(legend.position = "none") +
+#   theme_minimal() +
+#   theme_latex +
+#   theme(axis.text = element_text(size = 7)) +
+#   theme(axis.title = element_text(size = 9)) +
+#   theme(plot.title = element_text(size = 11)) +
+#   guides(shape = guide_legend(override.aes = list(size = pointSize)),
+#     color = guide_legend(override.aes = list(size = pointSize))) +
+#   theme(legend.title = element_text(size = textSize),
+#     legend.text  = element_text(size = textSize),
+#     legend.key.size = unit(spaceLegend, "lines")) +
+#   theme(panel.grid.major.x = element_blank()) +
+#   scale_x_continuous(expand = expansion(mult = c(0.01, 0.01)))
+# ggsave(filename = paste0("Predict_", ij_name, ".png"), plot = gg_predict_ij,
+#   path = file.path(tex_dir, "Figures/Ch2/Step_Type_Covar_Predict"),
+#   scale = 1, width = 6, height = 4, units = "in",
+#   dpi = 300)
+
 
 # # Demonstrate Inverse Logit and Rescale --------------------------------------
 #

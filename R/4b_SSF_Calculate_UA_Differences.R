@@ -20,27 +20,13 @@ ua_steps_org <- list.files(path = file.path(ua_data_dir),
 
 ua_steps <- ua_steps_org
 
-# Rename distance metric columns
-colnames(ua_steps) <- colnames(ua_steps) %>%
-  str_replace_all("developed_dist0", "dist_developed0") %>%
-  str_replace_all("hydro_dist0", "dist_hydro0") %>%
-  str_replace_all("road_dist0", "dist_road0") %>%
-  str_replace_all("turbine_dist0", "dist_turbine0")
-
-# Limits the dist_turbine to 20km (others not implemented yet)
-ua_steps_dist <- ua_steps %>%
-  mutate(dist_turbine0 = if_else(dist_turbine0 < 20000, dist_turbine0, 20000)) %>%
-  mutate(dist_hydro0 = if_else(dist_hydro0 < 5000, dist_hydro0, 5000)) %>%
-  mutate(dist_developed0 = if_else(dist_developed0 < 2000, dist_developed0, 2000)) %>%
-  mutate(dist_road0 = if_else(dist_road0 < 2000, dist_road0, 2000))
-
 # Find rows with missing data
-ua_steps_na <- ua_steps_dist %>%
-  filter_all(any_vars(is.na(.))) %>%
+ua_steps_na <- ua_steps %>%
+  filter(if_any(everything(), is.na))
   select(behavior_behavior, step_id)
 
 # Remove step_id pairs where any data is missing
-ua_steps_all <- ua_steps_dist %>% anti_join(., ua_steps_na,
+ua_steps_all <- ua_steps %>% anti_join(., ua_steps_na,
   by = c('behavior_behavior', 'step_id'))
 
 # Check for behavior, step_id, case columns and covariates columns
@@ -67,7 +53,6 @@ ua_steps_diff <- ua_steps_squared %>%
   filter(case == 1) %>%
   select(-c(step_id))
 
-
 # Check object sizes (>100 Mb is too large for GitHub)
 for(i in unique(ua_steps_diff$behavior_behavior)){
   ua_steps_diff_i <- ua_steps_diff %>%
@@ -93,7 +78,22 @@ for (i in unique(ua_steps_diff$behavior_behavior)){
 ############################### OLD CODE #######################################
 ### ------------------------------------------------------------------------ ###
 
-# # Run procedure to calculate differences0545
+# # Rename distance metric columns (Not longer needed)
+# colnames(ua_steps) <- colnames(ua_steps) %>%
+#   str_replace_all("developed_dist0", "dist_developed0") %>%
+#   str_replace_all("hydro_dist0", "dist_hydro0") %>%
+#   str_replace_all("road_dist0", "dist_road0") %>%
+#   str_replace_all("turbine_dist0", "dist_turbine0")
+
+# # Limits the dist_turbine to 20km (Done withing 1b_Create_GIS now)
+# ua_steps_dist <- ua_steps %>%
+#   mutate(dist_turbine0 = if_else(dist_turbine0 < 20000, dist_turbine0, 20000)) %>%
+#   mutate(dist_hydro0 = if_else(dist_hydro0 < 5000, dist_hydro0, 5000)) %>%
+#   mutate(dist_developed0 = if_else(dist_developed0 < 2000, dist_developed0, 2000)) %>%
+#   mutate(dist_road0 = if_else(dist_road0 < 2000, dist_road0, 2000))
+
+
+# # Run procedure to calculate differences
 # ua_steps_squared_diff <- ua_steps_squared %>%
 #   group_by(behavior_behavior, step_id) %>%
 #   arrange(behavior_behavior, step_id, case) %>%
