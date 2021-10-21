@@ -1,23 +1,27 @@
+#--------------------------- Create GIS ---------------------------------------#
 ## This script is for importing GIS datalayers and converting them to the
 ## proper coordinate reference system (NAD83 UTM N19), extent, and resolution.
-## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+#------------------------------------------------------------------------------#
+
+# Setup ------------------------------------------------------------------------
 
 # Load packages
 pacman::p_load(dplyr, fasterize, foreign, mapview, plyr, plotKML, raster,
-  readtext, rgdal, sf, sp, stringr, whitebox)
+  readtext, rgdal, sf, sp, spatialEco, stringr, whitebox)
+library(gisr)
 whitebox::wbt_init() # required for WhiteboxTools to work
 wbt_version() # check WhiteboxTools version
-library(gisr)
 
-## ------------------------- DSL LANDCOVER LAYER -------------------  ##########
+# Set variables
+wgs84n19 <- CRS("+init=epsg:32619") # WGS84 UTM 19N
 
-## Input Files
-# Rasters
+# DSL Landcover Layer ----------------------------------------------------------
+
+# Input Files
 base_file <- "C:/ArcGIS/Data/BlankRaster/maine_30mc.tif"
 land_file <- "C:/ArcGIS/Data/DSLland/DSLland_2010_v3.0.tif"
 
-## Output files
-# Rasters
+# Output files
 landcover_output <- "C:/ArcGIS/Data/R_Input/BAEA/landcover_30mc.tif"
 
 # Legends
@@ -26,17 +30,14 @@ landcover_legend_csv <- "C:/ArcGIS/Data/R_Input/BAEA/landcover_legend.csv"
 # Colormaps
 landcover_clr <- "C:/ArcGIS/Data/R_Input/BAEA/landcover_colormap.clr"
 
-# CRS
-wgs84n19 <- CRS("+init=epsg:32619") # WGS84 UTM 19N
-
-## Import Raster layers
+# Import Raster layers
 base <- raster(base_file)
 land <- raster(land_file)
 
 # Classification table
 land_classify <-  land@data@attributes[[1]]
 
-## Clip, reproject, and crop
+# Clip, reproject, and crop
 
 # Full Maine extent (for the LCC layers)
 xmin = 1900000
@@ -45,43 +46,45 @@ ymin = 2484000
 ymax = 3023046
 
 # Small subset of Maine extent (for testing purposes)
-# xmin = 2100000
-# xmax = 2130000
-# ymin = 2800000
-# ymax = 2830000
+if(FALSE){
+  xmin = 2100000
+  xmax = 2130000
+  ymin = 2800000
+  ymax = 2830000
+}
 
 maine_extent <- extent(c(xmin, xmax, ymin, ymax))
 
-## Clip 'layer' to Maine extent in the LCC projection
+# Clip 'layer' to Maine extent in the LCC projection
 land_clip <- crop(land, maine_extent, progress="text")
 rm(maine_extent, xmin, xmax, ymin, ymax)
 
-## Reproject 'layer_clip' to 'base' crs
+# Reproject 'layer_clip' to 'base' crs
 land_reproject <- projectRaster(land_clip, base, progress="text", method='ngb')
 
 # Crop to extent of 'base' layer
 land_30m <- crop(land_reproject, extent(base))
 
-## Reclassify layers
+# Reclassify layers
 # Reclassifying the 'land' layer by 'formation' (but calling it landcover)
 land_classify <- land_classify %>%
   mutate(value = as.integer(FORMATION))
 landcover_30m <- subs(land_30m, land_classify, by="ID", which="value",
   progress = "text")
 
-## Mask and Write Rasters
+# Mask and write rasters
 # Mask to extent of the 'base' layer
 landcover_30mc <- mask(landcover_30m, base)
 
-## Set crs object (Needed to ensure the whole crs is written to .tif)
+# Set crs object (Needed to ensure the whole crs is written to .tif)
 crs(landcover_30mc) <- wgs84n19
 
-## Write raster of layer_30mc
+# Write raster of layer_30mc
 writeRaster(landcover_30mc, landcover_output, progress="text", datatype='INT2U',
   overwrite=TRUE)
 
-## Create legend tables and colormaps
-## Landcover
+# Create legend tables and colormaps
+# Landcover
 # Reclassifying the land layer info into 'landcover_legend'
 landcover_legend <- land_classify %>%
   mutate(value = as.integer(FORMATION)) %>%
@@ -92,28 +95,27 @@ landcover_legend <- land_classify %>%
   dplyr::select(value, red, green, blue, name) %>%
   arrange(value)
 
-## CAREFUL! Do not overwrite the following file unless absolutely necessary.
-## The colors would have to manually entered again.
+# CAREFUL! Do not overwrite the following file unless absolutely necessary.
+# The colors would have to manually entered again.
 # write.csv(landcover_legend, landcover_legend_csv, row.names = FALSE)
 
-## At this point, I manually transferred all the RGB colors from the ArcGIS
-## symbology layer into the .csv
+# At this point, I manually transferred all the RGB colors from the ArcGIS
+# symbology layer into the .csv
 landcover_legend <- read.csv(landcover_legend_csv, stringsAsFactors=FALSE)
 
-## Create hexidecimal colors from RGB colors and save file
+# Create hexidecimal colors from RGB colors and save file
 landcover_legend$hex <- rgb(landcover_legend$red, landcover_legend$green,
   landcover_legend$blue, maxColorValue=255)
-#write.csv(landcover_legend, landcover_legend_csv, row.names = FALSE)
+if(FALSE) write.csv(landcover_legend, landcover_legend_csv, row.names = FALSE)
 
-## Create a "Colormap" for ArcGIS. The only way that a .tif can use
-## a colormap is to create an attribute table for the raster
+# Create a "Colormap" for ArcGIS. The only way that a .tif can use
+# a colormap is to create an attribute table for the raster
 landcover_colormap <- landcover_legend %>%
   dplyr::select(value, red, green, blue)
 write.table(landcover_colormap, landcover_clr, sep= " ", col.names=FALSE,
   row.names=FALSE)
 
-## Plot Testing
-
+# Plot Testing
 raster_30mc <- landcover_30mc
 legend <- landcover_legend
 legend_name <- "Landcover"
@@ -138,13 +140,13 @@ gplot(raster_30mc, maxpixel = 500000) +
 # of the map and it an can mess up the relationship between the mapped values
 # and the legend's name and hex values
 
-######## ------------------ LANDCOVER LAYERS -------------------- ##############
+# Landcover Layers -------------------------------------------------------------
 
-## Input Files
+# Input Files
 landcover_input <-"C:/ArcGIS/Data/R_Input/BAEA/lc_30mc.tif"
 ext <- extent(335000, 668000, 4750000, 5257000)
 
-## Output files
+# Output files
 developed_output <- "C:/ArcGIS/Data/R_Input/BAEA/developed_30mc.tif"
 forest_output <- "C:/ArcGIS/Data/R_Input/BAEA/forest_30mc.tif"
 open_water_output <- "C:/ArcGIS/Data/R_Input/BAEA/open_water_30mc.tif"
@@ -159,7 +161,7 @@ lc_vx <- velox(lc_crop)
 
 # Create specific landcover layers by coverting type to 1 and all others to 0
 
-## Developed ----
+# Developed
 lc_matrix <- lc_vx$as.matrix(band = 1)
 lc_matrix[!lc_matrix %in% 21:24] <- 0  ## Developed
 lc_matrix[lc_matrix >= 1] <- 1
@@ -169,7 +171,7 @@ writeRaster(developed, developed_output, progress="text", datatype='INT2U',
   overwrite=TRUE, template = ext)
 rm(developed)
 
-## Forest ----
+# Forest
 lc_matrix <- lc_vx$as.matrix(band = 1)
 lc_matrix[!lc_matrix %in% 41:43] <- 0  ## Forest
 lc_matrix[lc_matrix >= 1] <- 1
@@ -179,7 +181,7 @@ writeRaster(forest, forest_output, progress="text", datatype='INT2U',
   overwrite=TRUE)
 rm(forest)
 
-## Open Water ----
+# Open Water
 lc_matrix <- lc_vx$as.matrix(band = 1)
 lc_matrix[!lc_matrix %in% 11] <- 0  ## Open Water
 lc_matrix[lc_matrix >= 1] <- 1
@@ -189,7 +191,7 @@ writeRaster(open_water, open_water_output, progress="text", datatype='INT2U',
   overwrite=TRUE)
 rm(open_water)
 
-## Pasture/Crop ----
+# Pasture/Crop
 lc_matrix <- lc_vx$as.matrix(band = 1)
 lc_matrix[!lc_matrix %in% c(81, 82)] <- 0  ## Pasture/Crop
 lc_matrix[lc_matrix >= 1] <- 1
@@ -199,7 +201,7 @@ writeRaster(pasture, pasture_output, progress="text", datatype='INT2U',
   overwrite=TRUE)
 rm(pasture)
 
-## Shrub/Herb ----
+# Shrub/Herb
 lc_matrix <- lc_vx$as.matrix(band = 1)
 lc_matrix[!lc_matrix %in% c(52, 71)] <- 0  ## Shrub/Herb
 lc_matrix[lc_matrix >= 1] <- 1
@@ -209,7 +211,7 @@ writeRaster(shrub_herb, shrub_herb_output, progress="text", datatype='INT2U',
   overwrite=TRUE)
 rm(shrub_herb)
 
-## Wetland ----
+# Wetland
 lc_matrix <- lc_vx$as.matrix(band = 1)
 lc_matrix[!lc_matrix %in% c(90, 95)] <- 0  ## Wetland
 lc_matrix[lc_matrix >= 1] <- 1
@@ -219,18 +221,16 @@ writeRaster(wetland, wetland_output, progress="text", datatype='INT2U',
   overwrite=TRUE)
 rm(wetland)
 
-## Distance to Developed ----
+# Distance to Developed
 developed_30mc <- raster(developed_output)
 develop_fun <- function(x) {x[x>=1] <- 1; x[x==0] <- NA; return(x)}
 developed_30mc_calc <- calc(developed_30mc, develop_fun)
 mapview(developed_30mc_calc)
 
-## Output Files
+# Output Files
 developed_dist_output <- "C:/ArcGIS/Data/R_Input/BAEA/dist_developed_30mc.tif"
 
-# tic()
-# developed_dist_30mc <- distance(developed_30mc_calc, doEdge = TRUE)
-# toc()
+if(FALSE) developed_dist_30mc <- distance(developed_30mc_calc, doEdge = TRUE)
 # Ended up doing above calcuation in ArcGIS - cannot allocate vector length of
 # sufficent size
 
@@ -242,9 +242,9 @@ developed_dist_30mc[developed_dist_30mc > 5000] <- 5000
 writeRaster(developed_dist_30mc, developed_dist_output, progress = "text",
   datatype = 'INT2U', overwrite = TRUE)
 
-## ---------------------------- HYDRO LAYERS ------------------------------ ####
+# Hydro Layers -----------------------------------------------------------------
 
-## Input Files
+# Input Files
 base_file <- "C:/ArcGIS/Data/BlankRaster/maine_30mc.tif"
 outline_file <- "C:/ArcGIS/Data/BlankPolygon/MaineOutline.shp"
 nhd_file <- "C:/ArcGIS/Data/Hydrology/NHDH_ME.gdb"
@@ -253,20 +253,21 @@ wgs84n19 <- 32619 # WGS84 UTM 19N
 ext <- extent(335000, 668000, 4750000, 5257000)
 
 # Create smaller ext (for testing)
-# x_buffer <- 150000
-# y_buffer <- 210000
-# ext <- extent(335000 + x_buffer, 668000 - x_buffer, 4750000 + y_buffer,
-#   5257000 - y_buffer)
+if(FALSE){
+  x_buffer <- 150000
+  y_buffer <- 210000
+  ext <- extent(335000 + x_buffer, 668000 - x_buffer, 4750000 + y_buffer,
+    257000 - y_buffer)
+}
 
-## Output Files
+# Output Files
 hydro_output <- "C:/ArcGIS/Data/R_Input/BAEA/hydro_30mc.tif"
 
-## Import Raster layers
+# Import Raster layers
 base <- raster(base_file)
 #ogrListLayers(nhd_file)
 
-## Water ----
-
+# Water layers
 # The 'MaineOcean' feature was created in ArcGIS by using
 # BlankPolygon/MaineOutline to create a polygon of the 'negative image' of the
 # state outline in the SE corner of the rectangular study area
@@ -288,12 +289,11 @@ ocean_30mc <- fasterize(ocean, base, field = "FCODE")
 waterbody_30mc <- fasterize(waterbody, base, field = "FCode")
 waterarea_30mc <- fasterize(waterarea, base, field = "FCode")
 
-#plot(ocean_30mc)
+if(FALSE) plot(ocean_30mc)
 rm(base, waterbody, waterarea, ocean)
 
-# using a RasterStack as input
+# Using RasterStack as input
 water_stack <- stack(waterbody_30mc, waterarea_30mc, ocean_30mc)
-# return a RasterLayer
 rm(waterbody_30mc, waterarea_30mc, ocean_30mc)
 gc()
 
@@ -308,13 +308,13 @@ plot(hydro_calc)
 hydro_30mc <- crop(hydro_calc, ext)
 plot(hydro_30mc)
 
-## Write raster of layer_30mc
+# Write raster of layer_30mc
 writeRaster(hydro_30mc, hydro_output, progress = "text", datatype = 'INT2U',
   overwrite = TRUE)
 
-## Distance to Water ----
+# Distance to Water
 
-## Output Files
+# Output Files
 hydro_dist_output <- "C:/ArcGIS/Data/R_Input/BAEA/dist_hydro_30mc.tif"
 
 # tic()
@@ -331,17 +331,16 @@ hydro_dist_30mc[hydro_dist_30mc > 5000] <- 5000
 writeRaster(hydro_dist_30mc, hydro_dist_output, progress = "text",
   datatype = 'INT2U', overwrite = TRUE)
 
-## Land Layer ----
+# Land Layer
 hydro_dist_file <- "C:/ArcGIS/Data/R_Input/BAEA/hydro_dist_30mc.tif"
 land_file <- "C:/ArcGIS/Data/R_Input/BAEA/land_30mc.tif"
 
 wbt_reclass(hydro_dist_file, land_file, "0.0;0.0;0.0;1.0;0.1;100000000000",
   verbose_mode = TRUE)
 
-## ----------------------------- WIND LAYERS ------------------------------ ####
+# Wind Layers ------------------------------------------------------------------
 
-## Wind Classes ----
-
+# Wind Classes
 # Input
 wind_class <- st_read(file.path("C:/ArcGIS/Data/Wind",
   "/Maine_Wind_High_Resolution/maine_50mwind.shp")) %>%
@@ -362,7 +361,7 @@ wind_class_30mc2 <- crop(wind_class_30mc,
            ymax(wind_class_30mc) - 220000)))
 mapview(wind_class_30mc2)
 
-## Wind Turbines ----
+# Wind Turbines
 
 # Input Files
 uswtdb_file <- file.path("C:/ArcGIS/Data/Wind/USGS_Wind_Turbine_2018-12-21",
@@ -379,7 +378,7 @@ mapview(wt)
 
 st_write(wt, wt_shp_output, delete_layer = TRUE) # overwrites
 
-## Wind Turbines Distance ----
+# Wind Turbines Distance
 
 # Output File
 wt_rast_output <- "C:/ArcGIS/Data/R_Input/BAEA/windturb_30mc.tif"
@@ -404,13 +403,9 @@ plot(turbine_dist_30mc)
 writeRaster(turbine_dist_30mc, wt_dist_output, progress = "text",
   datatype = 'INT2U', overwrite = TRUE)
 
-######## ---------------------- TOPOGRAPHIC LAYERS ----------------- ###########
+# Topographic Layers -----------------------------------------------------------
 
-suppressPackageStartupMessages(library(raster))
-suppressPackageStartupMessages(library(spatialEco))
-suppressPackageStartupMessages(library(stringr))
-
-## Elevation ----
+# Elevation
 
 # Input Files
 # Original ELEVATION DATA (1/3 ArcSecond) COMPILATION WAS DONE in Python
@@ -434,11 +429,11 @@ elev_ <- raster(elev_output)
 # Crop to extent of 'base' layer
 elev_30mc <- crop(elev_reproject, ext)
 
-## Write raster of layer_30mc
+# Write raster of layer_30mc
 writeRaster(elev_30mc, elev_output, progress = "text", datatype = 'INT2U',
   overwrite = TRUE)
 
-## Slope ----
+# Slope
 
 # Output Files
 slope_output <- "C:/ArcGIS/Data/R_Input/BAEA/slope_30mc.tif"
@@ -446,11 +441,11 @@ slope_output <- "C:/ArcGIS/Data/R_Input/BAEA/slope_30mc.tif"
 elev_30mc <- raster::raster(elev_output)
 slope_30mc <- raster::terrain(elev_30mc, opt = "slope", unit = "degrees")
 
-## Write raster of layer_30mc
+# Write raster of layer_30mc
 writeRaster(slope_30mc, slope_output, progress = "text", datatype = 'INT2U',
   overwrite = TRUE)
 
-## Aspect ----
+# Aspect
 
 # Output Files
 aspect_output <- "C:/ArcGIS/Data/R_Input/BAEA/aspect_30mc.tif"
@@ -458,11 +453,11 @@ aspect_output <- "C:/ArcGIS/Data/R_Input/BAEA/aspect_30mc.tif"
 elev_30mc <- raster(elev_output)
 aspect_30mc <- terrain(elev_30mc, opt = "aspect", unit = "radians")
 
-## Write raster of layer_30mc
+# Write raster of layer_30mc
 writeRaster(aspect_30mc, aspect_output, progress = "text", datatype = 'INT2U',
   overwrite = TRUE)
 
-## Eastness / Northness ----
+# Eastness / Northness
 
 # Output Files
 eastness_output <- "C:/ArcGIS/Data/R_Input/BAEA/eastness_30mc.tif"
@@ -489,13 +484,13 @@ northness_30mc2 <- crop(northness_30mc,
            ymax(northness_30mc) - 220000)))
 mapview(northness_30mc2)
 
-## Write raster of layer_30mc
+# Write raster of layer_30mc
 writeRaster(eastness_30mc, eastness_output, progress = "text",
   datatype = 'FLT4S', overwrite = TRUE)
 writeRaster(northness_30mc, northness_output, progress = "text",
   datatype = 'FLT4S', overwrite = TRUE)
 
-## Roughness, TPI, TRI ----
+# Roughness, TPI, TRI
 # These files are NOT used directly in the analysis - they are only used for
 # visualization purposes. The metrics are calculated during in ModelFit_SSF.R
 
@@ -573,9 +568,9 @@ for(i in seq_along(tri_windows)){
     filename=tri_30mc, overwrite = TRUE)
 }
 
-## ---------------------------- ROADS LAYERS ------------------------------ ####
+# Roads Layers -----------------------------------------------------------------
 
-## Input Files
+# Input Files
 base_file <- "C:/ArcGIS/Data/BlankRaster/maine_30mc.tif"
 outline_file <- "C:/ArcGIS/Data/BlankPolygon/MaineOutline.shp"
 roads_file <- "C:/ArcGIS/Data/Transportation/Maine_State_GDB.gdb"
@@ -584,20 +579,22 @@ wgs84n19 <- 32619 # WGS84 UTM 19N
 ext <- extent(335000, 668000, 4750000, 5257000)
 
 # Create smaller ext (for testing)
-# x_buffer <- 150000
-# y_buffer <- 210000
-# ext <- extent(335000 + x_buffer, 668000 - x_buffer, 4750000 + y_buffer,
-#   5257000 - y_buffer)
+if(FALSE){
+  x_buffer <- 150000
+  y_buffer <- 210000
+  ext <- extent(335000 + x_buffer, 668000 - x_buffer, 4750000 + y_buffer,
+    257000 - y_buffer)
+}
 
-## Output Files
+# Output Files
 road_output <- "C:/ArcGIS/Data/R_Input/BAEA/road_30mc.tif"
 road_dist_output <- "C:/ArcGIS/Data/R_Input/BAEA/dist_road_30mc.tif"
 
-## Import Raster layers
+# Import Raster layers
 base <- raster(base_file)
 ogrListLayers(roads_file)
 
-## Roads ----
+# Roads
 roads <- st_read(dsn = roads_file, layer = "Trans_RoadSegment") %>%
   filter(TNMFRC %in% c(1, 2, 3, 4)) %>%
   st_transform(wgs84n19) %>%
@@ -610,7 +607,7 @@ wbt_vector_lines_to_raster(file.path(dirname(roads_file), "roads.shp"),
   road_output, field = "road", nodata = 0, base = base_file,
   verbose_mode = TRUE)
 
-## Distance to Roads ----
+# Distance to Roads
 wbt_euclidean_distance(road_output, road_dist_output, verbose_mode = FALSE)
 
 # Rescale max distance to 20km (New step added in 2021-06)
@@ -621,7 +618,8 @@ road_dist_30mc[road_dist_30mc > 5000] <- 5000
 writeRaster(road_dist_30mc, road_dist_output, progress = "text",
   datatype = 'INT2U', overwrite = TRUE)
 
-######## ----------------------- RIDGE LINES ----------------------- ###########
+# Ridge Lines ------------------------------------------------------------------
+
 # Set options
 rasterOptions(maxmem = Inf, progress = "text", timer = TRUE, chunksize=1e9,
   memfrac=.9)
@@ -672,6 +670,7 @@ if(!file.exists(elev_agg_file)){
 }
 
 # Relative Topographic Position ------------------------------------------------
+
 # RTP calculations
 wbt_relative_topographic_position(elev_agg_file, rtp_1_file,
   filterx = rtp_filter, filtery = rtp_filter)
@@ -702,6 +701,7 @@ wbt_set_nodata_value(input = rtp_5_file, output = rtp_final_file,
 file.remove(rtp_1_file, rtp_2_file, rtp_3_file, rtp_4_file, rtp_5_file)
 
 # Find Ridges ------------------------------------------------------------------
+
 # Find ridges
 wbt_find_ridges(elev_agg_file, ridge_1_file, line_thin = FALSE)
 
@@ -762,12 +762,13 @@ fileConn <- ridge_poly_kml_file
 writeLines(kml_raw_poly, fileConn)
 close(fileConn)
 
-# IMPORTANT NOTE ----
+# IMPORTANT NOTE
 # The colors of the KML can also be reconfigured in Google Earth under the kml's
 # 'properties' drop-down menu and then saved as a new file.
 
-
-################################  OLD CODE  ####################################
+#------------------------------------------------------------------------------#
+################################ OLD CODE ######################################
+#------------------------------------------------------------------------------#
 
 # maine_buff <- st_read(outline_file) %>% st_transform(wgs84n19)
 # maine_crop <- st_crop(maine_buff, ocean)
@@ -777,7 +778,7 @@ close(fileConn)
 # ocean_30mc <- mask(ocean_raster, maine_raster, inverse = TRUE)
 # rm(maine_raster)
 #
-## ------------------------------ LCC LAYERS ------------------------------ ###
+# LCC LAYERS ---------------------------------------------------------------- #
 #
 # ## Input Files
 # # Rasters

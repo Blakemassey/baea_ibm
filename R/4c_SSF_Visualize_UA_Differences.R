@@ -1,5 +1,11 @@
-################## ModelFit_SSF_Calculate_Covariates ###########################
-# Load packages, scripts, and input parameters ---------------------------------
+#---------------------- SSF Visualize UA Differences --------------------------#
+# This script creates graphs to visualize the differences for used and available
+# landscape metrics for the baea steps
+#------------------------------------------------------------------------------#
+
+# Setup ------------------------------------------------------------------------
+
+# Load packages
 pacman::p_load(plyr, dplyr, forcats, ggplot2, ggthemes, gridExtra, magick,
   patchwork, purrr, stringr, tidyr, tibble)
 pacman::p_load(baear, gisr, ibmr)
@@ -25,6 +31,7 @@ theme_blank <- theme(legend.position = "none",
   plot.background = element_rect(fill = "transparent", colour = NA))
 theme_update(plot.title = element_text(hjust = 0.5))
 
+# Functions
 RelabelCovar <- function(string){
   out <- string %>%
     str_replace_all(., "_", " ") %>%
@@ -32,7 +39,7 @@ RelabelCovar <- function(string){
   return(out)
 }
 
-## Graph UA Differences --------------------------------------------------------
+# Graph UA Differences ---------------------------------------------------------
 
 # Load ua_step_diff
 ua_steps_diff <- list.files(path = ua_data_diff_dir,
@@ -120,6 +127,7 @@ dist <- c("developed_dist", "hydro_dist", "road_dist", "turbine_dist")
 # Create graph for each of the step_type and covariates showing the differences
 # between the used and available values
 
+# Graph color parameters
 line_color = viridis::viridis(5)[5]
 point_color = viridis::viridis(5)[5]
 
@@ -130,7 +138,6 @@ ribbon_alpha1 <- .5
 ribbon_fill2 <-  NA
 ribbon_color2 <- viridis::viridis(5)[4]
 ribbon_alpha2 <- .5
-
 
 ua_steps_stats <- ua_steps_stats %>% filter(covar_squared == "")
 

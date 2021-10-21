@@ -1,81 +1,50 @@
-############################ RUN SIM ###########################################
-### This script is used to create a 'sim' list object, consisting of 'agents',
-### 'pars', and 'spatial' lists.
+#------------------------ Run Simulation --------------------------------------#
+# This script is used to run a full simulation using a 'sim' object
+#------------------------------------------------------------------------------#
 
+# Setup ------------------------------------------------------------------------
+
+# Load packages
 pacman::p_load(baear, gisr, ibmr)
-pacman::p_load(rgdal, tictoc, tidyverse, lubridate)
-#devtools::reload("C:/Users/blake/OneDrive/Work/R/Packages/ibmr")
+pacman::p_load(gpindex, rgdal, tictoc, tidyverse, lubridate)
+if(FALSE) devtools::reload("C:/Users/blake/OneDrive/Work/R/Packages/ibmr")
+source('R/5d_SIM_MovementSubmodelBAEA.R')
+
+# Directories and files
+sim_file <- "C:/Work/Sim_Data/sim_20210725.rds"
+sim_out_file <- "sim_20210725-53.rds"
+sim_out_dir <- "C:/TEMP"
+sim_id <- tools::file_path_sans_ext(sim_out_file)
+
+# Function
 toc_msg <- function(tic, toc, msg, info){
   outmsg <- paste(seconds_to_period(round(toc - tic)))
 }
 
-################# LOAD SIM AND RUN SIMULATION ##################################
+# Load Sim and Run Simulation --------------------------------------------------
 
-source('R/5c_SIM_MovementSubmodelBAEA.R')
-
-sim <- readRDS("C:/Work/Sim_Data/sim_20210616.rds")
-
-# 20210615-01 = Reduce nesting by 20%, Dest. cell n=500
-# 20210615-02 = Reduce nesting by 20%, Increase cruise(btwn .25-.85) by 50%
-#               Increase flight(btwn .35-.75) by 50%, Dest. cell n=1000
-# 20210616-02 = Increase cruise(btwn .25-.85) by 50%
-#               Increase flight(btwn .35-.75) by 50%, Dest. cell n=500
-#               Removed nest_dist in hmm
-# 20210616-03 = Increase cruise(btwn .25-.85) by 50%
-#               Increase flight(btwn .35-.75) by 50%, Dest. cell n=100
-#               Removed nest_dist in hmm
-#               No con_nest_kernel_log in redist_kernel
-# 20210616-04 = Increase cruise(btwn .25-.85) by 50%
-#               Increase flight(btwn .35-.75) by 50%, Dest. cell n=500
-#               Removed nest_dist in hmm
-#               No con_nest_kernel_log in redist_kernel
-# 20210616-05 = Increase cruise(btwn .25-.85) by 50%
-#               Increase flight(btwn .35-.75) by 50%, Dest. cell n=1000
-#               Removed nest_dist in hmm
-#               No con_nest_kernel_log in redist_kernel
-# 20210616-06 = Increase cruise(btwn .25-.85) by 50%
-#               Increase flight(btwn .35-.75) by 50%, Dest. cell n=50
-#               Removed nest_dist in hmm
-#               No con_nest_kernel_log in redist_kernel
-# 20210616-07 = Reduce perch (btwn .25-.85) by 25%, Dest. cell n=100
-#               Removed nest_dist in hmm
-#               No con_nest_kernel_log in redist_kernel
-# 20210616-08 = Reduce perch (btwn .25-.85) by 25%, Dest. cell n=100
-#               Removed nest_dist in hmm
-#               No con_nest_kernel_log in redist_kernel
-#               Included ssf_kernel_log twice in kernel_stack
-# 20210616-09 = Reduce perch (btwn .25-.85) by 25%, Dest. cell n=100
-#               Removed nest_dist in hmm
-#               No con_nest_kernel_log in redist_kernel
-#               Included move_kernel_log twice in kernel_stack
-
-
-#sim$agents$input <- sim$agents$input %>% slice(c(1,3,5,7))
+# Read 'sim' file
+sim <- readRDS(sim_file)
 pryr::object_size(sim)
-
-sim_out_file <- "sim_20210616-09.rds"
-sim_out_dir <- "C:/TEMP"
-sim_id <- tools::file_path_sans_ext(sim_out_file)
 
 if(!dir.exists(file.path(sim_out_dir, sim_id))){
   dir.create(file.path(sim_out_dir, sim_id))
 }
 
-# Modify 'sim' (modify start/end dates, slice agents, etc.)
-#sim$pars$global$sim_start <- as.POSIXct("2015-03-15", tz = "UTC")
-#sim$pars$global$sim_end <- as.POSIXct("2015-08-15", tz = "UTC")
-#sim$agents$input <- sim$agents$input %>% slice(c(1,3))
+# Set Simulation Run -----------------------------------------------------------
 
-# Set up simulation run
-testing <- FALSE
-if(testing){
+# For testing
+if(FALSE){
+  if(TRUE) sim$agents$input <- sim$agents$input %>% slice(c(1,3))
+  if(TRUE) sim$pars$global$sim_start <- as.POSIXct("2015-03-15", tz = "UTC")
+  if(TRUE) sim$pars$global$sim_end <- as.POSIXct("2015-03-20", tz = "UTC")
   runs = 1
   write = FALSE
   output_dir = getwd()
   i <- j <- k <- m <- n <- o <- 1
   m <- 5
 }
-source('R/5c_SIM_MovementSubmodelBAEA.R')
+
 RunSimulationBAEA <- function(sim = sim,
                           runs = 1,
                           write = FALSE,
@@ -86,7 +55,6 @@ RunSimulationBAEA <- function(sim = sim,
     sim <- UpdateAgentStates(init = TRUE, sim = sim)
     sim <- UpdateAgentStepDataBAEA2(init = TRUE, sim = sim,
       rep_intervals = rep_intervals)
-    step_data <- sim$agents$all[[1]][["step_data"]]
     sim <- UpdateAgentParsData(init = TRUE, sim = sim)
     sim <- UpdateSpatialBAEA(init = TRUE, sim = sim)
     for (j in 1:length(rep_intervals)) {
@@ -94,10 +62,10 @@ RunSimulationBAEA <- function(sim = sim,
         step_period = sim$pars$global$step_period)
       for (k in 1:length(step_intervals)) {
         step_interval <- step_intervals[[k]]
-        time_steps <- CreateTimeStepsInStepIntervalBAEA(step_interval, sim =sim)
+        time_steps <- CreateTimeStepsInStepIntervalBAEA2(step_interval, sim=sim)
         for (m in 1:length(time_steps)){
           time_step <- time_steps[[m]]
-          #print(paste("start of time_step:", time_steps[[m]]))
+          writeLines(paste0("Starting time_step: ", time_steps[[m]]))
           alive_seq <- ReturnAliveSeq(sim)
           sim$agents$all <- UpdateAgentParsData(sim$agents$all)
           for (n in alive_seq){
@@ -108,31 +76,19 @@ RunSimulationBAEA <- function(sim = sim,
               steps <- which(step_data$datetime %within% time_step)
               for (o in steps){
                 step <- step_data$datetime[o]
-                #print(paste("j,k,m,n: ",j,k,m,n))
-                print(paste("step:", step))
-                # START Submodels #
-                #agent_states <- AgingSubModel(agent_states, step_data, step)
                 step_data <- BehaviorSubModelBAEA2(sim, agent_states, step_data,
                   step)
-                #step_data[o + 1, "behavior"] <- 1
-                step_data <- MovementSubModelBAEA2(sim, agent_states, step_data,
+                step_data <- MovementSubModelBAEA4(sim, agent_states, step_data,
                   step)
               }
-              # END Submodels #
-            sim$agents$all[[n]][["states"]] <- UpdateAgentStates(agent_states)
-            sim$agents$all[[n]][["step_data"]] <- UpdateAgentStepData(step_data)
+              sim$agents$all[[n]][["states"]] <- UpdateAgentStates(agent_states)
+              sim$agents$all[[n]][["step_data"]]<-UpdateAgentStepData(step_data)
             }
-          } # end of alive_seq[[n]]
-          #print(paste("end of time_step:", time_steps[[m]]))
+          }
           sim$spatial <- UpdateSpatial(sim$spatial)
-        } # end of time_steps[[m]]
-        #print(paste("end of step_interval:", step_intervals[[k]]))
-      } # end of step_interval[[k]]
-      #sim$agents <- UpdateAgentsReport(sim, rep_intervals[[j]], step_intervals)
-      #sim$agents <- UpdatePopReport(sim, rep_intervals[[j]], step_intervals)
-      print(paste("end of rep_interval:", rep_intervals[[j]]))
-    } # end of rep_interval[[j]]
-    #toc()
+        }
+      }
+    }
     runs[[i]] <- SimplifySimSpatialBAEA(sim)
     WriteSimList(write = write, run = names(runs[j]), sim = sim,
       output_dir = getwd(), components = "all")
@@ -140,15 +96,13 @@ RunSimulationBAEA <- function(sim = sim,
   return(runs)
 }
 
-# Run simulation!
-source('R/5c_SIM_MovementSubmodelBAEA.R')
+# Run Simulation ---------------------------------------------------------------
+source('R/5d_SIM_MovementSubmodelBAEA.R')
 tic()
-sim_out <- RunSimulationBAEA(sim = sim, runs = 2, write = FALSE,
+sim_out <- RunSimulationBAEA(sim = sim, runs = 1, write = FALSE,
   output_dir = getwd())
-toc(func.toc = toc_msg)
-
-# Save sim as .rds
 saveRDS(sim_out, file.path(sim_out_dir, sim_id, sim_out_file))
+toc(func.toc = toc_msg)
 
 # Check object size
 pryr::object_size(sim_out)

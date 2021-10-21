@@ -1,14 +1,14 @@
-#------------------------- ANALYSIS HOME RANGES -------------------------------#
+#------------------------- Analysis Home Ranges -------------------------------#
 # This script is for identifying home ranges and calculating metrics
 #------------------------------------------------------------------------------#
 
-## Load Packages, Scripts, etc. ------------------------------------------------
+# Setup ------------------------------------------------------------------------
+
+# Load Packages
 pacman::p_load(ctmm, devtools, fitdistrplus, ggplot2, ggrepel, ggthemes,
   lubridate, mapview, move, tidyverse, raster, reshape2, sf, tmaptools, units,
   zoo)
-options(stringsAsFactors = FALSE)
 theme_update(plot.title = element_text(hjust = 0.5))
-
 library(baear)
 library(gisr)
 library(ibmr)
@@ -42,7 +42,7 @@ maps_dir <- "C:/Users/blake/OneDrive/Work/R/Projects/baea_ibm/Products/Maps"
 report_maps_dir <- file.path("C:/Users/blake/Documents/PhD Program/Reports",
   "BAEA Project - 2018/Maps")
 
-## Get BAEA Data ---------------------------------------------------------------
+# Get BAEA Data ----------------------------------------------------------------
 baea <- readRDS(file="Data/BAEA/baea.rds")
 
 # Remove all non-territorial birds
@@ -70,12 +70,15 @@ table(baea_terr$id, baea_terr$year) # Determine available individual/year combos
 hr <- tibble(id = character(), yr = integer(), sd = character(),
   ed = character())
 
-## Determine Territorial Periods -----------------------------------------------
+# Determine Territorial Periods ------------------------------------------------
 
-# i <- "Branch"
-# j <- 2015
-# baea_hr_k <- baea_hr %>% filter(id == i & year == k)
-# ExportKMLTelemetryBAEA(df = baea_hr_k, file = paste0(i, "_", k, ".kmz"))
+# For visualization and testing
+if(FALSE){
+  i <- "Branch"
+  j <- 2015
+  baea_hr_k <- baea_hr %>% filter(id == i & year == k)
+  ExportKMLTelemetryBAEA(df = baea_hr_k, file = paste0(i, "_", k, ".kmz"))
+}
 
 # Date ranges for individuals, based on a visual assessment of GPS data
 # Branch  - 2015 (1) Starts 2015-07-22, territorial until 2015-08-15
@@ -191,7 +194,7 @@ for (i in seq_len(nrow(hr_dates))){
 }
 saveRDS(baea_hr, "Data/BAEA/baea_homerange.rds")
 
-## Run Spatial Analysis --------------------------------------------------------
+# Run Spatial Analysis ---------------------------------------------------------
 
 table(baea_hr$id, baea_hr$year)
 i <- "Branch"; j <- 2015
@@ -218,10 +221,12 @@ for (i in unique(baea_hr$id)){
     baea_sf_k <- st_as_sf(baea_hr_k, coords = c("long_utm", "lat_utm"),
       crs = 32619, agr = "constant")
     # Map of Utilization Distributions
-    # mapview(list(ud_95_sf_k, ud_50_sf_k, baea_sf_k),
-    #     zcol = list(NULL, NULL, NULL),
-    #     legend = list(TRUE, FALSE, FALSE),
-    #     homebutton = list(FALSE, TRUE, TRUE))
+    if(FALSE){
+      mapview(list(ud_95_sf_k, ud_50_sf_k, baea_sf_k),
+        zcol = list(NULL, NULL, NULL),
+        legend = list(TRUE, FALSE, FALSE),
+        homebutton = list(FALSE, TRUE, TRUE))
+    }
     baea_k_bb_sf <- st_as_sfc(bb(baea_sf_k, relative = TRUE, height = 3,
       width = 2))
     developed_k_poly <- crop(developed, as_Spatial(baea_sf_k)) %>%
@@ -255,8 +260,9 @@ for (i in unique(baea_hr$id)){
       group_by(wetland_30mc) %>% summarise(cells_n = n()) %>%
       st_buffer(., dist = 0)
     # Map of homerange and landcover polygon
-    #mapview(open_water_k_poly) + mapview(ud_95_sf_k)
-    #mapview(developed_k_poly) + mapview(ud_95_sf_k)
+    if(FALSE) mapview(open_water_k_poly) + mapview(ud_95_sf_k)
+    if(FALSE) mapview(developed_k_poly) + mapview(ud_95_sf_k)
+
     # Find intersection of homerange and landcover types
     developed_k_intersect <- st_intersection(ud_95_sf_k, developed_k_poly)
     forest_k_intersect <- st_intersection(ud_95_sf_k, forest_k_poly)
@@ -264,6 +270,7 @@ for (i in unique(baea_hr$id)){
     pasture_k_intersect <- st_intersection(ud_95_sf_k, pasture_k_poly)
     shrub_herb_k_intersect <- st_intersection(ud_95_sf_k, shrub_herb_k_poly)
     wetland_k_intersect <- st_intersection(ud_95_sf_k, wetland_k_poly)
+
     # Calculate terrain metrics
     elev_95_k <- crop(elev, as_Spatial(baea_sf_k)) %>%
       mask(., as_Spatial(ud_95_sf_k), inverse = FALSE)
@@ -278,8 +285,12 @@ for (i in unique(baea_hr$id)){
     roughness_50_k <- CalculateTerrainMetric(elev_50_k, size = 3,
       metric ="roughness")
     # Map of Terrain metrics
-    #raster::plot(elev_k);raster::plot(tpi_k);raster::plot(tri_k)
-    #raster::plot(roughness_k)
+    if(FALSE){
+      raster::plot(elev_k)
+      raster::plot(tpi_k)
+      raster::plot(tri_k)
+      raster::plot(roughness_k)
+    }
     # Calculate landcover metrics
     hr_land_metrics_k <- tibble(
       id = i, year = j,
@@ -350,10 +361,9 @@ for (i in unique(baea_hr$id)){
 saveRDS(hr_land_metrics,"Output/Analysis/Homerange/hr_land_metrics.rds")
 saveRDS(hr_akde, "Output/Analysis/Homerange/hr_akde.rds")
 
-
 # Hydro Features ---------------------------------------------------------------
 
-## Input Files
+# Input files
 nhd_file <- "C:/ArcGIS/Data/Hydrology/NHDH_ME.gdb"
 hr_akde <- readRDS(file.path("Output/Analysis/Homerange",
   "hr_akde.rds"))
@@ -365,7 +375,10 @@ waterarea <- st_read(dsn = nhd_file, layer = "NHDArea") %>%
   filter(!FType %in% c(336, 343)) %>%
   st_transform(wgs84n19)
 
-# i <- "Branch"; j <- 2015  # for testing
+# For testing
+if(FALSE) i <- "Branch"; j <- 2015
+
+# Calculate habitat use around hydro features
 for (i in unique(hr_akde$id)){
   hr_akde_i <- hr_akde %>% filter(id == i)
   baea_hr_i <- baea_hr %>% filter(id == i)
@@ -387,14 +400,18 @@ for (i in unique(hr_akde$id)){
     waterarea_ud50 <- waterarea %>% slice(waterarea_ud50_rows)
     waterarea_ud95_rows <- st_intersects(ud_95_sf_k, waterarea) %>% unlist()
     waterarea_ud95 <- waterarea %>% slice(waterarea_ud95_rows)
-    # mapview(list(ud_50_sf_k, waterbody_ud50), zcol = list(NULL, NULL),
-    #     legend = list(TRUE, TRUE), homebutton = list(TRUE, TRUE))
-    # mapview(list(ud_95_sf_k, waterbody_ud95), zcol = list(NULL, NULL),
-    #     legend = list(TRUE, TRUE), homebutton = list(TRUE, TRUE))
-    # mapview(list(ud_50_sf_k, waterarea_ud50), zcol = list(NULL, NULL),
-    #     legend = list(TRUE, TRUE), homebutton = list(TRUE, TRUE))
-    # mapview(list(ud_95_sf_k, waterarea_ud95), zcol = list(NULL, NULL),
-    #     legend = list(TRUE, TRUE), homebutton = list(TRUE, TRUE))
+
+    # Map habitat use around hydro features
+    if(FALSE){
+      mapview(list(ud_50_sf_k, waterbody_ud50), zcol = list(NULL, NULL),
+        legend = list(TRUE, TRUE), homebutton = list(TRUE, TRUE))
+      mapview(list(ud_95_sf_k, waterbody_ud95), zcol = list(NULL, NULL),
+        legend = list(TRUE, TRUE), homebutton = list(TRUE, TRUE))
+      mapview(list(ud_50_sf_k, waterarea_ud50), zcol = list(NULL, NULL),
+        legend = list(TRUE, TRUE), homebutton = list(TRUE, TRUE))
+      mapview(list(ud_95_sf_k, waterarea_ud95), zcol = list(NULL, NULL),
+        legend = list(TRUE, TRUE), homebutton = list(TRUE, TRUE))
+    }
     waterbody_ud50_area <- waterbody_ud50 %>% st_drop_geometry(.) %>%
       dplyr::summarise(ud_50_waterbody_area = sum(AreaSqKm)) %>%
       slice(1) %>% pull(ud_50_waterbody_area)
@@ -512,7 +529,7 @@ ggplot(hr_area_sum %>% filter(!id %in% c(remove_list)),
   guides(fill = guide_legend(title = "Utilization\nDistribution")) +
   ggtitle("")
 
-#
+# Summarize results
 hr_all_metrics_sum <- hr_all_metrics %>%
   group_by(id) %>%
   dplyr::summarize(ud_50 = mean(ud_50_total),
@@ -568,19 +585,22 @@ ggplot(data = hr_metrics_ud %>% filter(str_detect(variable, "_prop"))) +
   guides(fill = guide_legend(title = "Utilization\nDistribution")) +
   ggtitle("")
 
-
+# Save hr metrics
 saveRDS(hr_all_metrics, file.path("Output/Analysis/Homerange",
   "hr_all_metrics.rds"))
 
 # Mapping Home Ranges ----------------------------------------------------------
 
+# Import files
 hr_akde <- readRDS(file.path("Output/Analysis/Homerange",
   "hr_akde.rds"))
 baea_hr <- readRDS("Data/BAEA/baea_homerange.rds")
 
+# For homerange visualization
 i <- "Musquash"
 j <- 2018
 
+# Map homerange
 for (i in unique(hr_akde$id)){
   hr_akde_i <- hr_akde %>% filter(id == i)
   baea_hr_i <- baea_hr %>% filter(id == i)
@@ -602,3 +622,7 @@ for (i in unique(hr_akde$id)){
         homebutton = list(FALSE, TRUE, TRUE))
   }
 }
+
+#------------------------------------------------------------------------------#
+################################ OLD CODE ######################################
+#------------------------------------------------------------------------------#

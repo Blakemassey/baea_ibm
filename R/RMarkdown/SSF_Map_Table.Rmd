@@ -18,7 +18,7 @@ header-includes:
 pacman::p_load(magick, knitr, rmarkdown, xtable)
 knitr::opts_chunk$set(echo = FALSE)
 options(xtable.include.rownames = FALSE)
-#ptions(xtable.comment = FALSE)
+#options(xtable.comment = FALSE)
 map_file <- params$map_file
 covar_table <- params$covar_table
 model_table <- params$model_table

@@ -1,0 +1,52 @@
+---
+title: "Sim Maps"
+author: "Blake H Massey"
+date: "10/10/2021"
+output: 
+  slidy_presentation:
+    theme: flatly
+    font_adjustment: -1
+    keep_md: no
+---
+
+```{r fig.width=6, echo=FALSE, message=FALSE, results="asis"}
+pacman::p_load(imager, knitr, tidyverse, kableExtra)
+sim_id <- "sim_20210725"
+sim_dir <- file.path("C:/TEMP", paste0(sim_id, "-"))  
+source(file.path("C:/Users/blake/OneDrive/Work/R/Projects/baea_ibm/R",
+  "5c_SIM_Run_Simulation_Log.R"))
+  
+for (i in c(40:51)) {  
+  j <- str_pad(i, 2, side = "left", "0")
+  cat(paste("## Simulation", j, '\n'))
+  cat(paste(':::: {style="display: flex;"}\n'))
+  
+  cat(paste('::: {.column width=40%}\n'))
+  file_name <- paste0(sim_dir, j, "/Calibration/gg_combine_ridge.png")
+  image_code <- paste0('![](', file_name, '){width=100%}\n')
+  cat(image_code)
+  cat(paste(':::\n'))
+  
+  cat(paste('::: {.column width=40%}\n'))
+  file_name <- paste0(sim_dir, j, "/Calibration/gg_combine_hydro_dist.png")
+  image_code <- paste0('![](', file_name, '){width=100%}\n')
+  cat(image_code)
+  cat(paste(':::\n'))
+  
+  cat(paste('::: {.column width=15%}\n'))
+  sim_log_i <- sim_log %>%
+    filter(sim == paste0("20210725-", j)) %>%
+    mutate(notes = str_replace_all(notes, "->", "$\\\\rightarrow$")) %>%
+    select(Parameters = notes)
+  cat(kable(sim_log_i))  
+  cat(paste(':::\n'))
+  cat(paste('::::\n'))
+  for (k in 1:8){
+    file_name <- paste0(sim_dir, j, "/AKDEs/", sim_id, "-", j, "_01-",
+      str_pad(k, 2, side = "left", "0"), ".png")
+    image_code <- paste0('![](', file_name, '){width=45%}\n')
+    cat(image_code)
+  }
+  cat("\n")
+}
+```

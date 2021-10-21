@@ -3,7 +3,7 @@
 ### 'pars', and 'spatial' lists.
 
 pacman::p_load(baear, gisr, ibmr)
-pacman::p_load(rgdal, tictoc, tidyverse, lubridate)
+pacman::p_load(gpindex, rgdal, tictoc, tidyverse, lubridate)
 #devtools::reload("C:/Users/blake/OneDrive/Work/R/Packages/ibmr")
 toc_msg <- function(tic, toc, msg, info){
   outmsg <- paste(seconds_to_period(round(toc - tic)))
@@ -11,14 +11,14 @@ toc_msg <- function(tic, toc, msg, info){
 
 ################# LOAD SIM AND RUN SIMULATION ##################################
 
-source('R/5c_SIM_MovementSubmodelBAEA.R')
+source('R/5d_SIM_MovementSubmodelBAEA.R')
 
-sim <- readRDS("C:/Work/Sim_Data/sim_20210619_Wilson.rds")
+sim <- readRDS("C:/Work/Sim_Data/sim_20210831_Wilson_NS.rds")
 
 #sim$agents$input <- sim$agents$input %>% slice(c(1,3,5,7))
 pryr::object_size(sim)
 
-sim_out_file <- "sim_20210620_Wilson-01.rds"
+sim_out_file <- "sim_20210831_Wilson_NS-01.rds"
 sim_out_dir <- "C:/TEMP"
 sim_id <- tools::file_path_sans_ext(sim_out_file)
 
@@ -40,7 +40,7 @@ if(testing){
   i <- j <- k <- m <- n <- o <- 1
   m <- 5
 }
-source('R/5c_SIM_MovementSubmodelBAEA.R')
+source('R/5d_SIM_MovementSubmodelBAEA.R')
 RunSimulationBAEA <- function(sim = sim,
                           runs = 1,
                           write = FALSE,
@@ -51,7 +51,7 @@ RunSimulationBAEA <- function(sim = sim,
     sim <- UpdateAgentStates(init = TRUE, sim = sim)
     sim <- UpdateAgentStepDataBAEA2(init = TRUE, sim = sim,
       rep_intervals = rep_intervals)
-    step_data <- sim$agents$all[[1]][["step_data"]]
+    step_data <- sim$agents$all[[2]][["step_data"]]
     sim <- UpdateAgentParsData(init = TRUE, sim = sim)
     sim <- UpdateSpatialBAEA(init = TRUE, sim = sim)
     for (j in 1:length(rep_intervals)) {
@@ -59,10 +59,10 @@ RunSimulationBAEA <- function(sim = sim,
         step_period = sim$pars$global$step_period)
       for (k in 1:length(step_intervals)) {
         step_interval <- step_intervals[[k]]
-        time_steps <- CreateTimeStepsInStepIntervalBAEA(step_interval, sim =sim)
+        time_steps <- CreateTimeStepsInStepIntervalBAEA2(step_interval, sim=sim)
         for (m in 1:length(time_steps)){
           time_step <- time_steps[[m]]
-          #print(paste("start of time_step:", time_steps[[m]]))
+          writeLines(paste0("Starting time_step: ", time_steps[[m]]))
           alive_seq <- ReturnAliveSeq(sim)
           sim$agents$all <- UpdateAgentParsData(sim$agents$all)
           for (n in alive_seq){
@@ -73,31 +73,19 @@ RunSimulationBAEA <- function(sim = sim,
               steps <- which(step_data$datetime %within% time_step)
               for (o in steps){
                 step <- step_data$datetime[o]
-                #print(paste("j,k,m,n: ",j,k,m,n))
-                print(paste("step:", step))
-                # START Submodels #
-                #agent_states <- AgingSubModel(agent_states, step_data, step)
-                step_data <- BehaviorSubModelBAEA3(sim, agent_states, step_data,
+                step_data <- BehaviorSubModelBAEA2(sim, agent_states, step_data,
                   step)
-                #step_data[o + 1, "behavior"] <- 1
                 step_data <- MovementSubModelBAEA2(sim, agent_states, step_data,
                   step)
               }
-              # END Submodels #
-            sim$agents$all[[n]][["states"]] <- UpdateAgentStates(agent_states)
-            sim$agents$all[[n]][["step_data"]] <- UpdateAgentStepData(step_data)
+              sim$agents$all[[n]][["states"]] <- UpdateAgentStates(agent_states)
+              sim$agents$all[[n]][["step_data"]]<-UpdateAgentStepData(step_data)
             }
-          } # end of alive_seq[[n]]
-          #print(paste("end of time_step:", time_steps[[m]]))
+          }
           sim$spatial <- UpdateSpatial(sim$spatial)
-        } # end of time_steps[[m]]
-        #print(paste("end of step_interval:", step_intervals[[k]]))
-      } # end of step_interval[[k]]
-      #sim$agents <- UpdateAgentsReport(sim, rep_intervals[[j]], step_intervals)
-      #sim$agents <- UpdatePopReport(sim, rep_intervals[[j]], step_intervals)
-      print(paste("end of rep_interval:", rep_intervals[[j]]))
-    } # end of rep_interval[[j]]
-    #toc()
+        }
+      }
+    }
     runs[[i]] <- SimplifySimSpatialBAEA(sim)
     WriteSimList(write = write, run = names(runs[j]), sim = sim,
       output_dir = getwd(), components = "all")
@@ -106,9 +94,9 @@ RunSimulationBAEA <- function(sim = sim,
 }
 
 # Run simulation!
-source('R/5c_SIM_MovementSubmodelBAEA.R')
+source('R/5d_SIM_MovementSubmodelBAEA.R')
 tic()
-sim_out <- RunSimulationBAEA(sim = sim, runs = 3, write = FALSE,
+sim_out <- RunSimulationBAEA(sim = sim, runs = 1, write = FALSE,
   output_dir = getwd())
 toc(func.toc = toc_msg)
 

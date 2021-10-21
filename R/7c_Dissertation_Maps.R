@@ -1,6 +1,9 @@
-############################# MAPS SETUP #######################################
+#--------------------------- DISSERTATION MAPS --------------------------------#
+# This script is for importing GIS datalayers and converting them to the proper
+#  coordinate reference system (NAD83 UTM N19), extent, and resolution.
+#------------------------------------------------------------------------------#
 
-# Load packages
+# Load packages, scripts, and input parameters ---------------------------------
 pacman::p_load(gisr, baear, cartography, dplyr, fasterize, ggplot2, ggthemes,
   grid, leaflet, lubridate, magick, maptiles, mapview, OpenStreetMap, plotly,
   prettymapr, purrr, raster, rosm, rsvg, sf, stars, stringr, tmap, tmaptools,
@@ -8,6 +11,9 @@ pacman::p_load(gisr, baear, cartography, dplyr, fasterize, ggplot2, ggthemes,
 suppressMessages(extrafont::loadfonts(device="win"))
 pacman::p_load(baear, gisr, ibmr)
 theme_update(plot.title = element_text(hjust = 0.5))
+
+# Sim file and code Boolean parameters
+sim_rds <- "sim_20210725-03.rds"
 
 # Coordinate systems
 wgs84 <- CRS("+init=epsg:4326") # WGS84 Lat/Long
@@ -22,6 +28,11 @@ om_nat_geo <- paste0(esri_url, "NatGeo_World_Map", esri_tile)
 base <- raster(file.path("C:/ArcGIS/Data/BlankRaster/maine_30mc.tif"))
 
 # Directories
+ridgeline_dir <- "C:/ArcGIS/Data/R_Input/BAEA/Ridgelines"
+
+# Files
+sim_dir <- "C:/TEMP"
+akde_dir <- file.path(sim_dir, sim_id, "AKDEs")
 baea_dir <- "C:/Users/blake/OneDrive/Work/R/Projects/baea_ibm/Data/BAEA"
 nests_dir <- file.path("C:/Users/blake/OneDrive/Work/R/Projects/baea_ibm",
   "Data/Nests/Nests_rds")
@@ -34,6 +45,8 @@ tex_dir <- "C:/Users/Blake/OneDrive/Work/LaTeX/BMassey_Dissertation"
 turbine_dir <- file.path("C:/ArcGIS/Data/R_Input/BAEA")
 wind_dir <- file.path("C:/Users/blake/OneDrive/Work/R/Projects/baea_ibm",
   "Data/Wind")
+wind_input_dir <- "Output/Analysis/Wind"
+exp_turbines_dir <- "C:/ArcGIS/Data/R_Input/EXP"
 maps_dir <- "C:/Users/blake/OneDrive/Work/R/Projects/baea_ibm/Products/Maps"
 report_maps_dir <- file.path("C:/Users/blake/Documents/PhD Program/Reports",
   "BAEA Project - 2018/Maps")
@@ -71,6 +84,9 @@ places_me <- read_sf(file.path(places_me_dir, "cb_2018_23_place_500k.shp")) %>%
 states <- read_sf(file.path(states_dir, "cb_2018_us_state_5m.shp")) %>%
   st_transform(crs = 4326)
 
+# Ridgelines
+ridge_poly_file <- file.path(ridgeline_dir, "ridge_poly.shp")
+
 # Roads
 roads <- read_sf(file.path(roads_dir, "tl_2016_us_primaryroads.shp")) %>%
   st_transform(crs = 4326)
@@ -83,10 +99,6 @@ wind_class <- read_sf(file.path(wind_dir, "Maine_Wind_High_Resolution",
 # Turbines
 turbines <- read_sf(file.path(turbine_dir, "wind_turbines.shp")) %>%
   st_transform(crs = 32619)
-
-tmap_mode("plot")
-
-## Maine Overview Map ------------------------------------------------------- ##
 
 # Mapbox Baselayers
 mapbox_url <- "https://api.mapbox.com/styles/v1/mapbox/"
@@ -102,12 +114,17 @@ esri_url <- "https://server.arcgisonline.com/ArcGIS/rest/services/"
 esri_tile <- "/MapServer/tile/{z}/{y}/{x}"
 om_nat_geo <- paste0(esri_url, "NatGeo_World_Map", esri_tile)
 
+# ESRI Basemaps
+esri_natgeo_url <- paste0("https://server.arcgisonline.com/ArcGIS/rest/",
+  "services/NatGeo_World_Map/MapServer/tile/{z}/{y}/{x}.jpg")
+esri_natgeo_info <- list(src = "NatGeo World Map", q = esri_natgeo_url,
+  sub = NA, cit = "")
 
-############################################################################# ##
-#### -------------------------- CHAPTER 2 --------------------------------- ####
-############################################################################# ##
+tmap_mode("plot")
 
-#### ----------------------- Nests Overview Map --------------------------------
+# CHAPTER 2 --------------------------------------------------------------------
+
+# Nests Overview Map -----------------------------------------------------------
 
 #maine_bb_sf <- st_as_sfc(bb(maine, relative = TRUE, height = 1.15, width = 2))
 maine_bb_sf <- st_as_sfc(bb(maine %>% st_transform(., crs = crs(maine_bb_sf)),
@@ -233,7 +250,7 @@ nests_overview <- tm_layout(asp = .75, main.title = NULL) +
 tmap_save(tm = nests_overview, filename = file.path(tex_dir, "Figures/Ch2",
   "Trapping_Sites_Overview.svg"), unit = "in", dpi = 300, height = 8, width = 6)
 
-#### -------------------- Map of Webb Eagle Migration --------------------------
+# Map of Webb Eagle Migration --------------------------------------------------
 
 baea_webb_bb_sfc <- bb(x = c(-86.5, 25, -66.5, 47.5),
   current.projection = 4326) %>% st_bbox(.) %>% st_as_sfc(.)
@@ -414,7 +431,7 @@ tmap_webb_2015_2017 <- tmap_arrange(list(tmap_webb_paths_2015_16,
 tmap_save(tm = tmap_webb_2015_2017, filename = file.path(tex_dir, "Figures/Ch2",
   "Webb_Flights.svg"), unit = "in", dpi = 300, height = 6, width = 8, asp = NA)
 
-#### -------------------- Map of Webb Florida Sites ----------------------------
+# Map of Webb Florida Sites ----------------------------------------------------
 
 # Florida Area
 baea_webb_fl_bb_sfc <- bb(x = c(-83, 27.1, -79.5, 31.1),
@@ -509,7 +526,7 @@ tmap_save(tm = tmap_webb_fl_2015_2017, filename = file.path(tex_dir,
   "Figures/Ch2", "Webb_Florida.svg"), unit = "in", dpi = 300, height = 6,
   width = 8, asp = NA)
 
-### ------------------------- Home Range Maps ----------------------------------
+# Home Range Maps --------------------------------------------------------------
 
 # Getting the ratio and background correct requires 3 components:
 # 1) Getting enough coverage of basemap by adjusting bb() 'height'/'width' args
@@ -631,7 +648,7 @@ for (i in unique(baea_hr$id)){
   }
 }
 
-#### ----------- Con and Home Nest Distance Map --------------------------------
+# Con and Home Nest Distance Map -----------------------------------------------
 
 ## Import Base
 base <- raster(file.path("C:/ArcGIS/Data/BlankRaster/maine_30mc.tif"))
@@ -708,7 +725,7 @@ con_nest_map
 tmap_save(tm = con_nest_map, filename = file.path(tex_dir, "Figures/Ch2",
   "Con_Nest_Distance_Map.svg"), unit = "in", dpi = 300, height = 6, width = 6.1)
 
-#### ----------------- SSF for Maine - Individual ------------------------------
+# SSF for Maine - Individual ---------------------------------------------------
 
 # This process assumes that the 'final' version of the SSF probablity layers
 # is in the ssf_prob_dir
@@ -777,7 +794,7 @@ for (i in seq_len(length(ssf_prob_files))){
   }
 }
 
-#### ----------------- SSF for Maine - Combined --------------------------------
+# SSF for Maine - Combined -----------------------------------------------------
 
 # This process assumes that the 'final' version of the SSF probablity layers
 # is in the ssf_prob_dir
@@ -833,7 +850,7 @@ tmap_save(tm = ssf_tmap_arrange, filename = file.path(tex_dir, "Figures/Ch2",
   "SSF_Prob_Raster_Maps", "SSF_Probability_Maps_Overview.png"), unit = "in",
   dpi = 300, height = 8, width = 8*(.8))
 
-#### ----------------- SSF at Nests - Combined ---------------------------------
+# SSF at Nests - Combined ------------------------------------------------------
 
 tmap_mode("plot")
 
@@ -962,318 +979,584 @@ for (j in seq_len(nrow(nests_sim))){
     height = 8, width = 8*.8)
 }
 
+# CHAPTER 3 --------------------------------------------------------------------
 
-#### -------------------------- CHAPTER 4 --------------------------------- ####
-############################################################################# ##
+# Baea/Sim AKDE ----------------------------------------------------------------
 
-#### ------------------------- Wilson Scenarios Map ----------------------------
+# INSERT FROM 5d_SIM_Visualization_SIM
 
-pacman::p_load(units, stringr)
 
-# Filter data, create fightpaths
-wilson <- nests_study %>% filter(name == "Wilson")  %>%
+# CHAPTER 4 --------------------------------------------------------------------
+
+# Wilson Nest Area -------------------------------------------------------------
+
+# Filter nest data
+nest_wilson <- nests_study %>% filter(name == "Wilson")  %>%
   st_transform(crs = 32619)
 
-wilson_map_center <- wilson
-sfc <- st_sfc(st_point(c(st_coordinates(wilson)[1] + 300,
-  st_coordinates(wilson)[2] - 750)))
-st_geometry(wilson_map_center) <- sfc
+wilson_map_center <- nest_wilson
+wilson_sfc <- st_sfc(st_point(c(st_coordinates(nest_wilson)[1],
+  st_coordinates(nest_wilson)[2])))
+
+st_geometry(wilson_map_center) <- wilson_sfc
 st_crs(wilson_map_center) <- 32619
 
-wilson_bb <- st_buffer(wilson_map_center, 4000) %>% bb(.)
-mapview(wilson_bb)
+wilson_bb_sfc <- st_buffer(wilson_map_center, 8000) %>% bb(.) %>% st_as_sfc(.)
+mapview(wilson_bb_sfc)
 
-wind_wilson_n <- st_crop(wind_class, wilson_bb) %>% filter(WPC >= 3) %>%
-  filter(ID %in% c(7139, 7172, 7173, 7201, 7236, 7261, 7262, 7263, 7292))
+# Basemaps
+wilson_natgeo_osm <- maptiles::get_tiles(x = wilson_bb_sfc,
+  cachedir = "C:/Temp/Maptiles", provider = esri_natgeo_info, crop = TRUE,
+  verbose = TRUE, zoom = 12, forceDownload = TRUE)
 
-wind_wilson_s_all <- st_crop(wind_class, wilson_bb) %>% filter(WPC >= 3) %>%
-  filter(ID %in% c(7626, 7659, 7660, 7662, 7701, 7702, 7762, 7778))
-wind_7662 <- wind_class %>% filter(ID == 7662)
-wind_7662_grid <- st_make_grid(wind_7662, 200)
-wind_7662_grid_sub <- wind_7662_grid[c(8:12, 15:19)]
-wind_7662_crop <- st_crop(wind_7662, wind_7662_grid_sub)
-wind_wilson_s <- rbind(wind_wilson_s_all %>% filter(ID != 7662), wind_7662_crop)
+# Colors
+nest_color <- "yellow"
+wind_area_color <- "darkorange"
+turbine_color <- "darkorange"
 
-wind_wilson_n_union <- st_union(wind_wilson_n)
-set_units(wind_wilson_n_union %>% st_area(.), km^2)
-wind_wilson_s_union <- st_union(wind_wilson_s)
-set_units(wind_wilson_s_union %>% st_area(.), km^2)
+# Wilson Turbines --------------------------------------------------------------
 
-# TEST SECTION (For placement of turbines in cells) ----------------------------
+wilson_wt_n = st_read(file.path(exp_turbines_dir, "wilson_n_turbines.shp"))
+wilson_wt_s = st_read(file.path(exp_turbines_dir, "wilson_s_turbines.shp"))
 
-wind_wilson_n_grid <- sf::st_make_grid(bb(wind_wilson_n), 30) %>%
-  st_cast("POLYGON")
-# find Maine Raster cell corner closest to grid polygons?
+wilson_wt_n_buff <- wilson_wt_n %>% st_buffer(56)
+wilson_wt_s_buff <- wilson_wt_s %>% st_buffer(56)
 
-in_footprint <- lengths(st_intersects(wind_wilson_n_grid, wind_wilson_n)) > 0
+mapview(wilson_wt_n_buff) + mapview(wilson_wt_s_buff)
 
-wind_wilson_n_rast <- st_sf(in_footprint = in_footprint, wind_wilson_n_grid) %>%
-  filter(in_footprint == TRUE)
+# Wilson Overview Map ----------------------------------------------------------
 
-wind_wilson_n_rast
-
-mapview(wind_wilson_n_rast)
-
-ggplot() +
-  geom_sf(aes(color = in_footprint), data = wind_wilson_n_rast)
-  geom_sf(data = wind_wilson_n)
-
-st_write(wind_wilson_n_rast, "Wilson_N_Grid.kml", driver='kml', update=TRUE)
-
-wind_wilson_n
-test %>% head()
-library(tidyverse)
-x = st_sf(a = "TEST", geom = test)
-test2 <- x %>% slice(1:10)
-test2 <- test %>% st_as_sf(.)
-
-ggplot() +
-  geom_sf(data = wind_wilson_n)+
-  geom_sf(data = test2)
-
-
-# END TEST SECTION -------------------------------------------------------------
-
-wind_wilson_ns <- rbind(wind_wilson_n, wind_wilson_s)
-
-# Get osm baselayer for wilson
-wilson_bb_sf <- st_as_sfc(bb(wilson_bb, relative = TRUE, height = 1,
-  width = 1))
-wilson_om <- read_osm(wilson_bb_sf, zoom = 13, minNumTiles = 21,
-  type = om_nat_geo)  # may need to add/adjust 'zoom'
-
-wind_wilson_ns <- wind_wilson_ns %>%
-  mutate(Rating = as.character(WPC)) %>%
-  mutate(Rating = str_replace_all(Rating, "4", "(Good)")) %>%
-  mutate(Rating = str_replace_all(Rating, "5", "(Excellent)")) %>%
-  mutate(Rating = str_replace_all(Rating, "6", "(Outstanding)")) %>%
-  mutate("Wind Power Class" = paste(WPC, Rating))
-
-# Wilson Map
-wilson_map <-
-  tm_layout(asp = 1) +
-  tm_shape(wilson_bb_sf, is.master = TRUE) +
-    tm_fill(col = NA) +
-  tm_shape(wilson_om) +
-    tm_rgb() +
-  tm_shape(wilson, title = "Wilson Nest") +
-    tm_bubbles(col = "yellow",  border.lwd = 3,  size = .75) +
-  tm_shape(wind_wilson_ns) +
-    tm_fill("Wind Power Class", lwd = 2, alpha = .5,
-      style = "cat", palette = "YlOrBr") + # brewer.pal(5, "RdGy")[3]
-    tm_borders("black", lwd = .5) +
-  tm_shape(wind_wilson_n_union) +
-    tm_borders("black", lwd = 3) +
-  tm_shape(wind_wilson_s_union) +
-    tm_borders("black", lwd = 3) +
-  tm_layout(main.title = NULL, #paste0("GPS Locations: ", id_i),
-    main.title.position = "center",
-    main.title.size = 1.15,
-    title.snap.to.legend = TRUE) +
-  tm_legend(title.size = 1, text.size = .85,
-    outside = FALSE, position = c("center", "bottom")) +
-  tm_scale_bar(size = .75, width = .2, breaks = c(0, 1, 2),
-    position = c(.05, .01)) +
-  tm_compass(type = "4star",  show.labels = 1, size = 2.5,
-    position = c(.85, .87)) +
-  tm_grid(n.x = 4, n.y = 5, projection = 4326, col = "grey85", alpha = .75,
-    labels.col = "grey25", labels.format = list(format = "f", big.mark = ""),
-    labels.inside.frame = FALSE) +
-  tm_xlab("") + tm_ylab("")
-wilson_map
-#tmaptools::palette_explorer()
-
-# wilson Overview Map
-wilson_overview_center <- wilson
-sfc <- st_sfc(st_point(c(st_coordinates(wilson)[1] - 5000,
-  st_coordinates(wilson)[2] - 70000)))
+wilson_overview_center <- nest_wilson
+sfc <- st_sfc(st_point(c(st_coordinates(nest_wilson)[1] + 10000,
+  st_coordinates(nest_wilson)[2] - 75000)))
 st_geometry(wilson_overview_center) <- sfc
 st_crs(wilson_overview_center) <- 32619
 
-wilson_overview_buff <- st_buffer(wilson_overview_center, 130000) %>% bb(.)
+wilson_overview_buff <- st_buffer(wilson_overview_center, 120000) %>% bb(.)
 mapview(wilson_overview_buff)
 wilson_overview_bb <- bb_poly(bb(wilson_overview_buff, ext = 1))
-om_type <- paste0(esri_url, "NatGeo_World_Map", esri_tile)
-wilson_overview_bb_om = read_osm(wilson_overview_bb, zoom = 6, minNumTiles = 21,
-  type = om_nat_geo)
+
+wilson_overview_bb_osm <- maptiles::get_tiles(x = wilson_overview_bb,
+  cachedir = "C:/Temp/Maptiles", provider = esri_natgeo_info, crop = TRUE,
+  verbose = TRUE, zoom = 6, forceDownload = TRUE)
 
 wilson_overview <-
-  tm_shape(wilson_overview_bb_om, is.master = TRUE) +
+  tm_shape(wilson_overview_bb_osm, is.master = TRUE) +
     tm_rgb() +
-  tm_shape(wilson_bb_sf) +
+  tm_shape(wilson_bb_sfc) +
     tm_borders(col = "red", lwd = 3) +
-  tm_scale_bar(size = .75, width = .2, breaks = c(0, 50, 100),
-    position = c(.52, -.03))
+  tm_scale_bar(text.size = .75, breaks = c(0, 50, 100),
+    position = c(.3, -.03))
 wilson_overview
 
-tmap_save(tm = wilson_map, filename = file.path(maps_dir, "Wilson_Buildout",
-  "wilson_map.svg"), insets_tm = wilson_overview,
-  insets_vp =  viewport(x = 0.85, y = 0.167, width = 0.25, height = 0.25),
-  unit = "in", dpi = 300, height = 6, width = 6.1)
+# Wilson Wind Area Scenario Maps -----------------------------------------------
 
-#### ------------------- Ellis Turbine Distance Map ----------------------------
+wilson_n_area <- readRDS(file.path(wind_input_dir, "wilson_n_area.rds"))
+wilson_s_area <- readRDS(file.path(wind_input_dir, "wilson_s_area.rds"))
 
-pacman::p_load(units, stringr)
-
-# Rasters
-base <- raster(file.path("C:/ArcGIS/Data/BlankRaster/maine_30mc.tif"))
-
-# Filter nest data
-ellis <- nests_study %>% filter(name == "Ellis")  %>%
-  st_transform(crs = 32619)
-
-ellis_map_center <- ellis
-sfc <- st_sfc(st_point(c(st_coordinates(ellis)[1] + 2250,
-  st_coordinates(ellis)[2] - 700)))
-st_geometry(ellis_map_center) <- sfc
-st_crs(ellis_map_center) <- 32619
-
-ellis_bb <- st_buffer(ellis_map_center, 5500) %>% bb(.)
-mapview(ellis_bb)
-
-wt_ellis <- st_crop(turbines, ellis_bb)
-mapview(wt_ellis)
-
-# Get osm baselayer for ellis
-ellis_bb_sf <- st_as_sfc(bb(ellis_bb, relative = TRUE, height = 1,
-  width = 1))
-ellis_down <- read_osm(ellis_bb_sf, zoom = 13, minNumTiles = 21,
-  type = om_nat_geo)  # may need to add/adjust 'zoom'
-ellis_om <- RasterizeOMDownload(ellis_down)
-
-# Ellis Map Raster
-ellis_raster <- crop(base, as_Spatial(ellis_bb_sf))
-wt_dist <- distanceFromPoints(ellis_raster, wt_ellis)
-wt_dist[wt_dist > 2000] = NA
-wt_dist_shift <- shift(wt_dist, 50000, 0)
-
-ellis_ext_sf <- st_as_sfc(bb(st_buffer(ellis_map_center, 5500) %>%
-  st_transform(., crs = crs(ellis_om)), ext = .95))
-
-ellis_map <-
+tmap_wilson_wind_areas <-
   tm_layout(asp = 1) +
-  tm_shape(ellis_ext_sf) +
-    tm_fill(col = NA) +
-  tm_shape(ellis_om) +
+  tm_shape(wilson_bb_sfc, is.master = TRUE, ext = .935) +
+    tm_borders(col = "red") +
+  tm_shape(wilson_natgeo_osm, raster.downsample = FALSE) +
     tm_rgb() +
-  tm_shape(ellis, title = "Ellis Nest") +
-    tm_bubbles(col = "yellow", border.lwd = 3,  size = .75) +
-  tm_shape(wt_dist) +
-    tm_raster("layer", palette = "-plasma", alpha = .6, style = "cont",
-     legend.show = FALSE)  +
-  tm_shape(wt_dist_shift) +
-    tm_raster("layer", palette = "-plasma", alpha = 1, style = "cont",
-      breaks = c(0, 500, 1000, 1500, 2000),
-      title = "Turbine Distance (m)", legend.show = TRUE)  +
-  tm_shape(turbines, title = "Wind Turbines") +
-    tm_symbols(col = "black", shape = 4,  border.lwd = 2,  size = .25) +
-  tm_layout(main.title = NULL, #paste0("GPS Locations: ", id_i),
-    main.title.position = "center",
-    main.title.size = 1.15,
-    title.snap.to.legend = TRUE) +
-  tm_legend(title.size = 1, text.size = .85,
-    outside = FALSE, position = c("left", "top"), frame = TRUE,
-    legend.bg.color = "white", legend.format = list(format = "f",
-    big.mark = "")) +
+  tm_shape(nest_wilson, title = "Wilson Nest") +
+    tm_bubbles(col = nest_color, border.lwd = 1,  size = .4,
+    border.col = "black") +
+  tm_shape(wilson_n_area, title = "Wilson Nest") +
+    tm_polygons(col = wind_area_color, border.col = "black",  lwd = 1) +
+  tm_shape(wilson_s_area, title = "Wilson Nest") +
+    tm_polygons(col = wind_area_color, border.col = "black",  lwd = 1) +
   tm_compass(type = "4star",  show.labels = 1, size = 2.5,
     position = c(.85, .87)) +
-  tm_scale_bar(text.size = .75, breaks = c(0, 1, 2), position = c(.05, .01)) +
-  tm_grid(n.x = 4, n.y = 5, projection = 4326, col = "grey85", alpha = .75,
-    labels.col = "grey25", labels.format = list(format = "f", big.mark = ""),
-    labels.inside.frame = FALSE) +
-  tm_xlab("") + tm_ylab("")
-ellis_map
-#tmaptools::palette_explorer()
+  tm_scale_bar(text.size = .75, breaks = c(0, 1, 2), position = c(.05, .01))
+tmap_wilson_wind_areas
 
-# ellis Overview Map
-ellis_overview_center <- ellis
-sfc <- st_sfc(st_point(c(st_coordinates(ellis)[1] + 50000,
-  st_coordinates(ellis)[2] - 0)))
-st_geometry(ellis_overview_center) <- sfc
-st_crs(ellis_overview_center) <- 32619
+tmap_save(tm = tmap_wilson_wind_areas, filename = file.path(tex_dir,
+  "Figures/Ch4", "Wilson_Scenarios", "Wilson_Wind_Areas.svg"),
+  insets_tm = wilson_overview, insets_vp =  viewport(x = 0.853, y = .141,
+  width = 0.25, height = 0.25), unit = "in", dpi = 300, height = 6, width = 6.1)
 
-ellis_overview_buff <- st_buffer(ellis_overview_center, 120000) %>% bb(.)
-mapview(ellis_overview_buff)
-ellis_overview_bb <- bb_poly(bb(ellis_overview_buff, ext = 1))
-ellis_overview_bb_om <- read_osm(ellis_overview_bb, zoom = 6, minNumTiles = 21,
-  type = om_type)
+# Wilson Turbine Scenario Maps -------------------------------------------------
 
-ellis_overview <-
-  tm_shape(ellis_overview_bb_om, is.master = TRUE) +
-    tm_rgb() +
-  tm_shape(ellis_bb_sf) +
-    tm_borders(col = "red", lwd = 3) +
-  tm_scale_bar(size = .75, width = .2, breaks = c(0, 50, 100),
-    position = c(.45, -.03))
-ellis_overview
+# Basemaps
+wilson_natgeo_osm <- maptiles::get_tiles(x = wilson_bb_sfc,
+  cachedir = "C:/Temp/Maptiles", provider = esri_natgeo_info, crop = TRUE,
+  verbose = TRUE, zoom = 12, forceDownload = TRUE)
 
-tmap_save(tm = ellis_map, filename = file.path(maps_dir, "Ellis_Turbines",
-  "ellis_map.svg"), insets_tm = ellis_overview,
-  insets_vp =  viewport(x = 0.85, y = 0.167, width = 0.25, height = 0.25),
-  unit = "in", dpi = 300, height = 6, width = 6.1)
-
-# Ellis Map Polygons (Not currently used, but may be useful)
-
-wt_buff_400 <- st_buffer(wt_ellis, c(400)) %>% st_union(.)
-wt_buff_600 <- st_buffer(wt_ellis, c(600)) %>% st_union(.)
-wt_buff_800 <- st_buffer(wt_ellis, c(800)) %>% st_union(.)
-wt_buff_1000 <- st_buffer(wt_ellis, c(1000)) %>% st_union(.)
-
-wt_buffs_200 <- st_buffer(wt_ellis, c(200)) %>% st_union(.)
-wt_buffs_400 <- st_sym_difference(wt_buff_400, wt_buff_200)
-wt_buffs_600 <- st_sym_difference(wt_buff_600, wt_buff_400)
-wt_buffs_800 <- st_sym_difference(wt_buff_800, wt_buff_600)
-wt_buffs_1000 <- st_sym_difference(wt_buff_1000, wt_buff_800)
-
-ellis_map_polys <-
+tmap_wilson_c <-
   tm_layout(asp = 1) +
-  tm_shape(ellis_bb_sf, is.master = TRUE) +
-    tm_fill(col = NA) +
-  tm_shape(ellis_om) +
+  tm_shape(wilson_bb_sfc, is.master = TRUE, ext = .935) +
+    tm_borders(col = "red") +
+  tm_shape(wilson_natgeo_osm, raster.downsample = FALSE) +
     tm_rgb() +
-  tm_shape(ellis, title = "Ellis Nest") +
-    tm_bubbles(col = "yellow", border.lwd = 3,  size = .75) +
-  tm_shape(wt_buffs_1000, title = "Wind Turbine Buffers") +
-     tm_polygons(col = viridis(10, option = v_col)[3], alpha = v_alpha,
-       border.lwd = 3) +
-  tm_shape(wt_buffs_800, title = "Wind Turbine Buffers") +
-     tm_polygons(col = viridis(10, option = v_col)[4], alpha = v_alpha,
-       border.lwd = 3) +
-  tm_shape(wt_buffs_600, title = "Wind Turbine buffers") +
-     tm_polygons(col = viridis(10, option = v_col)[5], alpha = v_alpha,
-       border.lwd = 3) +
-  tm_shape(wt_buffs_400, title = "Wind Turbine Buffers") +
-     tm_polygons(col = viridis(10, option = v_col)[6], alpha = v_alpha,
-       border.lwd = 3) +
-  tm_shape(wt_buffs_200, title = "Wind Turbine Buffers") +
-     tm_polygons(col = viridis(10, option = v_col)[7], alpha = v_alpha,
-       border.lwd = 3) +
-  tm_shape(turbines, title = "Wind Turbines") +
-    tm_symbols(col = "black", shape = 4,  border.lwd = 2,  size = .25) +
-  tm_layout(main.title = NULL, #paste0("GPS Locations: ", id_i),
-    main.title.position = "center",
-    main.title.size = 1.15,
-    title.snap.to.legend = TRUE) +
-  tm_legend(legend.show = FALSE, title.size = 1, text.size = .85,
-    outside = FALSE, position = c("left", "top"), frame = TRUE,
-    legend.bg.color = "white", legend.format = list(format = "f",
-    big.mark = "")) +
+  tm_shape(nest_wilson, title = "Wilson Nest") +
+    tm_bubbles(col = nest_color, border.lwd = 1,  size = .4,
+    border.col = "black") +
   tm_compass(type = "4star",  show.labels = 1, size = 2.5,
     position = c(.85, .87)) +
-  tm_scale_bar(size = .75, width = .2, breaks = c(0, 1, 2),
-    position = c(.05, .01)) +
-  tm_grid(n.x = 4, n.y = 5, projection = 4326, col = "grey85", alpha = .75,
-    labels.col = "grey25", labels.format = list(format = "f", big.mark = ""),
-    labels.inside.frame = FALSE) +
-  tm_xlab("") + tm_ylab("")
-ellis_map_polys
+  tm_scale_bar(text.size = .75, breaks = c(0, 1, 2), position = c(.05, .01))
 
+tmap_wilson_n <- tmap_wilson_c +
+  tm_shape(wilson_wt_n_buff, title = "Wind Turbines") +
+    tm_polygons(col = turbine_color, border.col = "black",  lwd = 1)
 
+tmap_wilson_s <- tmap_wilson_c +
+  tm_shape(wilson_wt_s_buff, title = "Wind Turbines") +
+    tm_polygons(col = turbine_color, border.col = "black",  lwd = 1)
+
+tmap_wilson_ns <- tmap_wilson_n +
+  tm_shape(wilson_wt_n_buff, title = "Wind Turbines") +
+    tm_polygons(col = turbine_color, border.col = "black",  lwd = 1) +
+  tm_shape(wilson_wt_s_buff, title = "Wind Turbines") +
+    tm_polygons(col = turbine_color, border.col = "black",  lwd = 1)
+
+tmap_save(tm = tmap_wilson_c, filename = file.path(tex_dir, "Figures/Ch4",
+  "Wilson_Scenarios", "Wilson_C.svg"), insets_tm = wilson_overview,
+  insets_vp =  viewport(x = 0.853, y = .141, width = 0.25, height = 0.25),
+  unit = "in", dpi = 300, height = 6, width = 6.1)
+tmap_save(tm = tmap_wilson_n, filename = file.path(tex_dir, "Figures/Ch4",
+  "Wilson_Scenarios", "Wilson_N.svg"), insets_tm = wilson_overview,
+  insets_vp =  viewport(x = 0.853, y = .141, width = 0.25, height = 0.25),
+  unit = "in", dpi = 300, height = 6, width = 6.1)
+tmap_save(tm = tmap_wilson_s, filename = file.path(tex_dir, "Figures/Ch4",
+  "Wilson_Scenarios", "Wilson_S.svg"), insets_tm = wilson_overview,
+  insets_vp =  viewport(x = 0.853, y = .141, width = 0.25, height = 0.25),
+  unit = "in", dpi = 300, height = 6, width = 6.1)
+tmap_save(tm = tmap_wilson_ns, filename = file.path(tex_dir, "Figures/Ch4",
+  "Wilson_Scenarios", "Wilson_NS.svg"), insets_tm = wilson_overview,
+  insets_vp =  viewport(x = 0.853, y = .141, width = 0.25, height = 0.25),
+  unit = "in", dpi = 300, height = 6, width = 6.1)
+
+# Wilson SSF Maps --------------------------------------------------------------
+
+# SSF Fits
+ssf_fits_best_org <- readRDS(fits_best_file) #%>% slice(c(step_type_index))
+ssf_fits_best <- ssf_fits_best_org
+
+exp_dir <- "C:/ArcGIS/Data/R_Input/EXP"
+exp_scenarios <- list.dirs(exp_dir, recursive = FALSE)
+
+# Get nest
+nest_wilson <- nests_study %>% slice(c(5)) %>% st_transform(wgs84n19)
+nest_wilson_name <- nest_wilson %>% pull(name)
+
+# For Individual Scenario Maps
+for (j in seq_len(length(exp_scenarios))){
+  exp_scenario_j <- exp_scenarios[j]
+  exp_scenario_j_name <- basename(exp_scenarios[j])
+  ssf_tmap_list <- vector(mode = "list", length = 20)
+  for (i in seq_len(nrow(ssf_fits_best))){
+    step_type_i_numeric <- ssf_fits_best %>% slice(i) %>% pull(step_type) %>%
+      str_replace_all(c("cruise" = "1", "flight" = "2", "nest" = "3",
+        "perch" = "4", "roost" = "5"))
+    ssf_prob_dir <- file.path(exp_scenario_j, "Step_Types_Prob")
+    ssf_prob_file <- list.files(ssf_prob_dir, pattern =
+      paste0(step_type_i_numeric, "\\.tif$"), full.names = TRUE)
+    if (i ==  1){
+      # Use "Tmap_baselayers.R" script to get other baselayers
+      nest_bbox <- st_as_sfc(st_bbox(st_buffer(nest_wilson, dist = 10000)))
+      nest_buffer <- st_buffer(nest_wilson, dist = 10000)
+      nest_bb_sf <- st_as_sfc(bb(nest_buffer, relative = TRUE, height = 1.35,
+        width = 1.35))
+      Sys.sleep(1)
+      nest_om = read_osm(nest_bb_sf, type = om_nat_geo, zoom = 11)
+        #type = "osm", minNumTiles=9,
+      nest_om_bb <- bb_poly(nest_om)
+    }
+    ssf_prob_i <- raster(ssf_prob_file) #%>% slice(1)
+    ssf_prob_i_crop <- crop(ssf_prob_i, nest_buffer)
+    ssf_prob_i_mask <- mask(ssf_prob_i_crop, nest_buffer)
+    step_type_i_text <- step_type_i_numeric %>%
+      str_replace_all("1", "Cruise") %>%
+      str_replace_all("2", "Flight") %>%
+      str_replace_all("3", "Nest") %>%
+      str_replace_all("4", "Perch") %>%
+      str_replace_all("5", "Roost")
+    writeLines(paste0("Mapping: ", step_type_i_text))
+    step_type_i_arrow <- step_type_i_text %>%
+      str_replace_all("_", "$\\\\rightarrow$ ") %>%
+      latex2exp::TeX(.)
+    ssf_prob_i_nest_map <-
+      tm_shape(nest_om) +
+        tm_rgb() +
+     tm_shape(ssf_prob_i_mask, raster.downsample = FALSE) +
+     tm_raster(palette = viridis(20, direction = 1), alpha = .6,
+       legend.reverse = TRUE, style = "cont", title = "Probability") +
+      tm_scale_bar(breaks = c(0, 5, 10), text.size = .4, lwd = .25,
+        position = c(.03, .0)) +
+      tm_compass(type = "4star", text.size = 0.55, show.labels = 1, size = 1.75,
+        position = c(.8, .775), lwd = .25) +
+      tm_shape(nest_wilson) +
+      tm_symbols(shape = 20, #border.col = "black", border.lwd = .5,
+        col = "black", size = .075) +
+      tm_layout(asp = .8,
+        frame = NA, #"black",
+        title.color = "black",
+        title.bg.color = NA, #"ivory3",
+        title.bg.alpha = .85,
+        title.position = c(.275,.95),
+        title.fontfamily = "Latin Modern Roman",
+        title = step_type_i_arrow,
+        title.size = .6,
+        title.snap.to.legend = FALSE,
+        legend.bg.color = "ivory1",
+        legend.frame = "grey",
+        legend.frame.lwd = 1,
+        legend.height = .4,
+        legend.title.size = .4,
+        legend.text.size = .35,
+        legend.position = c(.785,.007),
+        legend.outside = FALSE,
+        legend.title.fontfamily = "Latin Modern Roman",
+        legend.text.fontfamily = "Latin Modern Roman")
+        #+ tm_credits(step_type_arrow, position=c("right","top"))
+    #ssf_prob_i_nest_map
+    tmap_position <- switch(step_type_i_numeric,
+      "1_1" = 1,  "1_2" = 2,  "1_4" = 3,
+      "2_1" = 5,  "2_2" = 6,  "2_4" = 7,  "2_5" = 8,
+      "3_1" = 9,  "3_2" = 10, "3_4" = 11, "3_5" = 12,
+      "4_1" = 13, "4_2" = 14, "4_4" = 15, "4_5" = 16,
+                  "5_2" = 18, "5_4" = 19)
+    writeLines(as.character(tmap_position))
+    ssf_tmap_list[[tmap_position]] <- ssf_prob_i_nest_map
+  }
+
+  tmap_blank <-
+    tm_shape(nest_om_bb, is.master = TRUE) +
+      tm_fill(col = "white") +
+    tm_shape(nest_buffer, is.master = TRUE) +
+      tm_polygons(col = "white", border.col = "white") +
+    tm_layout(asp = .8, legend.show = FALSE, frame = FALSE)
+
+  for (i in seq_len(length(ssf_tmap_list))){
+    if(is.null(ssf_tmap_list[[i]])) ssf_tmap_list[[i]] <- tmap_blank
+  }
+
+  # Arrange map of probability surfaces for testing
+  ssf_tmap_nest_arrange <- tmap_arrange(
+    ssf_tmap_list[[1]], ssf_tmap_list[[2]], ssf_tmap_list[[3]],
+    ssf_tmap_list[[4]], ssf_tmap_list[[5]], ssf_tmap_list[[6]],
+    ssf_tmap_list[[7]], ssf_tmap_list[[8]], ssf_tmap_list[[9]],
+    ssf_tmap_list[[10]], ssf_tmap_list[[11]], ssf_tmap_list[[12]],
+    ssf_tmap_list[[13]], ssf_tmap_list[[14]], ssf_tmap_list[[15]],
+    ssf_tmap_list[[16]], ssf_tmap_list[[17]], ssf_tmap_list[[18]],
+    ssf_tmap_list[[19]], ssf_tmap_list[[20]], ncol = 4)
+
+  tmap_save(tm = ssf_tmap_nest_arrange, filename = file.path(tex_dir,
+    "Figures/Ch4/SSF_Prob_Raster_Maps", paste0("SSF_Probability_Maps_",
+    exp_scenario_j_name, ".png")), unit = "in", dpi = 300,
+    height = 8, width = 8*.8)
+}
 
 
 # ---------------------------------------------------------------------------- #
 ################################ OLD CODE ######################################
 # ---------------------------------------------------------------------------- #
+
+# ## Wilson Scenarios Map ---------------------------------------------------- #
+#
+# pacman::p_load(units, stringr)
+#
+# # Filter data, create fightpaths
+# wilson <- nests_study %>% filter(name == "Wilson")  %>%
+#   st_transform(crs = 32619)
+#
+# wilson_map_center <- wilson
+# sfc <- st_sfc(st_point(c(st_coordinates(wilson)[1] + 300,
+#   st_coordinates(wilson)[2] - 750)))
+# st_geometry(wilson_map_center) <- sfc
+# st_crs(wilson_map_center) <- 32619
+#
+# wilson_bb <- st_buffer(wilson_map_center, 4000) %>% bb(.)
+# mapview(wilson_bb)
+#
+# wind_wilson_n <- st_crop(wind_class, wilson_bb) %>% filter(WPC >= 3) %>%
+#   filter(ID %in% c(7139, 7172, 7173, 7201, 7236, 7261, 7262, 7263, 7292))
+#
+# wind_wilson_s_all <- st_crop(wind_class, wilson_bb) %>% filter(WPC >= 3) %>%
+#   filter(ID %in% c(7626, 7659, 7660, 7662, 7701, 7702, 7762, 7778))
+# wind_7662 <- wind_class %>% filter(ID == 7662)
+# wind_7662_grid <- st_make_grid(wind_7662, 200)
+# wind_7662_grid_sub <- wind_7662_grid[c(8:12, 15:19)]
+# wind_7662_crop <- st_crop(wind_7662, wind_7662_grid_sub)
+# wind_wilson_s <- rbind(wind_wilson_s_all %>% filter(ID != 7662), wind_7662_crop)
+#
+# wind_wilson_n_union <- st_union(wind_wilson_n)
+# set_units(wind_wilson_n_union %>% st_area(.), km^2)
+# wind_wilson_s_union <- st_union(wind_wilson_s)
+# set_units(wind_wilson_s_union %>% st_area(.), km^2)
+#
+# # TEST SECTION (For placement of turbines in cells) ------------------------ #
+#
+# wind_wilson_n_grid <- sf::st_make_grid(bb(wind_wilson_n), 30) %>%
+#   st_cast("POLYGON")
+# # find Maine Raster cell corner closest to grid polygons?
+#
+# in_footprint <- lengths(st_intersects(wind_wilson_n_grid, wind_wilson_n)) > 0
+#
+# wind_wilson_n_rast <- st_sf(in_footprint = in_footprint, wind_wilson_n_grid) %>%
+#   filter(in_footprint == TRUE)
+#
+# wind_wilson_n_rast
+#
+# mapview(wind_wilson_n_rast)
+#
+# ggplot() +
+#   geom_sf(aes(color = in_footprint), data = wind_wilson_n_rast)
+#   geom_sf(data = wind_wilson_n)
+#
+# st_write(wind_wilson_n_rast, "Wilson_N_Grid.kml", driver='kml', update=TRUE)
+#
+# wind_wilson_n
+# test %>% head()
+# library(tidyverse)
+# x = st_sf(a = "TEST", geom = test)
+# test2 <- x %>% slice(1:10)
+# test2 <- test %>% st_as_sf(.)
+#
+# ggplot() +
+#   geom_sf(data = wind_wilson_n)+
+#   geom_sf(data = test2)
+#
+#
+# # END TEST SECTION --------------------------------------------------------- #
+#
+# wind_wilson_ns <- rbind(wind_wilson_n, wind_wilson_s)
+#
+# # Get osm baselayer for wilson
+# wilson_bb_sf <- st_as_sfc(bb(wilson_bb, relative = TRUE, height = 1,
+#   width = 1))
+# wilson_om <- read_osm(wilson_bb_sf, zoom = 13, minNumTiles = 21,
+#   type = om_nat_geo)  # may need to add/adjust 'zoom'
+#
+# wind_wilson_ns <- wind_wilson_ns %>%
+#   mutate(Rating = as.character(WPC)) %>%
+#   mutate(Rating = str_replace_all(Rating, "4", "(Good)")) %>%
+#   mutate(Rating = str_replace_all(Rating, "5", "(Excellent)")) %>%
+#   mutate(Rating = str_replace_all(Rating, "6", "(Outstanding)")) %>%
+#   mutate("Wind Power Class" = paste(WPC, Rating))
+#
+# # Wilson Map
+# wilson_map <-
+#   tm_layout(asp = 1) +
+#   tm_shape(wilson_bb_sf, is.master = TRUE) +
+#     tm_fill(col = NA) +
+#   tm_shape(wilson_om) +
+#     tm_rgb() +
+#   tm_shape(wilson, title = "Wilson Nest") +
+#     tm_bubbles(col = "yellow",  border.lwd = 3,  size = .75) +
+#   tm_shape(wind_wilson_ns) +
+#     tm_fill("Wind Power Class", lwd = 2, alpha = .5,
+#       style = "cat", palette = "YlOrBr") + # brewer.pal(5, "RdGy")[3]
+#     tm_borders("black", lwd = .5) +
+#   tm_shape(wind_wilson_n_union) +
+#     tm_borders("black", lwd = 3) +
+#   tm_shape(wind_wilson_s_union) +
+#     tm_borders("black", lwd = 3) +
+#   tm_layout(main.title = NULL, #paste0("GPS Locations: ", id_i),
+#     main.title.position = "center",
+#     main.title.size = 1.15,
+#     title.snap.to.legend = TRUE) +
+#   tm_legend(title.size = 1, text.size = .85,
+#     outside = FALSE, position = c("center", "bottom")) +
+#   tm_scale_bar(size = .75, width = .2, breaks = c(0, 1, 2),
+#     position = c(.05, .01)) +
+#   tm_compass(type = "4star",  show.labels = 1, size = 2.5,
+#     position = c(.85, .87)) +
+#   tm_grid(n.x = 4, n.y = 5, projection = 4326, col = "grey85", alpha = .75,
+#     labels.col = "grey25", labels.format = list(format = "f", big.mark = ""),
+#     labels.inside.frame = FALSE) +
+#   tm_xlab("") + tm_ylab("")
+# wilson_map
+# #tmaptools::palette_explorer()
+#
+# # wilson Overview Map
+# wilson_overview_center <- wilson
+# sfc <- st_sfc(st_point(c(st_coordinates(wilson)[1] - 5000,
+#   st_coordinates(wilson)[2] - 70000)))
+# st_geometry(wilson_overview_center) <- sfc
+# st_crs(wilson_overview_center) <- 32619
+#
+# wilson_overview_buff <- st_buffer(wilson_overview_center, 130000) %>% bb(.)
+# mapview(wilson_overview_buff)
+# wilson_overview_bb <- bb_poly(bb(wilson_overview_buff, ext = 1))
+# om_type <- paste0(esri_url, "NatGeo_World_Map", esri_tile)
+# wilson_overview_bb_om = read_osm(wilson_overview_bb, zoom = 6, minNumTiles = 21,
+#   type = om_nat_geo)
+#
+# wilson_overview <-
+#   tm_shape(wilson_overview_bb_om, is.master = TRUE) +
+#     tm_rgb() +
+#   tm_shape(wilson_bb_sf) +
+#     tm_borders(col = "red", lwd = 3) +
+#   tm_scale_bar(size = .75, width = .2, breaks = c(0, 50, 100),
+#     position = c(.52, -.03))
+# wilson_overview
+#
+# tmap_save(tm = wilson_map, filename = file.path(maps_dir, "Wilson_Buildout",
+#   "wilson_map.svg"), insets_tm = wilson_overview,
+#   insets_vp =  viewport(x = 0.85, y = 0.167, width = 0.25, height = 0.25),
+#   unit = "in", dpi = 300, height = 6, width = 6.1)
+#
+# ------------------- Ellis Turbine Distance Map ---------------------------- #
+#
+# pacman::p_load(units, stringr)
+#
+# # Rasters
+# base <- raster(file.path("C:/ArcGIS/Data/BlankRaster/maine_30mc.tif"))
+#
+# # Filter nest data
+# ellis <- nests_study %>% filter(name == "Ellis")  %>%
+#   st_transform(crs = 32619)
+#
+# ellis_map_center <- ellis
+# sfc <- st_sfc(st_point(c(st_coordinates(ellis)[1] + 2250,
+#   st_coordinates(ellis)[2] - 700)))
+# st_geometry(ellis_map_center) <- sfc
+# st_crs(ellis_map_center) <- 32619
+#
+# ellis_bb <- st_buffer(ellis_map_center, 5500) %>% bb(.)
+# mapview(ellis_bb)
+#
+# wt_ellis <- st_crop(turbines, ellis_bb)
+# mapview(wt_ellis)
+#
+# # Get osm baselayer for ellis
+# ellis_bb_sf <- st_as_sfc(bb(ellis_bb, relative = TRUE, height = 1,
+#   width = 1))
+# ellis_down <- read_osm(ellis_bb_sf, zoom = 13, minNumTiles = 21,
+#   type = om_nat_geo)  # may need to add/adjust 'zoom'
+# ellis_om <- RasterizeOMDownload(ellis_down)
+#
+# # Ellis Map Raster
+# ellis_raster <- crop(base, as_Spatial(ellis_bb_sf))
+# wt_dist <- distanceFromPoints(ellis_raster, wt_ellis)
+# wt_dist[wt_dist > 2000] = NA
+# wt_dist_shift <- shift(wt_dist, 50000, 0)
+#
+# ellis_ext_sf <- st_as_sfc(bb(st_buffer(ellis_map_center, 5500) %>%
+#   st_transform(., crs = crs(ellis_om)), ext = .95))
+#
+# ellis_map <-
+#   tm_layout(asp = 1) +
+#   tm_shape(ellis_ext_sf) +
+#     tm_fill(col = NA) +
+#   tm_shape(ellis_om) +
+#     tm_rgb() +
+#   tm_shape(ellis, title = "Ellis Nest") +
+#     tm_bubbles(col = "yellow", border.lwd = 3,  size = .75) +
+#   tm_shape(wt_dist) +
+#     tm_raster("layer", palette = "-plasma", alpha = .6, style = "cont",
+#      legend.show = FALSE)  +
+#   tm_shape(wt_dist_shift) +
+#     tm_raster("layer", palette = "-plasma", alpha = 1, style = "cont",
+#       breaks = c(0, 500, 1000, 1500, 2000),
+#       title = "Turbine Distance (m)", legend.show = TRUE)  +
+#   tm_shape(turbines, title = "Wind Turbines") +
+#     tm_symbols(col = "black", shape = 4,  border.lwd = 2,  size = .25) +
+#   tm_layout(main.title = NULL, #paste0("GPS Locations: ", id_i),
+#     main.title.position = "center",
+#     main.title.size = 1.15,
+#     title.snap.to.legend = TRUE) +
+#   tm_legend(title.size = 1, text.size = .85,
+#     outside = FALSE, position = c("left", "top"), frame = TRUE,
+#     legend.bg.color = "white", legend.format = list(format = "f",
+#     big.mark = "")) +
+#   tm_compass(type = "4star",  show.labels = 1, size = 2.5,
+#     position = c(.85, .87)) +
+#   tm_scale_bar(text.size = .75, breaks = c(0, 1, 2), position = c(.05, .01)) +
+#   tm_grid(n.x = 4, n.y = 5, projection = 4326, col = "grey85", alpha = .75,
+#     labels.col = "grey25", labels.format = list(format = "f", big.mark = ""),
+#     labels.inside.frame = FALSE) +
+#   tm_xlab("") + tm_ylab("")
+# ellis_map
+# #tmaptools::palette_explorer()
+#
+# # ellis Overview Map
+# ellis_overview_center <- ellis
+# sfc <- st_sfc(st_point(c(st_coordinates(ellis)[1] + 50000,
+#   st_coordinates(ellis)[2] - 0)))
+# st_geometry(ellis_overview_center) <- sfc
+# st_crs(ellis_overview_center) <- 32619
+#
+# ellis_overview_buff <- st_buffer(ellis_overview_center, 120000) %>% bb(.)
+# mapview(ellis_overview_buff)
+# ellis_overview_bb <- bb_poly(bb(ellis_overview_buff, ext = 1))
+# ellis_overview_bb_om <- read_osm(ellis_overview_bb, zoom = 6, minNumTiles = 21,
+#   type = om_type)
+#
+# ellis_overview <-
+#   tm_shape(ellis_overview_bb_om, is.master = TRUE) +
+#     tm_rgb() +
+#   tm_shape(ellis_bb_sf) +
+#     tm_borders(col = "red", lwd = 3) +
+#   tm_scale_bar(size = .75, width = .2, breaks = c(0, 50, 100),
+#     position = c(.45, -.03))
+# ellis_overview
+#
+# tmap_save(tm = ellis_map, filename = file.path(maps_dir, "Ellis_Turbines",
+#   "ellis_map.svg"), insets_tm = ellis_overview,
+#   insets_vp =  viewport(x = 0.85, y = 0.167, width = 0.25, height = 0.25),
+#   unit = "in", dpi = 300, height = 6, width = 6.1)
+#
+# # Ellis Map Polygons (Not currently used, but may be useful)
+#
+# wt_buff_400 <- st_buffer(wt_ellis, c(400)) %>% st_union(.)
+# wt_buff_600 <- st_buffer(wt_ellis, c(600)) %>% st_union(.)
+# wt_buff_800 <- st_buffer(wt_ellis, c(800)) %>% st_union(.)
+# wt_buff_1000 <- st_buffer(wt_ellis, c(1000)) %>% st_union(.)
+#
+# wt_buffs_200 <- st_buffer(wt_ellis, c(200)) %>% st_union(.)
+# wt_buffs_400 <- st_sym_difference(wt_buff_400, wt_buff_200)
+# wt_buffs_600 <- st_sym_difference(wt_buff_600, wt_buff_400)
+# wt_buffs_800 <- st_sym_difference(wt_buff_800, wt_buff_600)
+# wt_buffs_1000 <- st_sym_difference(wt_buff_1000, wt_buff_800)
+#
+# ellis_map_polys <-
+#   tm_layout(asp = 1) +
+#   tm_shape(ellis_bb_sf, is.master = TRUE) +
+#     tm_fill(col = NA) +
+#   tm_shape(ellis_om) +
+#     tm_rgb() +
+#   tm_shape(ellis, title = "Ellis Nest") +
+#     tm_bubbles(col = "yellow", border.lwd = 3,  size = .75) +
+#   tm_shape(wt_buffs_1000, title = "Wind Turbine Buffers") +
+#      tm_polygons(col = viridis(10, option = v_col)[3], alpha = v_alpha,
+#        border.lwd = 3) +
+#   tm_shape(wt_buffs_800, title = "Wind Turbine Buffers") +
+#      tm_polygons(col = viridis(10, option = v_col)[4], alpha = v_alpha,
+#        border.lwd = 3) +
+#   tm_shape(wt_buffs_600, title = "Wind Turbine buffers") +
+#      tm_polygons(col = viridis(10, option = v_col)[5], alpha = v_alpha,
+#        border.lwd = 3) +
+#   tm_shape(wt_buffs_400, title = "Wind Turbine Buffers") +
+#      tm_polygons(col = viridis(10, option = v_col)[6], alpha = v_alpha,
+#        border.lwd = 3) +
+#   tm_shape(wt_buffs_200, title = "Wind Turbine Buffers") +
+#      tm_polygons(col = viridis(10, option = v_col)[7], alpha = v_alpha,
+#        border.lwd = 3) +
+#   tm_shape(turbines, title = "Wind Turbines") +
+#     tm_symbols(col = "black", shape = 4,  border.lwd = 2,  size = .25) +
+#   tm_layout(main.title = NULL, #paste0("GPS Locations: ", id_i),
+#     main.title.position = "center",
+#     main.title.size = 1.15,
+#     title.snap.to.legend = TRUE) +
+#   tm_legend(legend.show = FALSE, title.size = 1, text.size = .85,
+#     outside = FALSE, position = c("left", "top"), frame = TRUE,
+#     legend.bg.color = "white", legend.format = list(format = "f",
+#     big.mark = "")) +
+#   tm_compass(type = "4star",  show.labels = 1, size = 2.5,
+#     position = c(.85, .87)) +
+#   tm_scale_bar(size = .75, width = .2, breaks = c(0, 1, 2),
+#     position = c(.05, .01)) +
+#   tm_grid(n.x = 4, n.y = 5, projection = 4326, col = "grey85", alpha = .75,
+#     labels.col = "grey25", labels.format = list(format = "f", big.mark = ""),
+#     labels.inside.frame = FALSE) +
+#   tm_xlab("") + tm_ylab("")
+# ellis_map_polys
+
+
 
 # tmap_blank <-
 #   tm_shape(ssf_prob_i, raster.downsample = TRUE) +

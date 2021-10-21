@@ -1,6 +1,10 @@
-################## ModelFit_SSF_Calculate_Covariates ###########################
+#--------------------- SSF Calculates Covariates ------------------------------#
+# Calculate landscape covariates for each of the steps
+#------------------------------------------------------------------------------#
 
-# Load libraries, scripts, and input parameters --------------------------------
+# Setup ------------------------------------------------------------------------
+
+# Load libraries
 pacman::p_load(AICcmodavg, plyr, dplyr, ggplot2, ggthemes, optimx, raster,
   reproducible, rgdal, smoothie, stringr, survival, tictoc) #spatialfil
 pacman::p_load(baear, gisr, ibmr)
@@ -45,14 +49,14 @@ subsetting_covars <- TRUE
 subsetting_ids <- FALSE
 subsetting_step_types <- FALSE
 
-## Import Base Raster, Steps Data, and Movement Parameters ---------------------
+# Import Base Raster, Steps Data, and Movement Parameters ----------------------
 
 base <- raster(base_file)
 baea_steps <- readRDS(file = baea_steps_file)
 move_pars <- readRDS(file = move_pars_file)
 rm(baea_steps_file, move_pars_file) #base_file
 
-## Import Covariate Rasters ----------------------------------------------------
+# Import Covariate Rasters -----------------------------------------------------
 
 # Import rasters
 
@@ -77,15 +81,19 @@ northness <- crop(raster(northness_file), elev)
 wind_class <- crop(raster(wind_class_file), elev)
 road <- crop(raster(road_file), elev)
 
-# plot(developed$as.RasterLayer(band = 1))
+# Map developed to test code
+if(FALSE) plot(developed$as.RasterLayer(band = 1))
+
+# Clean up objects
 rm(base_file, file_dir,
   dist_developed_file, dist_hydro_file, dist_turbine_file, dist_road_file,
   developed_file, forest_file, open_water_file, pasture_file,
   shrub_herb_file, wetland_file, eastness_file, northness_file, wind_class_file,
   road_file, elev_file)
 
-## Specify Landscape Covariates and Bandwidths ---------------------------------
+# Specify Landscape Covariates and Bandwidths ---------------------------------
 
+# Set parameters for analysis
 cell_size <- 30
 kernel_bandwidths <- c(seq(0, 3000, by = 30))  # radius (meters)
 terrain_bandwidths <- c(seq(0, 1500, by = 30))
@@ -172,15 +180,14 @@ covar_matrix <- raster::as.matrix(covar_stack)
 covar_cols <- setNames(seq_len(ncol(covar_matrix)), colnames(covar_matrix))
 rm(covar_matrix)
 
-### ------------------------------------------------------------------------ ###
-###    CALCULATE KERNEL-WEIGHTED COVARIATE VALUES FOR USED AND AVAILABLE     ###
-### ------------------------------------------------------------------------ ###
+# Calculate Kernel-Weighted Covariate Values For Used And Available ------------
 
 # Start of large 'for loop' for each 'step_type' (i.e. behavior_behavior)
 
 for (i in seq_along(unique(baea_steps$behavior_behavior))){
   tic.clearlog()
-  # Subset 'baea_steps' to Step Type -------------------------------------------
+
+  # Subset 'baea_steps' to step yype
   step_type_i <- unique(baea_steps$behavior_behavior)[i]
   step_type_i_name <- str_to_lower(str_replace_all(step_type_i, " -> ", "_"))
   tic(paste0(step_type_i_name, "-NA-NA-NA"), quiet = FALSE,
@@ -189,7 +196,7 @@ for (i in seq_along(unique(baea_steps$behavior_behavior))){
     filter(behavior_behavior == step_type_i) %>%
     tibble::rowid_to_column(., "step_id")
 
-  # Create Movement Kernel for 'step_type' -------------------------------------
+  # Create movement kernel for 'step_type'
   move_pars_i <- move_pars %>% filter(behavior_behavior == step_type_i)
   ignore_von_mises <- ifelse(move_pars_i$behavior[1] %in% c("Cruise", "Flight"),
     FALSE, TRUE)
@@ -201,7 +208,7 @@ for (i in seq_along(unique(baea_steps$behavior_behavior))){
   prob_raster[prob_raster <= .000001] <- 0
   rm(kernel_i, kernel_raster, move_pars_i, ignore_von_mises, r)
 
-  # Create Movement Probability Rasters for Each Step --------------------------
+  # Create movement probability rasters for each step
   move_prob_rasters <- list(rep(NA, nrow(steps_i)))
   for (step_i in seq_len(nrow(steps_i))){
     cat(paste0("Calculating: '", step_type_i_name, "' Move_Prob Raster: ",
@@ -216,7 +223,7 @@ for (i in seq_along(unique(baea_steps$behavior_behavior))){
   }
   names(move_prob_rasters) <- paste0("step_", steps_i$step_id)
 
-  # Create Dataframes for Available and Used Values ----------------------------
+  # Create dataframes for available and used values
   covariate_df <- setNames(data.frame(matrix(ncol = length(covariate_cols),
     nrow = nrow(steps_i), NA)), covariate_cols)
   used_steps_i <- cbind(case = 1, steps_i, covariate_df)
@@ -224,7 +231,7 @@ for (i in seq_along(unique(baea_steps$behavior_behavior))){
   n_total <- length(unique(steps_i$id))*length(covariate_cols)
   counter <- 0
 
-  # Calculate Kernel-Weighted Covariate Values ---------------------------------
+  # Calculate kernel-weighted covariate values
   for (j in seq_along(unique(steps_i$id))){
     id_j <- unique(steps_i$id)[j]
     tic(paste0(step_type_i_name, "-", id_j, "-NA-NA"), quiet = TRUE,
@@ -345,10 +352,6 @@ for (i in seq_along(unique(baea_steps$behavior_behavior))){
 ### ------------------------------------------------------------------------ ###
 ############################### OLD CODE #######################################
 ### ------------------------------------------------------------------------ ###
-
-
-#
-# library(tidyverse)
 #
 # # Set directories
 # ua_data_dir <- "Output/Analysis/SSF/UA_Data"
@@ -392,9 +395,7 @@ for (i in seq_along(unique(baea_steps$behavior_behavior))){
 #   saveRDS(ua_steps_i, file.path(ua_data_dir, paste0("ua_steps_",
 #     step_type_numeric, ".rds")))
 # }
-
-
-############## FIT UNIVARIATE MODELS AT FIXED BANDWIDTHS #######################
+# FIT UNIVARIATE MODELS AT FIXED BANDWIDTHS
 #
 # start = "flight"
 # end = "roost"

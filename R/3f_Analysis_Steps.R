@@ -1,11 +1,19 @@
-## Create "baea_steps" from baea_movements -------------------------------------
+#------------------------- Analysis Steps -------------------------------------#
+# Create "baea_steps" from baea_movements
+#------------------------------------------------------------------------------#
 
-## Load Packages, Scripts, Parameters, Etc. ------------------------------------
+# Setup ------------------------------------------------------------------------
 
-## Import BAEA and Movement Data -----------------------------------------------
-baea <- readRDS(file="Data/BAEA/baea.rds")
-baea_movements <- readRDS(file="Data/BAEA/baea_movements.rds")
+# Load packages
+pacman::p_load(tidyverse)
 
+## Create BAEA Movements -------------------------------------------------------
+
+# Import baea and movement data
+baea <- readRDS(file = "Data/BAEA/baea.rds")
+baea_movements <- readRDS(file = "Data/BAEA/baea_movements.rds")
+
+# Create locations
 baea_locs <- baea %>%
   dplyr::select(date, datetime, id, long_utm, lat_utm, dx:step_time) %>%
   arrange(id, datetime) %>%
@@ -16,6 +24,7 @@ baea_locs <- baea %>%
   ungroup() %>%
   dplyr::select(id, datetime, exp_angle, long_utm_end, lat_utm_end)
 
+# Create steps
 baea_steps <- left_join(baea_movements, baea_locs, by = c("id", "datetime")) %>%
   mutate(x = long_utm, y = lat_utm) %>%
   CenterXYWithBase(., base) %>%
@@ -23,5 +32,6 @@ baea_steps <- left_join(baea_movements, baea_locs, by = c("id", "datetime")) %>%
   dplyr::select(id, datetime, behavior_behavior, long_utm, lat_utm, exp_angle,
     long_utm_end, lat_utm_end)
 
+# Save files
 saveRDS(baea_steps, file = "Data/BAEA/baea_steps.rds")
 rm(baea, baea_steps, baea_locs)

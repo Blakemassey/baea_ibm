@@ -1,5 +1,10 @@
-################## ModelFit_SSF_Calculate_Covariates ###########################
-# Load packages, scripts, and input parameters ---------------------------------
+#--------------------- SSF Calculate UA Differences ---------------------------#
+# Calculate used vs available for each of the landscape covariates for each step
+#------------------------------------------------------------------------------#
+
+# Setup ------------------------------------------------------------------------
+
+# Load packages
 pacman::p_load(plyr, dplyr, forcats, ggplot2, ggthemes, purrr, pryr, stringr,
   tidyr, tibble)
 pacman::p_load(baear, gisr, ibmr)
@@ -8,7 +13,7 @@ pacman::p_load(baear, gisr, ibmr)
 ua_data_dir <- "Output/Analysis/SSF/UA_Data"
 ua_data_diff_dir <- "Output/Analysis/SSF/UA_Data_Diff"
 
-## Import Base Raster, Steps Data, and Movement Parameters ---------------------
+# Import Base Raster, Steps Data, and Movement Parameters ----------------------
 
 ua_steps_org <- list.files(path = file.path(ua_data_dir),
     pattern = "^ua_steps_*") %>%
@@ -44,6 +49,8 @@ square <- function(x) {
 ua_steps_squared <- ua_steps_all %>%
   mutate(across(matches("[0-9]"), square, .names = "{col}^2"))
 
+# Calculate Differences --------------------------------------------------------
+
 # Calculate differences for each behavior_behavior
 ua_steps_diff <- ua_steps_squared %>%
   group_by(behavior_behavior, step_id) %>%
@@ -71,8 +78,6 @@ for (i in unique(ua_steps_diff$behavior_behavior)){
   saveRDS(ua_steps_diff_i, file.path(ua_data_diff_dir, paste0("ua_steps_diff_",
     step_type_numeric, ".rds")))
 }
-
-
 
 ### ------------------------------------------------------------------------ ###
 ############################### OLD CODE #######################################

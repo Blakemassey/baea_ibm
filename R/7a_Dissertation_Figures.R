@@ -344,7 +344,7 @@ ggsave(filename = "Behavior_Proportion_Bar.png", plot = gg_behave_prop,
 # Transition Probabilities -----------------------------------------------------
 
 df_trans_org <- readRDS(file = "Output/Analysis/Transitions/df_trans.rds")
-nest_dist_mode <- CalculateMode(df_trans_org$nest_dist)
+nest_dist_mode <- CalculateMode(df_trans_org$julian_date)
 time_prop_mode <- CalculateMode(df_trans_org$time_proportion)
 
 df_trans <- df_trans_org %>%
@@ -386,22 +386,18 @@ rm(i, tex_df, tex_name_i, tex_str_i, tex_i)
 # Image background
 backgrd <- image_blank(1800, 1800, color = "white")
 
-# Metrics for figure labels
+# Metrics for filtering data
+time_prop_mode <- CalculateMode(df_trans %>% pull(time_proportion)) # 0.5030271
+julian_date_mode <- CalculateMode(df_trans %>% pull(julian_date)) # 152.9254
+range(df_trans$julian_date)
 
-CalculateMode(df_trans %>% pull(time_proportion)) # 0.5030271
-CalculateMode(df_trans %>% pull(nest_dist)) #1.170438
-range(df_trans$nest_dist) # 0 30
-
-# Plot Transitions by Nest Distance
-gg_trans_nest_dist <- ggplot(
+# Plot Transitions by Date
+gg_trans_date <- ggplot(
   data = df_trans %>%
-    mutate(nest_dist = nest_dist/2) %>%
-    filter(
-      time_proportion == CalculateMode(df_trans %>% pull(time_proportion))) %>%
-    filter(time_proportion > 0 && time_proportion < 1),
-    aes(nest_dist, prob)) +
+    filter(time_proportion == time_prop_mode),
+    aes(julian_date, prob)) +
   geom_ribbon(aes(ymin = lci, ymax = uci), fill = 'grey90', color = 'grey50') +
-  geom_line() + labs(x = "Nest Distance (km)", y = "Probability") +
+  geom_line() + labs(x = "Date", y = "Probability") +
   facet_grid(rows = vars(end_st), cols = vars(start_st),
     labeller = as_labeller(state_names)) +
   theme_minimal() + theme_latex +
@@ -414,13 +410,13 @@ gg_trans_nest_dist <- ggplot(
   theme(axis.text.x.bottom = element_text(angle = 45, vjust = .7)) +
   theme(axis.title.x = element_text(size = 9, vjust = 0)) +
   theme(axis.title.y = element_text(size = 9, vjust = 0)) +
-  theme(plot.margin = unit(c(.6, .75, 0.2, 0.2), "cm"))+
+  theme(plot.margin = unit(c(.6,.75,0.2,0.2), "cm"))+
   theme(axis.ticks = element_line(color = "grey50", size = .75)) +
   theme(axis.ticks.length = unit(5, "pt"))
-gg_trans_nest_dist
+gg_trans_date
 
 # Save Plot
-ggsave(filename = "Trans_Probs_NestDist_NO_LABEL.png", plot =gg_trans_nest_dist,
+ggsave(filename = "Trans_Probs_Date_NO_LABEL.png", plot = gg_trans_date,
   path = file.path(tex_dir, "Figures/Ch2"), scale = 1, width = 6, height = 6,
   units = "in", dpi = 300)
 
@@ -428,7 +424,7 @@ ggsave(filename = "Trans_Probs_NestDist_NO_LABEL.png", plot =gg_trans_nest_dist,
 gg_trans_time <- ggplot(
   data = df_trans %>%
     filter(time_proportion > 0 && time_proportion < 1) %>%
-    filter(nest_dist == CalculateMode(df_trans %>% pull(nest_dist))),
+    filter(julian_date == julian_date_mode),
     aes(time_proportion, prob))+
   geom_ribbon(aes(ymin = lci, ymax = uci), fill = 'grey90', color = 'grey50') +
   geom_line() +
@@ -456,13 +452,13 @@ ggsave(filename = "Trans_Probs_Time_NO_LABEL.png",
 #theme_get()
 
 # Composite Graph
-plot_trans_nest_dist <- image_read(file.path(tex_dir, "Figures/Ch2",
-  "Trans_Probs_NestDist_NO_LABEL.png"))
-trans_prob_nest_dist_fig <- backgrd %>%
-  image_composite(., plot_trans_nest_dist, offset = "+0+0") %>%
+plot_trans_date <- image_read(file.path(tex_dir, "Figures/Ch2",
+  "Trans_Probs_Date_NO_LABEL.png"))
+trans_prob_date_fig <- backgrd %>%
+  image_composite(., plot_trans_date, offset = "+0+0") %>%
   image_composite(., tex_start, offset = "+775+35") %>%
   image_composite(., image_rotate(tex_end, 90), offset = "+1720+815")
-trans_prob_nest_dist_fig
+trans_prob_date_fig
 
 plot_trans_time <- image_read(file.path(tex_dir, "Figures/Ch2",
   "Trans_Probs_Time_NO_LABEL.png"))
@@ -479,12 +475,12 @@ image_write(trans_prob_time_fig, path = trans_prob_time_fig_file, format=".png")
 file.remove(file.path(tex_dir, "Figures/Ch2",
    "Trans_Probs_Time_NO_LABEL.png"))
 
-trans_prob_nest_dist_fig_file = file.path(tex_dir, "Figures/Ch2",
-  "Trans_Prob_NestDist.png")
-image_write(trans_prob_nest_dist_fig, path = trans_prob_nest_dist_fig_file,
+trans_prob_date_fig_file = file.path(tex_dir, "Figures/Ch2",
+  "Trans_Prob_Date.png")
+image_write(trans_prob_date_fig, path = trans_prob_date_fig_file,
   format = ".png")
 file.remove(file.path(tex_dir, "Figures/Ch2",
-  "Trans_Probs_NestDist_NO_LABEL.png"))
+  "Trans_Probs_Date_NO_LABEL.png"))
 
 # Movement Step Lengths --------------------------------------------------------
 baea_movements_wb <- readRDS("Data/BAEA/baea_movements_wb.rds")
@@ -1073,25 +1069,25 @@ ggsave(filename = "greenville_windrose.svg", plot = gg_windrose,
   path = file.path(tex_dir, "Figures/Ch4"), scale = 1, width = 6, height = 4,
   units = "in", dpi = 300)
 
-
 # ---------------------------------------------------------------------------- #
 ################################ OLD CODE ######################################
 # ---------------------------------------------------------------------------- #
-
-# # Plot Transitions by Date
-# gg_trans_date <- ggplot(
+#
+# Plot Transitions by Nest Distance
+# gg_trans_nest_dist <- ggplot(
 #   data = df_trans %>%
+#     mutate(nest_dist = nest_dist/2) %>%
 #     filter(
 #       time_proportion == CalculateMode(df_trans %>% pull(time_proportion))) %>%
 #     filter(time_proportion > 0 && time_proportion < 1),
-#     aes(date, prob)) +
+#     aes(nest_dist, prob)) +
 #   geom_ribbon(aes(ymin = lci, ymax = uci), fill = 'grey90', color = 'grey50') +
-#   geom_line() + labs(x = "Date", y = "Probability") +
+#   geom_line() + labs(x = "Nest Distance (km)", y = "Probability") +
 #   facet_grid(rows = vars(end_st), cols = vars(start_st),
 #     labeller = as_labeller(state_names)) +
 #   theme_minimal() + theme_latex +
 # #  scale_x_continuous(limits = c(75, 235)) +
-#   scale_y_continuous(limits = c(-0.001, 1.001), expand = expand_scale(add = 0))+
+#   scale_y_continuous(limits = c(-0.001, 1.001), expand = expansion(add = 0))+
 #   theme(panel.spacing = unit(1, "lines")) +
 #   theme(strip.text = element_text(size = 9, vjust = 0)) +
 #   theme(axis.text = element_text(size = 8, color = 'black')) +
@@ -1099,20 +1095,18 @@ ggsave(filename = "greenville_windrose.svg", plot = gg_windrose,
 #   theme(axis.text.x.bottom = element_text(angle = 45, vjust = .7)) +
 #   theme(axis.title.x = element_text(size = 9, vjust = 0)) +
 #   theme(axis.title.y = element_text(size = 9, vjust = 0)) +
-#   theme(plot.margin = unit(c(.6,.75,0.2,0.2), "cm"))+
+#   theme(plot.margin = unit(c(.6, .75, 0.2, 0.2), "cm"))+
 #   theme(axis.ticks = element_line(color = "grey50", size = .75)) +
 #   theme(axis.ticks.length = unit(5, "pt"))
-# gg_trans_date
+# gg_trans_nest_dist
 #
-# # Save Plot
-# ggsave(filename = "Trans_Probs_Date_NO_LABEL.png", plot = gg_trans_date,
+# Save Plot
+# ggsave(filename = "Trans_Probs_NestDist_NO_LABEL.png", plot =gg_trans_nest_dist,
 #   path = file.path(tex_dir, "Figures/Ch2"), scale = 1, width = 6, height = 6,
 #   units = "in", dpi = 300)
-
-
+#
 # # Utility Functions
 # sex_names <- list('female' = "Female", 'male' = "Male")
 # SexLabeller <- function(variable, value){
 #   return(sex_names[value])
 # }
-

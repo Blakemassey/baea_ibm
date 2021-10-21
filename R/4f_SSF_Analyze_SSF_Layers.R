@@ -1,7 +1,11 @@
-###################### ModelFit_SSF_Analyze_Models #############################
+#------------------------ SSF Analyze SSF Layers ------------------------------#
+# This script is to run model fitting procedures for the SSF using different
+# covariates to determine the best fitting model given the covariate candidates
+#------------------------------------------------------------------------------#
 
-########################### LOAD PACKAGES AND DATA  ############################
-# Load libraries, scripts, and input parameters
+# Setup ------------------------------------------------------------------------
+
+# Load packages
 pacman::p_load(plyr, dplyr, optimx, ggplot2, ggthemes, lubridate, optimx, purrr,
   raster, readr, reproducible, rgenoud, rlang, stringr, summarytools, survival,
   surveybootstrap, tibble, tictoc, tidyr, xtable)
@@ -18,17 +22,17 @@ model_id <- NA
 #model_id <- "2021-02-11_1814"
 nest_index <- c(2, 4, 7, 13)
 
-# SSF Model file
+# SSF model file
 model_file <- ifelse(is.na(model_id), "model_fits_best.rds", paste0(
   "model_fits_best_", model_id, ".rds"))
 fits_best_file <- file.path(mod_best_dir, model_file)
 
-# Predictors Table file
+# Predictors table file
 preds_file <- ifelse(is.na(model_id), "preds_tbl.rds", paste0(
   "preds_tbl_", model_id, ".rds"))
 preds_tbl_file <- file.path(mod_best_dir, preds_file)
 
-# Quantiles Table file
+# Quantiles table file
 quantile_file <- ifelse(is.na(model_id), "covar_quantiles.rds", paste0(
   "covar_quantiles_", model_id, ".rds"))
 quantile_tbl_file <- file.path(mod_best_dir, quantile_file)
@@ -46,7 +50,7 @@ theme_latex <- theme(text = element_text(family = "Latin Modern Roman")) +
   theme(plot.title = element_text(size = 14))
 pointSize = 2; textSize = 5; spaceLegend = 1
 
-# Calculate the percentiles for the covariates ---------------------------------
+# Calculate Covariate Percentiles ----------------------------------------------
 
 preds_tbl <- readRDS(preds_tbl_file)
 probs_char <- c("0.01",
@@ -90,13 +94,13 @@ rm(covars_crop_dir, covar_quantile, covar_raster_file, covar_raster,
   covar_sigma,  covar_tbl, i, preds_tbl, preds_tbl_file, preds_tbl_i, probs,
   probs_char, probs_names, prob_tbl, quantile_row_i, quantile_tbl)
 
-# Extract model data (terms, coefs, etc.) from best_ssf_fit_models -------------
+# Extract Model Data (Terms, Coefs, etc.) from Best SSF Fit Models -------------
 
 ssf_fits_best <- readRDS(fits_best_file)
 quantile_tbl <- readRDS(quantile_tbl_file)
 
 pred_list_all <- vector(mode = "list", length = nrow(ssf_fits_best))
-#i <- 3; j <- 1
+if(FALSE) i <- 3; j <- 1 # for testing
 for (i in seq_len(nrow(ssf_fits_best))){
   ssf_fit_i <- ssf_fits_best %>% slice(i)
   step_type_i <- ssf_fit_i %>% pull(step_type)
@@ -149,7 +153,6 @@ predictions_tbl_all <- pred_list_all %>%
   reduce(bind_rows) %>%
   mutate(prob = boot::inv.logit(pred)) %>%
   dplyr::select(step_type, term = covar, percentile, covar_value, pred, prob)
-  #dplyr::select(step_type, term, coef, percentile, covar_value, pred, prob)
 
 saveRDS(predictions_tbl_all, predictions_file)
 
@@ -205,13 +208,10 @@ for (i in step_types) {
   }
 }
 
-
-
 #------------------------------------------------------------------------------#
 ################################ OLD CODE ######################################
 #------------------------------------------------------------------------------#
-
-
+#
 # # Predicted Value (not converted to inverse logit)
 # gg_predict_ij <- ggplot(predictions_ij, aes(x = covar_value, y = pred)) +
 #   geom_line(color = "blue", size = 1.5) +
@@ -235,9 +235,8 @@ for (i in step_types) {
 #   path = file.path(tex_dir, "Figures/Ch2/Step_Type_Covar_Predict"),
 #   scale = 1, width = 6, height = 4, units = "in",
 #   dpi = 300)
-
-
-# # Demonstrate Inverse Logit and Rescale --------------------------------------
+#
+# # Demonstrate Inverse Logit and Rescale ----------------------------------- #
 #
 # values = seq(from = -8, to = 8, by = .5) #-10:10
 # inv_logit <- boot::inv.logit(values)

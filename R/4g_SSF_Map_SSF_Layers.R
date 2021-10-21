@@ -1,7 +1,10 @@
-###################### SSF_Fit_Clogit_Models ###################################
+#---------------------------- Map SSF Layers ----------------------------------#
+# This script is for mapping ssf layers in the RStudio environment
+#------------------------------------------------------------------------------#
 
-########################### LOAD PACKAGES AND DATA  ############################
-# Load libraries, scripts, and input parameters
+# Setup ------------------------------------------------------------------------
+
+# Load packages
 pacman::p_load(tidyverse, ggplot2, lubridate, mapview, raster, sf, stars,
   stringr, tmap, tmaptools, viridis, whitebox)
 pacman::p_load(baear, gisr, ibmr)
@@ -46,9 +49,8 @@ nests_sim <- nests_study %>% slice(c(2, 4, 7, 13))
 ## Get best fit models table
 ssf_fits_best <- readRDS(fits_best_file)
 
-################################# FUNCTIONS ####################################
+# Functions --------------------------------------------------------------------
 
-# Function for ViewProbsNestMap  -----------------------------------------------
 ViewProbsNestMap <- function(nest_name,
                              step_types,
                              model_id,
@@ -116,7 +118,6 @@ ViewProbsNestMap <- function(nest_name,
   return(tmap_i_leaflet)
 }
 
-# Function for ViewProbNestMap  ------------------------------------------------
 ViewProbNestMap <- function(nest_name,
                             step_type,
                             model_id,
@@ -175,8 +176,6 @@ ViewProbNestMap <- function(nest_name,
   return(tmap_i_leaflet_map)
 }
 
-
-# Function for ViewProbsNestMap  -----------------------------------------------
 ViewProbNestsMap <- function(nest_names,
                              step_type,
                              model_id,
@@ -243,10 +242,9 @@ ViewProbNestsMap <- function(nest_names,
   return(tmap_i_leaflet)
 }
 
+# Generate Layers --------------------------------------------------------------
 
-########################### GENERATE LAYERS ####################################
-
-# Generate dir for each model_id if they don't already exist -------------------
+# Generate dir for each model_id if they don't already exist
 if(!is.na(model_id) && !dir.exists(ssf_prob_model_id_dir)){
   dir.create(ssf_prob_model_id_dir)
   for (i in seq_len(nrow(ssf_fits_best))){
@@ -290,21 +288,21 @@ if(!is.na(model_id) && !dir.exists(ssf_prob_model_id_dir)){
   }
 }
 
-########################### GENERATE PLOTS #####################################
+# Generate Plots ---------------------------------------------------------------
 
-# Plot Multiple Probability Layers at Nest in Viewer----------------------------
+# Plot multiple probability layers at nest in viewer
 nest_name <- nests_sim %>% slice(1) %>% pull(name)
 step_types <- ssf_fits_best %>% slice(1:nrow(ssf_fits_best)) %>% pull(step_type)
 
 probs_nest_map <- ViewProbsNestMap(nest_name, step_types, model_id, opacity =.6)
 
-# Plot Single Probability Layer at Nest Map in Viewer --------------------------
+# Plot single probability layer at nest map in viewer
 nest_name <- nests_sim %>% slice(1) %>% pull(name)
 step_type <- ssf_fits_best %>% slice(3) %>% pull(step_type)
 
 prob_nest_map <- ViewProbNestMap(nest_name, step_type, model_id, opacity = .6)
 
-# Plot Multiple Probability Layers at Nest in Viewer----------------------------
+# Plot multiple probability layers at nest in viewer
 nest_names <- nests_sim %>% slice(1:4) %>% pull(name)
 step_type <- ssf_fits_best %>% slice(6) %>% pull(step_type)
 

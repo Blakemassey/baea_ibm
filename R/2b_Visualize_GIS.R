@@ -1,15 +1,17 @@
-### This script is for importing GIS datalayers and converting them to the
-### proper coordinate reference system (NAD83 UTM N19), extent, and resolution.
-###-----------------------------------------------------------------------------
+#----------------------------- Visualize GIS ----------------------------------#
+# This script is for importing GIS datalayers and converting them to the proper
+#  coordinate reference system (NAD83 UTM N19), extent, and resolution.
+#------------------------------------------------------------------------------#
 
-## Load Packages ---------------------------------------------------------------
+# Setup ------------------------------------------------------------------------
+
+# Load packages
 pacman::p_load(foreign, ggplot2, ggthemes, plyr, dplyr, plotKML, raster,
   rasterVis, rgdal)
-options(stringsAsFactors = FALSE) # CRITICAL!!! Otherwise, map colors are wrong.
 library(gisr)
 library(baear)
 
-## Import Raster Layers --------------------------------------------------------
+# Import Raster Layers ---------------------------------------------------------
 
 eluform <- raster("C:/ArcGIS/Data/R_Input/BAEA/eluform_30mc.tif")
 habitat <- raster("C:/ArcGIS/Data/R_Input/BAEA/habitat_30mc.tif")
@@ -21,8 +23,7 @@ habitat_colors <- read.csv("C:/ArcGIS/Data/R_Input/BAEA/habitat_legend.csv")
 iei_colors <- colorRampPalette(c("darkblue", "green", "yellow", "red"))(50)
 landcover_colors <- read.csv("C:/ArcGIS/Data/R_Input/BAEA/landcover_legend.csv")
 
-
-## Subset Layers ---------------------------------------------------------------
+# Subset Layers ----------------------------------------------------------------
 
 # For testing purposes - clip to smaller area
 ext <- extent(c(510000, 560000, 4995000, 5035000))
@@ -33,8 +34,7 @@ habitat2 <- crop(habitat, ext, snap='near')
 iei2 <- crop(iei, ext, snap='near')
 landcover2 <- crop(landcover, ext, snap='near')
 
-
-## Mapping Raster Layers -------------------------------------------------------
+# Mapping Raster Layers --------------------------------------------------------
 
 # Mapping of eluform_30mc. Demostrates the use of a 'color' file in conjuntion
 # w/gplot for plotting rasters in the ggplot2 format
@@ -54,16 +54,14 @@ SaveGGPlot(paste0("ELU form.jpeg"), file.path(image_output,
 # For testing purposes - clip to smaller area
 value_vec2 <- freq(eluform2)[,1]
 eluform_colors_sub2 <- eluform_colors %>%
-  dplyr::filter(value %in% value_vec2)
+  filter(value %in% value_vec2)
 gplot(eluform2, maxpixel = 200000) +
   geom_tile(aes(fill=factor(value)), alpha=0.8)  +
   scale_fill_manual(values = eluform_colors_sub2$hex,
     labels=eluform_colors_sub2$name, name="Formation") + coord_equal() +
   scale_x_continuous(expand = c(0, 0)) + scale_y_continuous(expand = c(0, 0)) +
   theme_tufte(base_size = 15) + xlab("Longitude") + ylab("Latitude")
-SaveGGPlot("ELU form.jpeg",
-  "Results/Analysis/GIS", bg = "white")
-
+SaveGGPlot("ELU form.jpeg", "Results/Analysis/GIS", bg = "white")
 
 # Mapping of habitat_30mc. Demostrates the use of a 'color' file in conjuntion
 # w/gplot for plotting rasters in the ggplot2 format
@@ -116,7 +114,7 @@ gplot(landcover2, maxpixel = 200000) +
 SaveGGPlot("LC.jpeg",
   "Results/Analysis/GIS", bg = "white")
 
-# Mapping of iei_30mc.
+# Mapping of iei_30mc
 gplot(iei, maxpixel = 500000) +
   geom_tile(aes(fill=value)) + coord_equal() +
   scale_fill_gradientn(colours = iei_colors, na.value = "transparent",
@@ -141,13 +139,10 @@ gplot(iei2, maxpixel = 500000) +
 source('C:/Work/R/Functions/gen.R')
 PlotColorPie(colorRampPalette(c("darkblue", "green", "yellow", "red"))(50))
 
+#------------------------------------------------------------------------------#
+################################ OLD CODE ######################################
+#------------------------------------------------------------------------------#
 
-
-
-################################################################################
-#################################   OLD CODE   #################################
-################################################################################
-
-source('C:/Work/R/Functions/gis.R')
-Maine_stack <- ImportLandscapeRasterStack()
-PrintRasterNames(Maine_stack)
+# source('C:/Work/R/Functions/gis.R')
+# Maine_stack <- ImportLandscapeRasterStack()
+# PrintRasterNames(Maine_stack)

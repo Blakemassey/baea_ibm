@@ -1,23 +1,25 @@
-#------------------------- MOVEMENTS ANALYSIS ---------------------------------#
+#------------------------- Movements Analysis ---------------------------------#
 # Script for analyzing baea movement patterns, fitting parameters, and plotting
 # step, turn angle, and redististribution kernels
 #------------------------------------------------------------------------------#
 
-## Load Packages, Scripts, Parameters, Etc. ------------------------------------
+# Setup ------------------------------------------------------------------------
+
+# Load packages
 pacman::p_load(CircStats, circular, devtools, dplyr, fitdistrplus, ggplot2,
   ggthemes, gridExtra, lubridate, movMF, raster, scales, stringr, zoo)
 pacman::p_load(baear, gisr, ibmr)
 options(stringsAsFactors = FALSE)
+
+# Variables
 theme_update(plot.title = element_text(hjust = 0.5))
 wgs84 <- CRS("+init=epsg:4326") # WGS84 Lat/Long
 wgs84n19 <- CRS("+init=epsg:32619") # WGS84 UTM 19N
 
-############################  IMPORT FILES  ####################################
+# Analyze Movements ------------------------------------------------------------
 
-## Import Baea behavior --------------------------------------------------------
+# Import baea behavior
 baea_behavior <- readRDS(file="Data/Baea/baea_behavior.rds")
-
-######################## ANALYZE MOVEMENTS  ####################################
 
 baea_behavior_transitions <- baea_behavior %>%
   arrange(id, datetime) %>%
@@ -61,9 +63,9 @@ baea_movements <- baea_behavior_transitions %>%
 saveRDS(baea_behavior_perch_perch, "Data/BAEA/baea_behavior_perch_perch.rds")
 saveRDS(baea_movements, file = "Data/BAEA/baea_movements.rds")
 
-# All Data parameters (with weights) -------------------------------------------
+# All Data Parameters (with Weights) -------------------------------------------
 
-# Fitting Weibull ####
+# Fitting Weibull
 weibull_pars <- baea_movements %>%
   group_by(behavior_behavior) %>%
   summarize(
@@ -78,7 +80,6 @@ weibull_weights <- baea_movements %>%
   mutate(weights = 1/count) %>%
   dplyr::select(id, count, weights, behavior_behavior) %>%
   ungroup()
-#View(weibull_pars)
 
 baea_movements_wb <- baea_movements %>%
   left_join(., weibull_weights, by=c("id", "behavior_behavior")) %>%
@@ -111,8 +112,7 @@ for (i in unique(baea_movements_wb$behavior_behavior)){
   rm(baea_movements_wb_i, weibull_pars_i, weibull_pars_row)
 }
 
-# Fitting von Mises  ####
-
+# Fitting von Mises
 von_mises_pars <- baea_movements %>%
   left_join(., baea_movements %>% group_by(behavior_behavior) %>%
       summarize(count = n()), by = "behavior_behavior") %>%
@@ -174,12 +174,9 @@ saveRDS(baea_movements_vm, file = "Data/BAEA/baea_movements_vm.rds")
 write.csv(move_pars, file="Products/Tables/move_pars.csv") # for Powerpoint
 saveRDS(move_pars, file="Output/Analysis/Movements/move_pars.rds")
 
-################################ PLOTTING  #####################################
+# Plotting Weibull -------------------------------------------------------------
 
-
-### ALL DATA -------------------------------------------------------------------
-# Plotting (Weibull) -----------------------------------------------------------
-
+# Fit Weibull
 vec_length <- 100
 weibull_dens <- data.frame(grp=factor(), pred=numeric(), dens=numeric())
 for (i in 1:nrow(move_pars)){
@@ -190,7 +187,7 @@ for (i in 1:nrow(move_pars)){
   weibull_dens <- rbind(weibull_dens, data.frame(grp, pred, dens))
 }
 
-# All plots on one figure
+# Weibull plots on one figure
 ggplot(data=baea_movements_wb %>% mutate(grp = behavior_behavior),
     aes(x = step_length)) +
   geom_histogram(aes(y = ..density.., weight=weights), binwidth = 30,
@@ -213,7 +210,7 @@ ggplot(data=baea_movements_wb %>% mutate(grp = behavior_behavior),
 SaveGGPlot(filename = "Step Lengths with Fitted Weibull.png",
   path="Output/Plots/Step_Length")
 
-# Individual plots
+# Weibull individual plots
 ind_list <- lapply(sort(unique(baea_movements_wb$behavior_behavior)),
     function(i){
   ggplot(baea_movements_wb[baea_movements_wb$behavior_behavior == i,],
@@ -242,8 +239,9 @@ ind_list <- lapply(sort(unique(baea_movements_wb$behavior_behavior)),
     path="Output/Plots/Step_Length/Individual")
   })
 
-# Plotting (von Mises) ---------------------------------------------------------
+# Plotting von Mises -----------------------------------------------------------
 
+# Get von Mises fit
 bin_width = (2*pi)/24
 breaks <- seq(0, (2*pi), by=((2*pi)/12))
 labels <- c(0, "", "", expression(pi / 2), "", "",
@@ -268,14 +266,12 @@ for (i in 1:nrow(move_pars)){
   von_mises_dens <- rbind(von_mises_dens, data.frame(grp, pred, dens))
 }
 
-# Cartesian Coordinates --------------------------------------------------------
-# All plots on one figure
-
+# Cartesian coordinates (all plots on one figure)
 p_list = lapply(sort(unique(baea_movements_vm$behavior_behavior)), function(i){
     ggplot(data =
       baea_movements_vm[baea_movements_vm$behavior_behavior ==i,],
       aes(x=turn_angle)) +
-    geom_histogram(aes(y = ..density.., weight=weights), fill = "grey20",
+    geom_histogram(aes(y = ..density.., weight = weights), fill = "grey20",
       color = "black", boundary = 0, binwidth = bin_width) +
     geom_line(data = von_mises_dens[von_mises_dens$grp == i, ],
       aes(x = pred, y = dens), size = 1, colour = "red") +
@@ -286,9 +282,9 @@ p_list = lapply(sort(unique(baea_movements_vm$behavior_behavior)), function(i){
       strip.text.x = element_text(size=10, colour="black",
       margin = margin(1, 0, 1, 0, "pt"))) +
     theme(legend.position="none") +
-    theme(axis.text.x = element_text(colour="grey20", size=8, vjust=.5, angle=0,
-      margin=margin(1, 1, 0, 1, "pt"))) +
-    theme(axis.text.y = element_text(colour="grey20", size=8)) +
+    theme(axis.text.x = element_text(colour = "grey20", size = 8, vjust = .5,
+      angle = 0, margin = margin(1, 1, 0, 1, "pt"))) +
+    theme(axis.text.y = element_text(colour = "grey20", size=8)) +
     theme(panel.grid.major = element_blank())  +
     theme(panel.grid.minor = element_blank())  +
     theme(panel.background = element_rect(fill = NA, color = "black")) +
@@ -296,7 +292,7 @@ p_list = lapply(sort(unique(baea_movements_vm$behavior_behavior)), function(i){
     ggtitle(NULL) +
     labs(x=NULL, y=NULL)
 })
-do.call(grid.arrange, c(p_list, ncol=5, nrow=4, left = "Density",
+do.call(grid.arrange, c(p_list, ncol = 5, nrow = 4, left = "Density",
   bottom="Direction"))
 SavePlot(filename = "Turn Angles with Fitted von Mises - Cartesian.png",
   path="Output/Plots/Turn_Angle")
@@ -326,7 +322,7 @@ ind_list <- lapply(sort(unique(baea_movements_vm$behavior_behavior)),
     theme(legend.position="none") +
     theme(title = element_text(size = 16)) +
     theme(axis.text.x = element_text(colour = "grey20", size = 12, vjust = .5,
-      angle = 0, margin=margin(1, 1, 0, 1, "pt"))) +
+      angle = 0, margin = margin(1, 1, 0, 1, "pt"))) +
     theme(axis.text.y = element_text(colour = "grey20", size = 12)) +
     theme(panel.grid.major = element_blank())  +
     theme(panel.grid.minor = element_blank())  +
@@ -336,8 +332,7 @@ ind_list <- lapply(sort(unique(baea_movements_vm$behavior_behavior)),
     path="Output/Plots/Turn_Angle/Individual/Cartesian")
 })
 
-# Polar Coordinates ------------------------------------------------------------
-# All plots on one figure
+# Polar Coordinates (all plots on one figure)
 p_list = lapply(sort(unique(baea_movements_vm$behavior_behavior)), function(i){
   ggplot(baea_movements_vm[baea_movements_vm$behavior_behavior == i, ],
       aes(x = turn_angle)) +
@@ -394,8 +389,9 @@ ind_list = lapply(sort(unique(baea_movements_vm$behavior_behavior)),
     path="Output/Plots/Turn_Angle/Individual/Polar")
 })
 
-# Plotting Move Kernel -------------------------------------------------------
+# Plotting Move Kernel ---------------------------------------------------------
 
+# Fit move kernel
 move_dens <- data.frame(grp=character(), x=numeric(), y=numeric(),
   dens=numeric())
 for (i in 1:nrow(move_pars)){

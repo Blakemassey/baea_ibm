@@ -1,16 +1,19 @@
-## Load Packages, Scripts, Parameters, Etc. ------------------------------------
+#------------------------- Analysis Transitions -------------------------------#
+# This script models the behavior transitions of GPS location data.
+#------------------------------------------------------------------------------#
+
+# Setup ------------------------------------------------------------------------
+
+# Load packages
 pacman::p_load(CircStats, circular, fitdistrplus, ggplot2, ggthemes, momentuHMM,
   msm, lubridate, padr, tictoc, tidyverse)
 theme_update(plot.title = element_text(hjust = 0.5))
-
 pacman::p_load(baear, gisr, ibmr)
 
-## BAEA Data -------------------------------------------------------------------
+# BAEA Data --------------------------------------------------------------------
 baea_behavior_org <- readRDS(file = "Data/Baea/baea_behavior.rds")
 baea_behavior <- baea_behavior_org %>%
-#  filter(id == "Norway" | id == "Ellis") %>%
   group_by(id) %>%
-#  slice(1:2000) %>%
   ungroup() %>%
   as.data.frame(.) %>%
   mutate(
@@ -23,9 +26,6 @@ baea_behavior <- baea_behavior_org %>%
     step_length, step_time, speed, alt, agl, turn_angle, time_proportion) %>%
   mutate(nest_dist = if_else(nest_dist >= 20000, 20000, nest_dist)) %>%
   mutate(nest_dist = round(nest_dist/500))
-  # Had an error 'fitHMM produces "Error in nlm"', when running my data with
-  # nest_dist, so I rescaled the values, as recommended here:
-  # browseURL("https://github.com/bmcclintock/momentuHMM/issues/41")
 
 range(baea_behavior %>% filter(year(datetime) == 2016) %>% pull(datetime))
 range(baea_behavior %>% filter(year(datetime) == 2016) %>% pull(datetime))
@@ -41,20 +41,20 @@ baea_behavior_lead_nest <- baea_behavior %>%
   mutate(lead_behavior = lead(behavior)) %>%
   filter(lead_behavior == "Nest") %>%
   filter(behavior != "Nest")
+
+# Hist of nest_dist for locations (not Nest) where next behavior was "Nest"
 ggplot(baea_behavior_lead_nest) +
   geom_histogram(aes(nest_dist), binwidth = .5)
-# Hist of nest_dist for locations (not Nest) where the next behavior was "Nest"
 
 baea_behavior_lag_nest <- baea_behavior %>%
   dplyr::select(datetime, id, behavior, nest_dist) %>%
   mutate(lag_behavior = lag(behavior)) %>%
   filter(lag_behavior == "Nest") %>%
   mutate(behavior != "Nest")
+
+# Hist of nest_dist for locations (not Nest) where previous behavior was "Nest"
 ggplot(baea_behavior_lag_nest) +
   geom_histogram(aes(nest_dist), binwidth = .5)
-# Hist of nest_dist for locations (not Nest) where the previous behavior was "Nest"
-
-# Cruise = 1, Flight = 2, Nest = 3, Perch = 4, Roost = 5
 
 if(FALSE){
 PlotLocationSunriseSunset(df = baea_behavior %>% as.data.frame %>%
@@ -64,8 +64,7 @@ PlotLocationSunriseSunset(df = baea_behavior %>% as.data.frame %>%
   addsolartimes = TRUE, wrap = TRUE)
 }
 
-# Fitting Weibull  ####
-
+# Fitting Weibull --------------------------------------------------------------
 weibull_pars <- baea_behavior %>%
   group_by(behavior) %>%
   summarize() %>%
@@ -109,7 +108,7 @@ for (i in unique(baea_behavior_weibull$behavior)){
 
 rm(weibull_weights, baea_behavior_weibull)
 
-# Fitting von Mises  ####
+# Fitting von Mises ------------------------------------------------------------
 
 von_mises_pars <- baea_behavior %>%
   left_join(., baea_behavior %>% group_by(behavior) %>%
@@ -194,12 +193,12 @@ saveRDS(baea_hmm_start, file = "Output/Analysis/Transitions/baea_hmm_start.rds")
 
 baea_hmm_start <- readRDS("Output/Analysis/Transitions/baea_hmm_start.rds")
 
-# OLD FORMULA
-#hmm_formula <- ~cosinor(julian_date, period = 365) + cosinor(time_proportion,
-#  period = 1) #cosinor(julian_date, period = 365) +
+# CURRENT FORMULA
+hmm_formula <- ~cosinor(julian_date, period = 365) + cosinor(time_proportion,
+  period = 1)
 
-# NEW FORMULA
-hmm_formula <- ~nest_dist + cosinor(time_proportion, period = 1)
+# TESTED FORMULA (only based on nest_distance and time_proportion)
+if(FALSE) hmm_formula <- ~nest_dist + cosinor(time_proportion, period = 1)
 
 Par0_baea_hmm_start <- getPar0(baea_hmm_start, formula = hmm_formula)
 
@@ -221,6 +220,7 @@ toc()
 seconds_to_period(15699)
 # Took ~3 hours on 2019-11-07; Took ~3.75 hours on 2021-05-09
 # Took 2.5 hours on 2021-05-20; Took ~3 and 4.33 hours on 2021-05-21
+# Took ~4.3 hours on 2021-07-25
 
 saveRDS(baea_hmm_full, file = "Output/Analysis/Transitions/baea_hmm_full.rds")
 baea_hmm_full <- readRDS(file = "Output/Analysis/Transitions/baea_hmm_full.rds")
@@ -272,10 +272,6 @@ beta_est
 (parindex <- c(0, cumsum(unlist(lapply(baea_hmm_full$conditions$fullDM,
   ncol)))[-length(baea_hmm_full$conditions$fullDM)]))
 (names(parindex) <- distnames)
-
-library(shiny)
-library(cosinor)
-cosinor_analyzer(vitamind)
 
 saveRDS(baea_hmm_full, file = "Output/Analysis/Transitions/baea_hmm_full.rds")
 baea_hmm_full <- readRDS(file = "Output/Analysis/Transitions/baea_hmm_full.rds")

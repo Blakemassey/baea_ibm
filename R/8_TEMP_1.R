@@ -1,128 +1,182 @@
-  sex <- "female"
-  beta <- as.matrix(sim$pars$classes[[sex]]$constant$fixed$behavior_betas)
-  step_row <- 0
-  current_behavior <- 4
-  current_time_prop <- .9
-  next_time_prop <- .95
-  current_nest_dist <- 5
 
-  print(paste0("Current behavior: ", current_behavior))
-  print(paste0("nest_dist: ", step_data[step_row, "nest_dist"]))
+# Setup ------------------------------------------------------------------------
+pacman::p_load(cartography, ctmm, dplyr, fasterize, forcats, ggplot2, ggthemes,
+  grid, leaflet, lubridate, magick, mapview, move, OpenStreetMap, plotly,
+  prettymapr, purrr, raster, rosm, rsvg, sf, stringr, s2, tmap, tmaptools,
+  viridis, units, webshot, zoo)
+pacman::p_load(baear, gisr, ibmr)
+set_thin_PROJ6_warnings(TRUE)
+theme_update(plot.title = element_text(hjust = 0.5))
+suppressMessages(extrafont::loadfonts(device = "win"))
+#devtools::reload("C:/Users/blake/OneDrive/Work/R/Packages/ibmr")
 
-  gamma <- diag(5)
-  g <- beta[1, ]  #  g = state transition probabilities intercepts
-  g <- g +
-    beta[2, ] * current_nest_dist +
-    beta[3, ] * cos(2*pi * current_time_prop) +
-    beta[4, ] * sin(2*pi * current_time_prop)
-  exp(g)
-  gamma[!gamma] <- exp(g) # Beta values in non-diagonal locations in matrix
-  gamma2 <- t(gamma) # probabilities for state transitions are now in rows
-  gamma3 <- gamma2/apply(gamma2, 1, sum) # rows sum to 1
-  if(current_time_prop <= .5 & current_behavior != 5){
-    gamma3[, 5] <- 0
-    gamma3 <- gamma3/apply(gamma3, 1, sum)
-    gamma3[, 5] <- 0
-  }
-  # next control is new - it forces agent to leave roost after .4 time prop
-  if(current_time_prop >= .4 & current_time_prop <= .5 & current_behavior == 5){
-    gamma3[, 5] <- 0
-    gamma3 <- gamma3/apply(gamma3, 1, sum)
-    gamma3[, 5] <- 0
-  }
-  if(current_time_prop > .5 & current_behavior == 5){
-    gamma3[, 1:4] <- 0
-    gamma3[, 5] <- 1
-    #gamma3 <- gamma3/apply(gamma3, 1, sum)
-  }
-  if(current_behavior == 1){ # prevents 1->5 (Cruise to Roost)
-    gamma3[, 5] <- 0
-    gamma3 <- gamma3/apply(gamma3, 1, sum)
-    gamma3[, 5] <- 0
-  }
-  if(current_behavior == 5){ # prevents 5->1 (Roost to Cruise)
-    gamma3[, 1] <- 0
-    gamma3 <- gamma3/apply(gamma3, 1, sum)
-    gamma3[, 1] <- 0
-  }
-
-  # trans prob. given current behavior
-  #next_behavior <- sample(1:5, size = 1, prob = gamma3[current_behavior, ])
-  table(sample(1:5, size = 5000, prob = gamma3[current_behavior, ], replace = TRUE))
-
-  print(paste0("Next behavior: ", next_behavior))
+# Individual sim file
+sim_rds_vec <- "sim_20210831_Wilson_C-01.rds"
 
 
+# ESRI Baselayers
+esri_url <- "https://server.arcgisonline.com/ArcGIS/rest/services/"
+esri_tile <- "/MapServer/tile/{z}/{y}/{x}"
+om_nat_geo <- paste0(esri_url, "NatGeo_World_Map", esri_tile)
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# Checking for issues with the step type Nest -> Perch
-# Currently, all of the simulated birds seem to file to the edges/corners of the
-# redistribution_kernel
-
-base <- sim$spatial$base
-
-# Create Move Kernels for 'Nest -> Perch' around each nest
-for (i in c(1, 2)){
-  print(i)
-  start_x <- sim$agents$input$start_x[i]
-  start_y <- sim$agents$input$start_y[i]
-  move_org <- sim_out$run_1$spatial$classes$male$move_kernels$`3_4`
-  plot(move_org)
-  move_rotated <- suppressWarnings(RotateRaster(move_org, Rad2Deg(0),
-    resolution=raster::res(base)))
-  plot(move_rotated)
-  move_crop <- raster::crop(move_rotated, move_org, snap = "near")
-  plot(move_crop)
-  move_resample <- raster::resample(move_rotated, move_org, method = "ngb")
-  plot(move_resample)
-  move_shift <- raster::shift(move_resample, dx = start_x,  dy = start_y)
-  raster::crs(move_shift) <- raster::crs(base)
-  move_kernel <- raster::crop(move_shift, base, snap="in")
-  raster::writeRaster(move_kernel, paste0("C:/TEMP/Sim3/move_kernel", i,
-    ".tif"), overwrite = TRUE)
-  land <- sim$spatial$landscape$land[[sim$agents$input$nest_id[i]]]
-  land_kernel <- raster::crop(land, move_kernel, snap = "in")
-  land_kernel <- raster::extend(land_kernel, move_kernel, value = 0)
-  land_kernel <- raster::mask(land_kernel, move_kernel)
-  raster::writeRaster(land_kernel, paste0("C:/TEMP/Sim3/land_kernel", i,
-    ".tif"), overwrite = TRUE)
+# For testing
+if(FALSE) {
+  x <- step_data$x[i] + 1500; y <- step_data$y[i] + 1500
+  step_data$x[i] <- x; step_data$y[i] <- y
+}
+if(FALSE){
+  if(i == 1) step_data$x[i] <- 478445; step_data$y[i] <- 4972105
 }
 
-# Create SSF Kernels for 'Nest -> Perch' around each nest
-for (i in c(1, 3, 5, 7)){
-  print(i)
-  start_x <- sim$agents$input$start_x[i]
-  start_y <- sim$agents$input$start_y[i]
-  move_org <- sim_out$
-  plot(move_org)
-  move_rotated <- suppressWarnings(RotateRaster(move_org, Rad2Deg(0),
-    resolution=raster::res(base)))
-  plot(move_rotated)
-  move_crop <- raster::crop(move_rotated, move_org, snap = "near")
-  plot(move_crop)
-  move_resample <- raster::resample(move_rotated, move_org, method = "ngb")
-  plot(move_resample)
-  move_shift <- raster::shift(move_resample, dx = start_x,  dy = start_y)
-  raster::crs(move_shift) <- raster::crs(base)
-  move_kernel <- raster::crop(move_shift, base, snap="in")
-  raster::writeRaster(move_kernel, paste0("C:/TEMP/Sim2/ssf_kernel", i, ".tif"))
+# Move Kernel
+move_org <- sim$spatial$classes[[sex]][["move_kernels"]][[behavior_trans]]
+move_org_shift <- raster::shift(move_org, dx = step_data$x[i],
+  dy = step_data$y[i])
+move_rotated <- suppressWarnings(RotateRaster(move_org,
+  Rad2Deg(step_data$exp_angle[i]), resolution = raster::res(base)))
+move_crop <- raster::crop(move_rotated, move_org, snap = "near")
+move_resample <- raster::resample(move_rotated, move_org, method = "ngb",
+  progress = FALSE)
+move_shift <- raster::shift(move_resample, dx = step_data$x[i],
+  dy = step_data$y[i])
+raster::crs(move_shift) <- raster::crs(base)
+move_shift_ext <- raster::extend(move_shift, move_org_shift, value = NA)
+move_shift_crop <- raster::crop(move_shift_ext, move_org_shift, snap = "in")
+move_kernel_mask <- raster::mask(move_shift_crop, move_org_shift, value =NA)
+move_kernel <- move_kernel_mask/raster::cellStats(move_kernel_mask,
+  stat = "sum")
+move_kernel[move_kernel == 0] <- NA
+if(plotting) plot(move_kernel, colNA = "black")
+
+# Con_Nest Kernel
+con_nest_raster <- sim$spatial$con_nest_dist[[agent_states$nest_id]]
+if(plotting) plot(con_nest_raster, colNA = "black")
+pars_gamma <- sim$pars$classes[[sex]]$constant$fixed$con_nest_pars$gamma
+pars_rescale <- sim$pars$classes[[sex]]$constant$fixed$con_nest_pars$rescale
+con_nest_prob <- CreateRasterConNestDistProb(con_nest_raster,
+  raster_extent = raster::extent(move_kernel), pars_gamma = pars_gamma,
+  pars_rescale = pars_rescale, x = step_data$x[i], y = step_data$y[i],
+  base = base)
+if(plotting) plot(con_nest_prob, colNA = "black")
+raster::crs(con_nest_prob) <- raster::crs(base)
+con_nest_ext <- raster::extend(con_nest_prob, move_kernel, value = NA)
+con_nest_crop <- raster::crop(con_nest_ext, move_kernel, snap = "in")
+con_nest_mask <- raster::mask(con_nest_crop, move_kernel, value = NA)
+con_nest_kernel <- con_nest_mask/raster::cellStats(con_nest_mask,
+  stat = "sum")
+con_nest_kernel[con_nest_kernel == 0] <- NA
+if(plotting) plot(con_nest_kernel, colNA = "black")
+
+# SSF_Kernel
+ssf_org <- sim$spatial$ssf_layers[[`behavior_trans`]][[agent_states$nest_id]]
+ssf_ext <- raster::extend(ssf_org, move_kernel, value = NA)
+ssf_crop <- raster::crop(ssf_ext, move_kernel, snap = "in")
+ssf_mask <- raster::mask(ssf_crop, move_kernel, snap = "in")
+ssf_kernel_mask <- raster::extend(ssf_mask, move_kernel, value = NA)
+ssf_kernel <- ssf_kernel_mask/raster::cellStats(ssf_kernel_mask,
+  stat = "sum")
+ssf_kernel[ssf_kernel == 0] <- NA
+if(plotting) plot(ssf_kernel, colNA = "black")
+
+mapview::mapview(ssf_kernel)
+mapview::mapview(move_kernel)
+mapview::mapview(con_nest_kernel)
+
+
+# Get osm baselayer for sim_step_sf_k and baea_step_sf_id
+step_bb_sfc <- st_as_sfc(bb(move_kernel, relative = TRUE,
+  height = 2, width = 2)) %>%
+  st_transform(., crs = as.character(OpenStreetMap::osm()))
+step_om <- step_bb_sfc %>%
+  read_osm(., zoom = 11, #minNumTiles = 21,
+    type = om_nat_geo)  # may need to add and adjust 'zoom' arg
+
+step_map <-
+  tm_layout(asp = 1) +
+  tm_shape(step_om, raster.downsample = FALSE) +
+    tm_rgb() +
+  tm_scale_bar(text.size = .65,
+    breaks = c(0, 5, 10),
+    position = c(.05, .01)) +
+  tm_legend(bg.color = "white", title.size = .75, text.size = .5)
+    #format=list(scientific=TRUE, digits=2))
+step_map
+
+step_map_ssf <- step_map +
+  tm_shape(ssf_kernel, raster.downsample = FALSE) +
+  tm_raster(palette = "cividis", alpha = .75, legend.reverse = TRUE,
+    title = "SSF Kernel")
+step_map_ssf
+tmap_save(tm = step_map_ssf, filename = file.path("C:/TEMP/Kernel_Maps",
+  "SSF_Kernel.png"), unit = "in", dpi = 300, height = 4, width = 4)
+
+step_map_move <- step_map +
+  tm_shape(move_kernel, raster.downsample = FALSE) +
+  tm_raster(palette = "plasma", alpha = .75, legend.reverse = TRUE,
+    title = "Move Kernel")
+step_map_move
+tmap_save(tm = step_map_move, filename = file.path("C:/TEMP/Kernel_Maps",
+  "Move_Kernel.png"), unit = "in", dpi = 300, height = 4, width = 4)
+
+step_map_con <- step_map +
+  tm_shape(con_nest_kernel, raster.downsample = FALSE) +
+  tm_raster(palette = "inferno", alpha = .75, legend.reverse = TRUE,
+    title = "Conspecific Kernel")
+step_map_con
+tmap_save(tm = step_map_con, filename = file.path("C:/TEMP/Kernel_Maps",
+  "Conspecific_Kernel.png"), unit = "in", dpi = 300, height = 4, width = 4)
+
+
+kernel_stack <- raster::stack(list(ssf_kernel, move_kernel,
+  con_nest_kernel))
+WeightedGeoMean <- function(x){
+  geomeans <- gpindex::geometric_mean(x, w = c(1, 1, 1), na.rm = TRUE)
+  return(geomeans)
 }
+
+prob_raster <- raster::calc(kernel_stack, fun = WeightedGeoMean)
+prob_raster <- prob_raster/raster::cellStats(prob_raster, stat = "sum")
+
+step_map_prob <- step_map +
+  tm_shape(prob_raster, raster.downsample = FALSE) +
+  tm_raster(palette = "viridis", alpha = .75, legend.reverse = TRUE,
+    title = "Redistribution Kernel 1:1:1")
+step_map_prob
+
+tmap_save(tm = step_map_prob, filename = file.path("C:/TEMP/Kernel_Maps",
+  "Probability_Kernel_111.png"), unit = "in", dpi = 300, height = 4, width = 4)
+
+
+WeightedGeoMean <- function(x){
+  geomeans <- gpindex::geometric_mean(x, w = c(3, 1, 1), na.rm = TRUE)
+  return(geomeans)
+}
+prob_raster <- raster::calc(kernel_stack, fun = WeightedGeoMean)
+prob_raster <- prob_raster/raster::cellStats(prob_raster, stat = "sum")
+step_map_prob <- step_map +
+  tm_shape(prob_raster, raster.downsample = FALSE) +
+  tm_raster(palette = "viridis", alpha = .75, legend.reverse = TRUE,
+    title = "Redistribution Kernel 3:1:1")
+step_map_prob
+tmap_save(tm = step_map_prob, filename = file.path("C:/TEMP/Kernel_Maps",
+  "Probability_Kernel_311.png"), unit = "in", dpi = 300, height = 4, width = 4)
+
+WeightedGeoMean <- function(x){
+  geomeans <- gpindex::geometric_mean(x, w = c(3, 1, 3), na.rm = TRUE)
+  return(geomeans)
+}
+prob_raster <- raster::calc(kernel_stack, fun = WeightedGeoMean)
+prob_raster <- prob_raster/raster::cellStats(prob_raster, stat = "sum")
+step_map_prob <- step_map +
+  tm_shape(prob_raster, raster.downsample = FALSE) +
+  tm_raster(palette = "viridis", alpha = .75, legend.reverse = TRUE,
+    title = "Redistribution Kernel 3:1:3")
+step_map_prob
+tmap_save(tm = step_map_prob, filename = file.path("C:/TEMP/Kernel_Maps",
+  "Probability_Kernel_313.png"), unit = "in", dpi = 300, height = 4, width = 4)
+
+
+
+
+

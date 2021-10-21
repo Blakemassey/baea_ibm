@@ -16,6 +16,10 @@ Output/Sim
 Products/Graphs
 Products/Maps
 
+# HTML Files (Slidy results) #
+##################
+*.html
+
 # Kml Files #
 ##################
 *.kml

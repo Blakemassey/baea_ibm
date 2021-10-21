@@ -32,7 +32,6 @@ wgs84n19 <- CRS("+init=epsg:32619") # WGS84 UTM 19N
 ProjLAEA <- CRS(paste0("+proj=laea +lat_0=52 +lon_0=10 +x_0=4321000 ",
   "+y_0=3210000 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs"))
 
-
 ## Create Maine Wind Turbines --------------------------------------------------
 
 # Import Shapefile and Subset Data
@@ -220,7 +219,7 @@ writeRaster(wilson_base_50km, file.path(gis_exp_dir,
 rm(base, wilson_nest, wilson_bb_50km, wilson_base_50km)
 
 # Update code to fix problems with windfarmGA
-source("R/6e_Experiment_Fix_WindfarmGA.R")
+source("R/6f_Experiment_Fix_WindfarmGA.R")
 
 # Import turbine specs
 wt_hub_height_mode <- readRDS(file.path(wind_output_dir,
@@ -377,7 +376,7 @@ mapview::mapview(wilson_s_area_buffer_200m) +
 mapview::mapview(wilson_s_turbines_sf, color = "red") +
 mapview::mapview(wilson_s_turbines_topo_sf, color = "yellow")
 
-wilson_s_dist_mean <- round(CalculateMode(wilson_s_turbines_sf$nn_distance))
+wilson_s_dist_mean <- round(mean(wilson_s_turbines_sf$nn_distance))
 wilson_s_dist_min <- round(min(wilson_s_turbines_sf$nn_distance))
 
 maine_turbine_dist_mean <- readRDS(file.path(wind_output_dir,
@@ -399,3 +398,53 @@ rm(wilson_s_area, wilson_s_area_buffer_200m, wilson_s_turbines_sf,
 rm(greenville_wind_formatted, hub_height, rotor_radius, grid_spacing,
   area_proportion, turbines_n)
 
+## Create Turbines Distance Rasters --------------------------------------------
+
+# Import base_50km
+wilson_base_50km <- raster(file.path(gis_exp_dir, "wilson_base_50km.tif"))
+
+# Import wind turbine data
+wilson_n_turbines_sf <- readRDS(file.path(wind_output_dir,
+  "wilson_n_turbines.rds"))
+wilson_s_turbines_sf <- readRDS(file.path(wind_output_dir,
+  "wilson_s_turbines.rds"))
+
+wilson_n_turbines_30mc <- rasterize(as_Spatial(wilson_n_turbines_sf),
+  y = wilson_base_50km, field = 'id', small = TRUE)
+wilson_s_turbines_30mc <- rasterize(as_Spatial(wilson_s_turbines_sf),
+  y = wilson_base_50km, field = 'id', small = TRUE)
+
+wilson_ns_turbines_30mc <- sum(wilson_n_turbines_30mc,
+  wilson_s_turbines_30mc, na.rm=TRUE)
+wilson_ns_turbines_30mc[wilson_ns_turbines_30mc == 0] <- NA
+
+wilson_n_dist_30mc <- distance(wilson_n_turbines_30mc, doEdge = TRUE)
+wilson_s_dist_30mc <- distance(wilson_s_turbines_30mc, doEdge = TRUE)
+wilson_ns_dist_30mc <- distance(wilson_ns_turbines_30mc, doEdge = TRUE)
+
+# Rescale max distance to 20km (New step added in 2021-06)
+wilson_n_dist_30mc[wilson_n_dist_30mc > 20000] <- 20000
+wilson_n_dist_30mc[is.na(wilson_n_dist_30mc[])] <- 20000
+wilson_s_dist_30mc[wilson_s_dist_30mc > 20000] <- 20000
+wilson_s_dist_30mc[is.na(wilson_s_dist_30mc[])] <- 20000
+wilson_ns_dist_30mc[wilson_ns_dist_30mc > 20000] <- 20000
+wilson_ns_dist_30mc[is.na(wilson_ns_dist_30mc[])] <- 20000
+
+writeRaster(wilson_n_dist_30mc, file.path(gis_exp_dir,
+  "dist_turbines_wilson_n.tif"), progress = "text", datatype = 'INT2U',
+  overwrite = TRUE)
+writeRaster(wilson_s_dist_30mc, file.path(gis_exp_dir,
+  "dist_turbines_wilson_s.tif"), progress = "text", datatype = 'INT2U',
+  overwrite = TRUE)
+writeRaster(wilson_ns_dist_30mc, file.path(gis_exp_dir,
+  "dist_turbines_wilson_ns.tif"), progress = "text", datatype = 'INT2U',
+  overwrite = TRUE)
+
+# Create 'control' layer with all turbine_dist = 20km
+wilson_c_dist_30mc <- wilson_ns_dist_30mc
+wilson_c_dist_30mc[wilson_c_dist_30mc >= 0] <- 20000
+plot(wilson_c_dist_30mc)
+
+writeRaster(wilson_c_dist_30mc, file.path(gis_exp_dir,
+  "dist_turbines_wilson_c.tif"), progress = "text", datatype = 'INT2U',
+  overwrite = TRUE)

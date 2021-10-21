@@ -1,25 +1,26 @@
-# ------------------------- TERRITORIAL ANALYSIS ----------------------------- #
+# ------------------------- Territorial Analysis ----------------------------- #
 # This script is for calculating the territorial distribution of eagles by
 # calculating their position relative to their nest and their neighbors nests
 #------------------------------------------------------------------------------#
 
-## Load Packages, Scripts, etc. ------------------------------------------------
-pacman::p_load(ggthemes, ggmap, tidyverse, maps, raster, RColorBrewer, rgeos,
-  tools)
-options(stringsAsFactors = FALSE)
+# Setup ------------------------------------------------------------------------
+
+# Load packages
+pacman::p_load(dplyr, extraDistr, fitdistrplus, ggthemes, ggmap, tidyverse,
+  maps, raster, RColorBrewer, rgeos, tools, VGAM)
 theme_update(plot.title = element_text(hjust = 0.5))
-package_dir <- "C:/Users/blake/OneDrive/Work/R/Packages"
-
 pacman::p_load(baear, gisr, ibmr)
-#devtools::reload(file.path(package_dir, "baear"))
+package_dir <- "C:/Users/blake/OneDrive/Work/R/Packages"
+if(FALSE) devtools::reload(file.path(package_dir, "baear"))
 
-# GIS arguments
+# Directories
+image_output <- file.path("C:/TEMP")
+
+# Variables
+set.seed(2019)
 wgs84 <- CRS("+init=epsg:4326") # WGS84 Lat/Long
 wgs84n19 <- CRS("+init=epsg:32619") # WGS84 UTM 19N
-
-# Plotting arguments
 id_colors <- CreateColorsByAny(by="id", output=TRUE)
-
 theme_legend <- theme(plot.title=element_text(size=24, face="bold", vjust=1.5,
   hjust = 0.5))+
   theme(axis.title=element_text(size=20, face="bold")) +
@@ -29,18 +30,15 @@ theme_legend <- theme(plot.title=element_text(size=24, face="bold", vjust=1.5,
   theme(strip.text.x = element_text(size = 12, colour = "darkblue"))
 theme_no_legend <- theme_legend + theme(legend.position="none")
 
-# Image directory
-image_output <- file.path("C:/TEMP")
+# Import Files -----------------------------------------------------------------
 
-############################  IMPORT FILES  ####################################
-
-## Import Baea, Nests, and Base ------------------------------------------------
+# Import baea, nests, and base
 baea_hr <- readRDS("Data/BAEA/baea_homerange.rds")
 
 nests_active <- readRDS(file="Data/Nests/Nests_rds/nests_active.RDS")
 base = raster(file.path("C:/ArcGIS/Data/BlankRaster/maine_30mc.tif"))
 
-## Filter BAEA Data ------------------------------------------------------------
+# Filter BAEA Data -------------------------------------------------------------
 
 baea_terr <- baea_hr %>%
   filter(id %in% c("Ellis", "Sandy", "Musquash", "Hebron")) %>%
@@ -54,24 +52,22 @@ baea_terr <- baea_terr %>% mutate(long_utm = x, lat_utm = y)
 
 saveRDS(baea_terr, "Data/BAEA/baea_terr.rds")
 
-############## CREATE NEST AND CONSPECIFIC DISTANCE RASTERS ####################
+# Create Nest and Conspecific Distance Raster ----------------------------------
 
-## Calculate Homerange Distance ------------------------------------------------
-
+# Calculate homerange distance
 con_nest <- CreateConNestDistRasters(baea_terr, nests_active, base,
   output_dir = "Output/Analysis/Territorial", max_r = 30000,
   write_con_nest_all = TRUE)
 
-################ LOAD NEST AND CONSPECIFIC DISTANCE RASTERS ####################
-
+# Load Nest and Conspecific Distance Raster
 con_nest <- raster("Output/Analysis/Territorial/ConNest_All.tif")
 plot(con_nest)
 
-######################## EXTRACT DISTANCE DATA #################################
+# Extract Distance Data --------------------------------------------------------
 
 baea_terr <- readRDS("Data/BAEA/baea_terr.rds")
 
-## Extract raster values and put into baea
+# Extract raster values and put into baea
 baea_terr$con_nest <- raster::extract(con_nest, baea_terr[,c("long_utm",
   "lat_utm")])
 
@@ -82,7 +78,7 @@ sum(is.na(baea_dist$con_nest)) # should be 0
 
 saveRDS(baea_dist, "Data/BAEA/baea_dist.rds")
 
-#ExportKMLTelemetryBAEA(baea_dist, file = "baea_dist.kmz")
+if(FALSE) ExportKMLTelemetryBAEA(baea_dist, file = "baea_dist.kmz")
 
 hist(baea_dist$con_nest_km, breaks = 0:max(ceiling(baea_dist$con_nest_km)))
 sum(is.na(baea_dist$con_nest_km))
@@ -90,13 +86,7 @@ sum(is.na(baea_dist$con_nest_km))
 head(sort(unique(baea_dist$con_nest_km)),5)
 head(table(baea_dist$con_nest_km),10)
 
-#################### FITTING CON_NEST ##########################################
-
-library(fitdistrplus)
-library(dplyr)
-library(extraDistr)
-library(VGAM)
-set.seed(2019)
+# Fitting Conspecific Nest Distance --------------------------------------------
 
 baea_dist <- readRDS("Data/BAEA/baea_dist.rds")
 
@@ -108,8 +98,9 @@ baea_dist_samp <- readRDS("Data/BAEA/baea_dist.rds") %>%
   group_by(id) %>%
   sample_n(2000, replace = TRUE) %>%
   ungroup()
-# No need to resave baea_dist_samp (originally done on 2019-10-23)
-#saveRDS(baea_dist_samp, "Data/BAEA/baea_dist_samp.rds")
+
+# Resave baea_dist_samp (originally done on 2019-10-23)
+if(FALSE) saveRDS(baea_dist_samp, "Data/BAEA/baea_dist_samp.rds")
 
 baea_dist_samp <- readRDS("Data/BAEA/baea_dist_samp.rds")
 descdist(baea_dist_samp$con_nest_km, boot = 100)
@@ -138,8 +129,8 @@ fit_name <- "Con_Nest Distance"
 
 plot(fits_baea_dist$exponential)
 mtext(paste(fit_name, "-", "Exponential"), font=2, line = 4.5)
-## The placement of the text depends on how plot screen is sized - 4 is
-## right at the top of the graph when the plot window is 1/4 of screen
+# The placement of the text depends on how plot screen is sized - 4 is
+# right at the top of the graph when the plot window is 1/4 of screen
 SavePlot(paste0(fit_name, " - Exponential.jpeg"), image_output)
 
 plot(fits_baea_dist$gamma)
@@ -158,7 +149,7 @@ plot(fits_baea_dist$weibull)
 mtext(paste(fit_name, "-", "Weibull"), font=2, line = 4.5)
 SavePlot(paste0(fit_name, " - Weibull.jpeg"), image_output)
 
-#################### DETERMINE THE CON_NEST RESCALE PARS #######################
+# Determine the Conspecific Nest Rescale Parameters ----------------------------
 fits_baea_dist <- readRDS("Output/Analysis/Territorial/fits_baea_dist.rds")
 
 shape <- fits_baea_dist$gamma$estimate[["shape"]]
@@ -178,9 +169,7 @@ ggplot(df_pgamma, aes(x, y_pgamma)) +
   theme(axis.text = element_text(colour = "black")) +
   labs(x = 'Predictor', y = 'Probability', title=main)
 
-# Rescale the Y axis
-
-# These parameters determine the rescaling
+# Rescale the Y axis - these parameters determine the rescaling
 y_min <- .001
 y_max <- .999
 y_max_new <- -2   # More negative values result in overall flatter curves
@@ -278,8 +267,7 @@ gg_connest_logistic <- ggplot(df_logistic) +
     theme(panel.grid.minor.x = element_blank())
 gg_connest_logistic
 
-
-#################### SAVE THE CON_NEST_PARS ####################################
+# Save The Conspecific Nest Paramters ------------------------------------------
 
 # Load territorial dist fits
 fits_baea_dist <- readRDS("Output/Analysis/Territorial/fits_baea_dist.rds")
@@ -296,7 +284,6 @@ y_min_new <- y_min_new
 
 gamma <- NamedList(shape, rate)
 rescale <- NamedList(y_min, y_max, y_max_new, y_min_new)
-
 con_nest_pars <- NamedList(gamma, rescale)
 
 saveRDS(con_nest_pars, file = "Output/Analysis/Territorial/con_nest_pars.rds")
@@ -304,7 +291,6 @@ saveRDS(con_nest_pars, file = "Output/Analysis/Territorial/con_nest_pars.rds")
 # ---------------------------------------------------------------------------- #
 ################################ OLD CODE ######################################
 # ---------------------------------------------------------------------------- #
-#
 #
 # Map Con, Nest and Con_Nest Distances --------------------------------------- #
 #

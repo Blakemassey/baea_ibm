@@ -1,7 +1,11 @@
-###################### SSF_Model_Fit_Testing ###################################
+#--------------------------- SSF Model Fit Testing ----------------------------#
+# This script is to run model fitting procedures for the SSF using different
+# covariates to determine the best fitting model given the covariate candidates
+#------------------------------------------------------------------------------#
 
-########################### LOAD PACKAGES AND DATA  ############################
-# Load packages, scripts, and input parameters
+# Setup ------------------------------------------------------------------------
+
+# Load packages
 pacman::p_load(AICcmodavg, arrangements, plyr, dplyr, future, furrr, optimx,
   ggplot2, lubridate, optimx, purrr, raster, rgenoud, reproducible, sf, stars,
   stringr, survival, tibble, tictoc, tidyr, tmap, tmaptools, viridis,
@@ -78,7 +82,7 @@ om_nat_geo <- paste0(esri_url, "NatGeo_World_Map", esri_tile)
 wgs84 <- CRS("+init=epsg:4326") # WGS84 Lat/Long
 wgs84n19 <- CRS("+init=epsg:32619") # WGS84 UTM 19N
 
-## Set run parameters ----------------------------------------------------------
+# Set Run Parameters -----------------------------------------------------------
 
 step_type_name = "af"
 
@@ -187,7 +191,7 @@ covar_matrix_all <- tribble(
 )
 
 
-## Start Workflow --------------------------------------------------------------
+# Start Workflow ---------------------------------------------------------------
 
 covar_matrix_i <- get(paste0("covar_matrix_", step_type_name))
 
@@ -300,7 +304,7 @@ RunClogitFit <- function(model_formula){
   return(clogit_fit)
 }
 
-########################### OPTIMIZATION PROCEDURE  ############################
+# Optimization Procedure -------------------------------------------------------
 
 # Optimization parameters
 max_generations <- 10
@@ -509,7 +513,7 @@ if(fit_models){
 }
 gc()
 
-############################## COMPILE BEST MODELS #############################
+# Compile Best Models ----------------------------------------------------------
 
 # Find all of the step_type folders in mod_fit_dir
 step_types <- list.dirs(file.path(mod_fit_dir), full.names = FALSE,
@@ -539,11 +543,9 @@ rm(step_type_i, ssf_fits_best_step_type_i)
 
 saveRDS(ssf_fits_best, fits_best_file)
 
-######################### CREATE SSF LAYERS ####################################
+# Create SSF Layers ------------------------------------------------------------
 
-# Load libraries, scripts, and input parameters
-## Get SSF FITS ----------------------------------------------------------------
-
+# Get ssf fites
 ssf_fits_best_org <- readRDS(fits_best_file) #%>% slice(c(step_type_index))
 ssf_fits_best_org %>% dplyr::select(step_type, fit_covars_clean, model_full)
 ssf_fits_best <- ssf_fits_best_org
@@ -585,7 +587,7 @@ preds_tbl <- tibble(preds_unique) %>%
 
 saveRDS(preds_tbl, preds_tbl_file)
 
-################ CREATE COVARIATE RASTERS FOR MAINE ############################
+# Create Covariates Rasters For Maine ------------------------------------------
 
 preds_tbl <- readRDS(preds_tbl_file)
 elev_org <- raster(elev_file) # all other layers' extent are set to this layer
@@ -605,6 +607,7 @@ ext_bot <- extent(x_min, x_max, y_min, y_max - y_half)
 removeTmpFiles(h=0)
 
 # Start of Kernel Rasters ------------------------------------------------------
+
 preds_kernel <- preds_tbl %>%
   filter(raster_class == "kernel_class")
 
@@ -804,7 +807,7 @@ for (i in seq_len(nrow(preds_terrain))){
   }
 }
 
-################### MASK COVARIATE RASTERS TO MAINE ONLY #######################
+# Mask Covariate Raster To Maine Only ------------------------------------------
 
 preds_tbl <- readRDS(preds_tbl_file)
 maine_raster_trim <- raster(maine_raster_trim_file)
@@ -827,7 +830,7 @@ for (i in seq_len(nrow(preds_tbl))){
   }
 }
 
-################### GENERATE SSF_LAYERS FOR MAINE ##############################
+# Generate SSF Layers For Maine ------------------------------------------------
 
 ssf_fits_best <- readRDS(fits_best_file) #%>% slice(step_type_index)
 ssf_fits_best %>% pluck("model_full") %>% unlist()
@@ -893,14 +896,12 @@ for (i in 1:nrow(ssf_fits_best)){
   gc()
 }
 
+# Generate Maps for Maine by Step Type -----------------------------------------
 
-######################### GENERATE MAPS FOR MAINE ##############################
-
-#### ------------------------- Maine By Step_Type Maps -------------------------
-
+# SSF fits
 ssf_fits_best <- readRDS(fits_best_file)
 
-# Maine Outline
+# Maine outline
 maine <- read_sf(maine_polygon_file) %>% st_transform(., crs = 4326) %>%
   mutate(state = "Maine") %>% dplyr::select(state)
 
@@ -908,7 +909,7 @@ maine <- read_sf(maine_polygon_file) %>% st_transform(., crs = 4326) %>%
 nests_study <- st_as_sf(x = readRDS(nests_study_file), coords = c("long","lat"),
   crs = "+proj=longlat +datum=WGS84") %>% filter(!name %in% c("Davis", "Upper"))
 
-# For Individual Maps
+# For individual maps
 if(save_individual_maps){
   for (i in seq_len(nrow(ssf_fits_best))){
     writeLines(i)
@@ -967,12 +968,12 @@ if(save_individual_maps){
   }
 }
 
-#### -------------------- All Maine Step_Type Maps Combined --------------------
+# Generate Maps for Maine by Step Type Combines --------------------------------
 
 # List for output
 ssf_tmap_list <- vector(mode = "list", length = 20)
 
-# For Individual Maps
+# For individual maps
 for (i in seq_len(nrow(ssf_fits_best))){
   #writeLines(i)
   step_type_i_numeric <- ssf_fits_best %>% slice(i) %>% pull(step_type) %>%
@@ -1064,8 +1065,7 @@ rsvg::rsvg_pdf(file.path("C:/TEMP/SSF_Maps/",
 file.remove(file.path("C:/TEMP/SSF_Maps/",
   paste0("SSF_Probability_Maps_Overview_", model_id, ".svg")))
 
-
-#### -------------------- All Nest Step_Type Maps Combined --------------------
+# Generate Maps for Nest by Step Type ------------------------------------------
 
 tmap_mode("plot")
 
@@ -1075,7 +1075,7 @@ nests_study <- st_as_sf(x = readRDS(nests_study_file), coords = c("long","lat"),
     c("Davis", "Upper")) %>% st_transform(wgs84n19)
 nests_sim <- nests_study %>% slice(c(2, 4, 7, 13))
 
-# For Individual Maps
+# For individual maps
 for (j in seq_len(nrow(nests_sim))){
   # Get nest
   nest_j <- nests_sim %>% slice(j)
@@ -1183,7 +1183,7 @@ for (j in seq_len(nrow(nests_sim))){
     paste0("SSF_Probability_Maps_Nest_", model_id, "_", nest_j_name, ".svg")))
 
 }
-##################### GENERATE COVARIATE TABLE #################################
+# Generate Covariates Table ----------------------------------------------------
 
 for (i in seq_len(nrow(ssf_fits_best))){
 
@@ -1263,7 +1263,7 @@ covar_table_final <- covar_table %>%
 model_table_final <- model_table %>%
   dplyr::rename("Step Type" = step_type, Model = model_full)
 
-##################### RUN RMARKDOWN REPORT #####################################
+# Run RMarkdown Report ---------------------------------------------------------
 
 nest_map_files <- list.files(path = "C:/TEMP/SSF_Maps/",  full.names = TRUE,
   pattern = paste0("SSF_Probability_Maps_Nest_", model_id, "*"))

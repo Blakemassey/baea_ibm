@@ -1,0 +1,27 @@
+---
+title: ""
+output: pdf_document
+params:
+  map_file: NA
+  covar_table: NA
+  model_table: NA
+  nest_map_files: NA
+header-includes:
+- \usepackage{xltabular}
+- \usepackage{booktabs}
+- \usepackage{makecell}
+- \usepackage{caption}
+   
+---
+
+```{r setup, include = FALSE}
+pacman::p_load(magick, knitr, rmarkdown, xtable)
+knitr::opts_chunk$set(echo = FALSE)
+options(xtable.include.rownames = FALSE)
+#options(xtable.comment = FALSE)
+nest_map_files <- params$nest_map_files
+```
+
+```{r}
+knitr::include_graphics(nest_map_files)
+```

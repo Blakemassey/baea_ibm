@@ -1,23 +1,24 @@
-#-------------------------- ANALYSIS BEHAVIOR ---------------------------------#
-# This script is identifying behavior categories of GPS location data.
+#-------------------------- Analysis Behaviors --------------------------------#
+# This script models the behavior transitions of GPS location data.
 #------------------------------------------------------------------------------#
 
-## Load Packages, Scripts, Parameters, Etc. ------------------------------------
+# Setup ------------------------------------------------------------------------
+
+# Load packages
 pacman::p_load(devtools, dplyr, fitdistrplus, ggplot2, ggthemes, lubridate,
   raster, zoo)
-options(stringsAsFactors=FALSE)
 theme_update(plot.title = element_text(hjust = 0.5))
-
 pacman::p_load(baear, gisr, ibmr)
-#devtools::reload("C:/Users/blake/OneDrive/Work/R/Packages/gisr")
+if(FALSE) devtools::reload("C:/Users/blake/OneDrive/Work/R/Packages/gisr")
 
+# Variables
 wgs84 <- CRS("+init=epsg:4326") # WGS84 Lat/Long
 wgs84n19 <- CRS("+init=epsg:32619") # WGS84 UTM 19N
 
-## Import Baea, Nests, and Base ------------------------------------------------
-baea_hr <- readRDS("Data/BAEA/baea_homerange.rds")
-
 # Identify Nest, Perch, Flight, Cruise, and Roost Behavior ---------------------
+
+# Import baea, nests, and base
+baea_hr <- readRDS("Data/BAEA/baea_homerange.rds")
 
 # Table of duration and start/end dates of birds' location data
 baea_dates <- baea_hr %>%
@@ -27,7 +28,6 @@ baea_dates <- baea_hr %>%
     unit="months")) %>%
   ungroup() %>% as.data.frame()
 baea_dates
-
 
 # Filter location by criteria and add behaviors
 baea_nest <- FilterByNestCriteria(baea_hr, min_daily_nest_dist = 250,
@@ -58,8 +58,10 @@ baea_behavior %>% group_by(id) %>% summarize(sex = first(sex))
 saveRDS(baea_behavior, file = "Data/Baea/baea_behavior.rds")
 
 # Export kml of flight segments
-#ExportKMLTelemetryBAEA(baea_flights, behavior= "behavior",
-#  point_color = "behavior", file = "BAEA - Flights.kml")
+if(FALSE){
+  ExportKMLTelemetryBAEA(baea_flights, behavior= "behavior",
+    point_color = "behavior", file = "BAEA - Flights.kml")
+}
 
 # Table behaviors' consecutive lengths
 table(data.frame(unclass(rle(baea_behavior$bh_nest))) %>%
@@ -73,7 +75,6 @@ table(data.frame(unclass(rle(baea_behavior$bh_flight))) %>%
 
 PlotBehaviorProportionBar(baea_behavior, title = "")
 SaveGGPlot("Products/Graphs/Behavior/Proportion_Bar.png", bg = "transparent")
-
 
 #------------------------------------------------------------------------------#
 ################################ OLD CODE ######################################
