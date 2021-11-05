@@ -1,7 +1,9 @@
-########################### FIGURES SETUP ######################################
-
+#------------------------ Dissertation Figures --------------------------------#
 # Maps and Flowcharts: Save as .svg
 # Figures: Save as .pdf or .png
+#------------------------------------------------------------------------------#
+
+# Setup ------------------------------------------------------------------------
 
 # Load packages, helpers, and functions
 pacman::p_load(CircStats, ggplot2, gridExtra, magick, latex2exp, patchwork,
@@ -27,9 +29,7 @@ theme_blank <- theme(legend.position = "none",
   panel.background = element_rect(fill = "transparent", colour = NA),
   plot.background = element_rect(fill = "transparent", colour = NA))
 
-############################################################################# ##
-####                            CHAPTER 2                                   ####
-############################################################################# ##
+# ---------------------------- CHAPTER 2 ---------------------------------------
 
 # Homerange Size/Terrain Metrics -----------------------------------------------
 hr_metrics_org <- readRDS("Output/Analysis/Homerange/hr_all_metrics.rds")
@@ -849,10 +849,7 @@ image_write(movements_kernel_labels_fig,
   path = movements_kernel_fig_file, format=".png")
 file.remove(movements_kernel_no_label_fig_file)
 
-
-############################################################################# ##
-####                            CHAPTER 3                                   ####
-############################################################################# ##
+# ---------------------------- CHAPTER 3 ---------------------------------------
 
 # Plot ConNestDist Scale Logistic Function -------------------------------------
 con_nest_pars <- readRDS("Output/Analysis/Territorial/con_nest_pars.rds")
@@ -990,9 +987,7 @@ ggsave(filename = "ConNest_Logistic.png", plot = gg_connest_logistic,
   path = file.path(tex_dir, "Figures/Ch3"), scale = 1, width = 6, height = 4,
   units = "in", dpi = 300)
 
-############################################################################# ##
-####                            CHAPTER 4                                   ####
-############################################################################# ##
+# ---------------------------- CHAPTER 4 ---------------------------------------
 
 # Greenville Windrose ----------------------------------------------------------
 

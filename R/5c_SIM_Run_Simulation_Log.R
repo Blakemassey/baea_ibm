@@ -255,7 +255,6 @@ sim_log <- tibble(
   add_row(notes = "A -> S = 5:1:2 n=1000") %>%
   add_row(notes = "N -> S = 5:1:2 n=1000") %>%
   add_row(notes = "S -> S = 5:1:2 n=1000") %>%
-  fill(sim, .direction = "down") %>%
   add_row(sim = "20210725-48") %>%
   add_row(notes = "A -> C = 3:2:1 n=25") %>%
   add_row(notes = "A -> F = 3:2:1 n=25") %>%
@@ -263,7 +262,6 @@ sim_log <- tibble(
   add_row(notes = "A -> S = 5:2:1 n=1000") %>%
   add_row(notes = "N -> S = 5:1:3 n=1000") %>%
   add_row(notes = "S -> S = 5:1:3 n=1000") %>%
-  fill(sim, .direction = "down") %>%
   add_row(sim = "20210725-49") %>%
   add_row(notes = "A -> C = 3:2:1 n=25") %>%
   add_row(notes = "A -> F = 3:2:1 n=25") %>%
@@ -271,7 +269,6 @@ sim_log <- tibble(
   add_row(notes = "A -> S = 5:2:1 n=1000") %>%
   add_row(notes = "N -> S = 5:3:1 n=1000") %>%
   add_row(notes = "S -> S = 5:1:3 n=1000") %>%
-  fill(sim, .direction = "down") %>%
   add_row(sim = "20210725-50") %>%
   add_row(notes = "A -> C = 3:2:1 n=25") %>%
   add_row(notes = "A -> F = 3:2:1 n=25") %>%
@@ -286,7 +283,6 @@ sim_log <- tibble(
   add_row(notes = "A -> S = 5:1:3 n=1500") %>%
   add_row(notes = "N -> S = 5:1:3 n=1500") %>%
   add_row(notes = "S -> S = 5:1:3 n=1500") %>%
-  fill(sim, .direction = "down") %>%
   add_row(sim = "20210725-52") %>%
   add_row(notes = "A -> C = 3:3:1 n=25") %>%
   add_row(notes = "A -> F = 3:3:1 n=25") %>%
@@ -294,13 +290,89 @@ sim_log <- tibble(
   add_row(notes = "A -> S = 5:1:3 n=1500") %>%
   add_row(notes = "N -> S = 5:1:3 n=1500") %>%
   add_row(notes = "S -> S = 5:2:3 n=1500") %>%
-  fill(sim, .direction = "down") %>%
   add_row(sim = "20210725-53") %>%
   add_row(notes = "A -> C = 3:3:1 n=25") %>%
   add_row(notes = "A -> F = 3:3:1 n=25") %>%
   add_row(notes = "S -> A = 3:3:2 n=25") %>%
   add_row(notes = "A -> S = 5:1:3 n=1500") %>%
   add_row(notes = "N -> S = 5:2:3 n=1500") %>%
+  add_row(notes = "S -> S = 5:2:3 n=1500") %>%
+  add_row(sim = "20210725-54") %>%
+  add_row(notes = "A -> C = 3:2:1 n=25") %>%
+  add_row(notes = "A -> F = 3:3:1 n=25") %>%
+  add_row(notes = "S -> A = 3:3:2 n=25") %>%
+  add_row(notes = "A -> S = 5:1:3 n=1500") %>%
+  add_row(notes = "N -> S = 5:2:3 n=1500") %>%
+  add_row(notes = "S -> S = 5:2:3 n=1500") %>%
+  add_row(sim = "20210725-55") %>%
+  add_row(notes = "A -> C = 2:2:1 n=25") %>%
+  add_row(notes = "A -> F = 3:3:1 n=25") %>%
+  add_row(notes = "S -> A = 3:3:2 n=25") %>%
+  add_row(notes = "A -> S = 5:1:3 n=1500") %>%
+  add_row(notes = "N -> S = 5:2:3 n=1500") %>%
+  add_row(notes = "S -> S = 5:2:3 n=1500") %>%
+  add_row(sim = "20210725-56") %>%
+  add_row(notes = "A -> C = 3:4:1 n=25") %>%
+  add_row(notes = "A -> F = 3:3:1 n=25") %>%
+  add_row(notes = "S -> A = 3:3:2 n=25") %>%
+  add_row(notes = "A -> S = 5:1:3 n=1500") %>%
+  add_row(notes = "N -> S = 5:2:3 n=1500") %>%
+  add_row(notes = "S -> S = 5:2:3 n=1500") %>%
+  add_row(sim = "20210725-57") %>%
+  add_row(notes = "A -> C = 3:4:1 n=25") %>%
+  add_row(notes = "A -> F = 3:3:1 n=25") %>%
+  add_row(notes = "P/R -> A = 3:3:2 n=25") %>%
+  add_row(notes = "N -> A = 3:4:2 n=25") %>%
+  add_row(notes = "A -> S = 5:1:3 n=1500") %>%
+  add_row(notes = "N -> S = 5:2:3 n=1500") %>%
+  add_row(notes = "S -> S = 5:2:3 n=1500") %>%
+  add_row(sim = "20210725-58") %>%
+  add_row(notes = "A -> C = 3:4:1 n=25") %>%
+  add_row(notes = "A -> F = 3:2:1 n=25") %>%
+  add_row(notes = "P/R -> A = 3:3:2 n=25") %>%
+  add_row(notes = "N -> A = 3:4:2 n=25") %>%
+  add_row(notes = "A -> S = 5:1:3 n=1500") %>%
+  add_row(notes = "N -> S = 5:2:3 n=1500") %>%
+  add_row(notes = "S -> S = 5:2:3 n=1500") %>%
+  add_row(sim = "20210725-59") %>%
+  add_row(notes = "A -> C = 3:4:1 n=25") %>%
+  add_row(notes = "A -> F = 3:2:3 n=25") %>%
+  add_row(notes = "P/R -> A = 3:3:2 n=25") %>%
+  add_row(notes = "N -> A = 3:4:2 n=25") %>%
+  add_row(notes = "A -> S = 5:1:3 n=1500") %>%
+  add_row(notes = "N -> S = 5:2:3 n=1500") %>%
+  add_row(notes = "S -> S = 5:2:3 n=1500") %>%
+  add_row(sim = "20210725-60") %>%
+  add_row(notes = "A -> C = 3:4:1 n=25") %>%
+  add_row(notes = "A -> F = 3:3:2 n=25") %>%
+  add_row(notes = "P/R -> A = 3:3:2 n=25") %>%
+  add_row(notes = "N -> A = 3:4:2 n=25") %>%
+  add_row(notes = "A -> S = 5:1:3 n=1500") %>%
+  add_row(notes = "N -> S = 5:2:3 n=1500") %>%
+  add_row(notes = "S -> S = 5:2:3 n=1500") %>%
+  add_row(sim = "20210725-61") %>%
+  add_row(notes = "A -> C = 3:4:1 n=25") %>%
+  add_row(notes = "A -> F = 3:2:2 n=25") %>%
+  add_row(notes = "P/R -> A = 3:3:2 n=25") %>%
+  add_row(notes = "N -> A = 3:4:2 n=25") %>%
+  add_row(notes = "A -> S = 5:1:3 n=1500") %>%
+  add_row(notes = "N -> S = 5:2:3 n=1500") %>%
+  add_row(notes = "S -> S = 5:2:3 n=1500") %>%
+  add_row(sim = "20210725-62") %>%
+  add_row(notes = "A -> C = 3:4:1 n=25") %>%
+  add_row(notes = "A -> F = 3:3:2 n=25") %>%
+  add_row(notes = "P/R -> A = 3:3:2 n=25") %>%
+  add_row(notes = "N -> A = 3:4:2 n=25") %>%
+  add_row(notes = "A -> S = 5:1:3 n=1000") %>%
+  add_row(notes = "N -> S = 5:1:3 n=1000") %>%
+  add_row(notes = "S -> S = 5:2:3 n=1500") %>%
+  add_row(sim = "20210725-63") %>%
+  add_row(notes = "A -> C = 3:4:1 n=25") %>%
+  add_row(notes = "A -> F = 3:3:2 n=100") %>%
+  add_row(notes = "P/R -> A = 3:3:2 n=25") %>%
+  add_row(notes = "N -> A = 3:4:2 n=25") %>%
+  add_row(notes = "A -> S = 5:1:3 n=1000") %>%
+  add_row(notes = "N -> S = 5:1:3 n=1000") %>%
   add_row(notes = "S -> S = 5:2:3 n=1500") %>%
   fill(sim, .direction = "down") %>%
   filter(!is.na(notes))

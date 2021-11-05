@@ -46,6 +46,14 @@ MakeLines <- function(x, y, x_end, y_end) {
   st_linestring(matrix(c(x, x_end, y, y_end), 2, 2))
 }
 
+# Get the territorial step data
+terr_intervals <- list(
+  interval(ymd("2015-03-15"), ymd("2015-08-15")),
+  interval(ymd("2016-03-15"), ymd("2016-08-15")),
+  interval(ymd("2017-03-15"), ymd("2017-08-15")),
+  interval(ymd("2018-03-15"), ymd("2018-08-15")),
+  interval(ymd("2019-03-15"), ymd("2019-08-15")))
+
 # Hydro Distance ---------------------------------------------------------------
 
 # Hydro Dist file
@@ -55,6 +63,8 @@ hydro_dist_ras <- raster(hydro_raster_file)
 baea_behavior_org <- readRDS(baea_behavior_file)
 
 baea_behavior <- baea_behavior_org %>%
+  filter(id %in% c("Ellis", "Sandy", "Musquash", "Hebron")) %>%
+  filter(datetime %within% terr_intervals) %>%
   dplyr::select(id, datetime, behavior, time_proportion, long_utm, lat_utm,
     nest_site)
 baea_perch <- baea_behavior %>% filter(behavior == "Perch")
@@ -115,13 +125,6 @@ if(FALSE) mapview(ridge_poly)
 # Import original data
 baea_behavior_org <- readRDS(baea_behavior_file)
 baea_movements_org <- readRDS(baea_movements_file)
-
-# Get the territorial step data
-terr_intervals <- list(
-  interval(ymd("2015-03-15"), ymd("2015-08-15")),
-  interval(ymd("2016-03-15"), ymd("2016-08-15")),
-  interval(ymd("2017-03-15"), ymd("2017-08-15")),
-  interval(ymd("2018-03-15"), ymd("2018-08-15")))
 
 # Data = behavioral data of territorial birds during 3-15 to 8-15
 baea_movements <- baea_behavior_org %>%

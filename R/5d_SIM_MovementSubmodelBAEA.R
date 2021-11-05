@@ -1,4 +1,5 @@
 
+
 MovementSubModelBAEA4 <- function(sim = sim,
                                   agent_states = agent_states,
                                   step_data = step_data,
@@ -150,28 +151,33 @@ MovementSubModelBAEA4 <- function(sim = sim,
 
     # Calculate probabilty raster - air to cruise
     if (behavior_trans %in% c("1_1", "2_1")){
-      kernel_weights <- c(3, 3, 1)
+      kernel_weights <- c(3, 4, 1)
       destination_cells_n <- 25
     }
     # Calculate probabilty raster - air to flight
     if (behavior_trans %in% c("1_2", "2_2")){
-      kernel_weights <- c(3, 3, 1)
+      kernel_weights <- c(3, 3, 2)
+      destination_cells_n <- 100
+    }
+    # Calculate probabilty raster - perch/roost to air
+    if (behavior_trans %in% c("4_1", "4_2", "5_2")){
+      kernel_weights <- c(3, 3, 2)
       destination_cells_n <- 25
     }
-    # Calculate probabilty raster - stationary to air
-    if (behavior_trans %in% c("3_1", "4_1", "3_2", "4_2", "5_2")){
-      kernel_weights <- c(3, 3, 2)
+    # Calculate probabilty raster - nest to air
+    if (behavior_trans %in% c("3_1", "3_2")){
+      kernel_weights <- c(3, 4, 2)
       destination_cells_n <- 25
     }
     # Calculate probabilty raster - air to stationary
     if (behavior_trans %in% c("1_4", "2_4", "2_5")){
       kernel_weights <- c(5, 1, 3)
-      destination_cells_n <- 1500
+      destination_cells_n <- 1000
     }
     # Calculate probabilty raster - nest to stationary
     if (behavior_trans %in% c("3_4", "3_5")){
-      kernel_weights <- c(5, 2, 3)
-      destination_cells_n <- 1500
+      kernel_weights <- c(5, 1, 3)
+      destination_cells_n <- 1000
     }
     # Calculate probabilty raster - stationary to stationary
     if (behavior_trans %in% c("4_4", "5_4", "4_5")){
@@ -274,6 +280,69 @@ MovementSubModelBAEA4 <- function(sim = sim,
       step_data[i+1, "x"])^2 + (home_xy[[2]] - step_data[i+1, "y"])^2))
   }
   return(step_data)
+}
+
+# For testing
+if(FALSE){
+  if(TRUE) sim$agents$input <- sim$agents$input %>% slice(c(1,3))
+  if(TRUE) sim$pars$global$sim_start <- as.POSIXct("2015-03-15", tz = "UTC")
+  if(TRUE) sim$pars$global$sim_end <- as.POSIXct("2015-03-20", tz = "UTC")
+  runs = 1
+  write = FALSE
+  output_dir = getwd()
+  i <- j <- k <- m <- n <- o <- 1
+  m <- 5
+}
+
+RunSimulationBAEA <- function(sim = sim,
+                          runs = 1,
+                          write = FALSE,
+                          output_dir = getwd()) {
+  runs <- CreateRunsList(runs)
+  for (i in 1:length(runs)){
+    rep_intervals <- CreateReportIntervals(sim)
+    sim <- UpdateAgentStates(init = TRUE, sim = sim)
+    sim <- UpdateAgentStepDataBAEA2(init = TRUE, sim = sim,
+      rep_intervals = rep_intervals)
+    sim <- UpdateAgentParsData(init = TRUE, sim = sim)
+    sim <- UpdateSpatialBAEA(init = TRUE, sim = sim)
+    for (j in 1:length(rep_intervals)) {
+      step_intervals <- CreateStepIntervals(rep_intervals[[j]],
+        step_period = sim$pars$global$step_period)
+      for (k in 1:length(step_intervals)) {
+        step_interval <- step_intervals[[k]]
+        time_steps <- CreateTimeStepsInStepIntervalBAEA2(step_interval, sim=sim)
+        for (m in 1:length(time_steps)){
+          time_step <- time_steps[[m]]
+          writeLines(paste0("Starting time_step: ", time_steps[[m]]))
+          alive_seq <- ReturnAliveSeq(sim)
+          sim$agents$all <- UpdateAgentParsData(sim$agents$all)
+          for (n in alive_seq){
+            agent_states <- sim$agents$all[[n]][["states"]]
+            step_data <- sim$agents$all[[n]][["step_data"]]
+            pars_data <- sim$agents$all[[n]][["pars_data"]]
+            if(any(step_data$datetime %within% time_step, na.rm = TRUE)){
+              steps <- which(step_data$datetime %within% time_step)
+              for (o in steps){
+                step <- step_data$datetime[o]
+                step_data <- BehaviorSubModelBAEA2(sim, agent_states, step_data,
+                  step)
+                step_data <- MovementSubModelBAEA4(sim, agent_states, step_data,
+                  step)
+              }
+              sim$agents$all[[n]][["states"]] <- UpdateAgentStates(agent_states)
+              sim$agents$all[[n]][["step_data"]]<-UpdateAgentStepData(step_data)
+            }
+          }
+          sim$spatial <- UpdateSpatial(sim$spatial)
+        }
+      }
+    }
+    runs[[i]] <- SimplifySimSpatialBAEA(sim)
+    WriteSimList(write = write, run = names(runs[j]), sim = sim,
+      output_dir = getwd(), components = "all")
+  }
+  return(runs)
 }
 
 BehaviorSubModelBAEA2 <- function(sim = sim,
@@ -646,6 +715,10 @@ CreateStepIntervals <- function(rep_interval = rep_interval,
         stop_point)
     }
   return(step_intervals)
+}
+
+toc_msg <- function(tic, toc, msg, info){
+  outmsg <- paste(seconds_to_period(round(toc - tic)))
 }
 
 #------------------------------------------------------------------------------#

@@ -18,7 +18,7 @@ rasterOptions(maxmem = Inf, progress = "text", timer = TRUE, chunksize = 1e9,
   memfrac = .9)
 
 # Individual sim file
-sim_rds_vec <- "sim_20210725-51.rds"
+sim_rds_vec <- "sim_20210725-63.rds"
 
 # All sim files in TEMP directory
 if(FALSE){
@@ -31,7 +31,7 @@ if(FALSE){
     sim_rds_vec <- append(sim_rds_vec, sim_rds_m)
   }
   sim_rds_vec <- (sim_rds_vec[!is.na(sim_rds_vec) & sim_rds_vec != ""])
-  if(FALSE) sim_rds_vec <- sim_rds_vec[c(2)]
+  if(FALSE) sim_rds_vec <- sim_rds_vec[c(39:52)]
 }
 
 # Directories
@@ -83,7 +83,8 @@ behavior_colors <- CreateColorsByMetadata(file = file.path("Data/Assets",
 sex_colors <- tibble(#female = col2hex("yellow"), male = col2hex("tomato"),
   Female = col2hex("yellow"), Male = col2hex("tomato"))
 
-nests_df <- read_csv("Data/Nests/Nests_Study_Use_Dates.csv")
+nests_df <- read_csv("Data/Nests/Nests_Study_Use_Dates.csv",
+  show_col_types = FALSE)
 
 # Run for sim_rds_vec
 for (m in seq_len(length(sim_rds_vec))){

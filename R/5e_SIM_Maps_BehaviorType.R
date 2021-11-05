@@ -13,8 +13,9 @@ theme_update(plot.title = element_text(hjust = 0.5))
 suppressMessages(extrafont::loadfonts(device = "win"))
 #devtools::reload("C:/Users/blake/OneDrive/Work/R/Packages/ibmr")
 
-# Individual sim file
+# Parameters
 sim_rds_vec <- "sim_20210725-63.rds"
+behavior_type <- "stationary"  # "air" or "stationary"
 
 # All sim files in TEMP directory
 if(FALSE){
@@ -27,12 +28,12 @@ if(FALSE){
     sim_rds_vec <- append(sim_rds_vec, sim_rds_m)
   }
   sim_rds_vec <- (sim_rds_vec[!is.na(sim_rds_vec) & sim_rds_vec != ""])
-  if(FALSE) sim_rds_vec <- sim_rds_vec[c(2:53)]
+  if(FALSE) sim_rds_vec <- sim_rds_vec[c(49:61)]
 }
 
-# Boolean parameters
+# Parameters
 create_kml <- FALSE
-calculate_akde <- TRUE
+calculate_akde <- FALSE
 recalculate_akde <- FALSE
 match_baea <- TRUE
 map_akde <- TRUE
@@ -347,7 +348,8 @@ for (m in seq_len(length(sim_rds_vec))){
             baea_step_id <- baea_hr %>% filter(id == baea_id) %>%
               arrange(datetime) %>% st_as_sf(., coords = c("long_utm",
               "lat_utm"), crs = 32619, agr = "constant") %>%
-              filter(year(date) == baea_year)
+              filter(year(date) == baea_year) %>%
+              mutate(behavior = if_else(speed < 5, "Stationary", "Air"))
             baea_akde_id <- baea_akde %>%  filter(id == baea_id) %>%
               filter(year == baea_year) %>% pull(hr_akde) %>% pluck(1)
             baea_ud_95_id <- SpatialPolygonsDataFrame.UD(baea_akde_id,
@@ -440,6 +442,20 @@ for (m in seq_len(length(sim_rds_vec))){
             combined_om <- st_union(sim_k_bb2_sfc, baea_id_bb2_sfc) %>%
               read_osm(., minNumTiles = 21,
               type = om_nat_geo)  # may need to add and adjust 'zoom' arg
+
+            if(behavior_type == "air"){
+              baea_step_id_behavior <- baea_step_id %>%
+                filter(speed > 4)
+              sim_step_k_behavior <- sim_step_k %>%
+                filter(behavior %in% c("Cruise", "Flight"))
+            }
+            if(behavior_type == "stationary"){
+              baea_step_id_behavior <- baea_step_id %>%
+                filter(speed < 5)
+              sim_step_k_behavior <- sim_step_k %>%
+                filter(behavior %in% c("Nest", "Perch", "Roost"))
+            }
+
             # Home range, points, and flight paths
             baea_id_map <-
               tm_layout(asp = 1) +
@@ -447,7 +463,8 @@ for (m in seq_len(length(sim_rds_vec))){
                 tm_rgb() +
               tm_shape(baea_lines_id) +
                 tm_lines("#ffffff", lwd = 2, alpha = .35) +
-              tm_shape(baea_step_id, bbox = bb(combined_bb1_sfc, ext = 1.1),
+              tm_shape(baea_step_id_behavior,
+                  bbox = bb(combined_bb1_sfc, ext = 1.1),
                   is.master = TRUE) +
                 tm_dots(size = 0.075, col = "#700074", alpha = .5) +
               tm_shape(ridge_poly_clip) +
@@ -476,8 +493,10 @@ for (m in seq_len(length(sim_rds_vec))){
                 position = c(.05, .01)) +
               tm_compass(type = "4star",  show.labels = 1, size = 2.2,
                 position = c(.875, .86)) +
-              tm_credits(paste0(baea_id, " - ",baea_year, "\n(n = ",
-                nrow(baea_step_id), ")"), bg.color = "white",
+              tm_credits(paste0(baea_id, " - ", baea_year, "\n", "Total (n = ",
+                nrow(baea_step_id), ")", "\n", str_to_title(behavior_type),
+                " (n = ", nrow(baea_step_id_behavior), ")"),
+                bg.color = "white",
                 position = c("LEFT", "TOP")) +
               tm_xlab("") + tm_ylab("")
             # Home range, points, and flight paths
@@ -487,7 +506,8 @@ for (m in seq_len(length(sim_rds_vec))){
                 tm_rgb() +
               tm_shape(sim_lines_k) +
                 tm_lines("#ffffff", lwd = 2, alpha = .35) +
-              tm_shape(sim_step_k, bbox = bb(combined_bb1_sfc, ext = 1.1),
+              tm_shape(sim_step_k_behavior,
+                  bbox = bb(combined_bb1_sfc, ext = 1.1),
                   is.master = TRUE) +
                 tm_dots(size = 0.075, col = "#700074", alpha = .5) +
               tm_shape(ridge_poly_clip) +
@@ -516,7 +536,9 @@ for (m in seq_len(length(sim_rds_vec))){
                 position = c(.05, .01)) +
               tm_compass(type = "4star",  show.labels = 1, size = 2.2,
                 position = c(.875, .86)) +
-              tm_credits(paste0(sim_id, "\n(n = ", nrow(sim_step_k), ")"),
+              tm_credits(paste0(sim_id, "\n", "Total (n = ", nrow(sim_step_k),
+                ")", "\n", str_to_title(behavior_type), " (n = ",
+                nrow(sim_step_k_behavior), ")"),
                 bg.color = "white", position = c("LEFT", "TOP")) +
               tm_xlab("") + tm_ylab("")
             # Inset map
@@ -588,11 +610,12 @@ for (m in seq_len(length(sim_rds_vec))){
             if(match_baea){
               sim_baea_map_fig_file <- file.path(akde_dir,
                 paste0(sim_id, "_", str_pad(i, 2, side = "left", "0"), "-",
-                  str_pad(j, 2, side = "left", "0"), "_matched.png"))
+                  str_pad(j, 2, side = "left", "0"), "_matched_", behavior_type,
+                  ".png"))
             } else {
               sim_baea_map_fig_file <- file.path(akde_dir,
                 paste0(sim_id, "_", str_pad(i, 2, side = "left", "0"), "-",
-                  str_pad(j, 2, side = "left", "0"), ".png"))
+                  str_pad(j, 2, side = "left", "0"), "_", behavior_type,".png"))
             }
             if(exists(sim_baea_map_fig_file)) file.remove(sim_baea_map_fig_file)
             image_write(sim_baea_map_fig, path = sim_baea_map_fig_file,

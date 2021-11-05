@@ -1,20 +1,16 @@
+#------------------------- Dissertation Tables --------------------------------#
+# Tables: Save as .tex
+#------------------------------------------------------------------------------#
+
+# Setup ------------------------------------------------------------------------
+
 # Load Packages
 pacman::p_load(DT, lubridate, tibble, tidyverse, ggplot2, readr, xtable)
 suppressMessages(extrafont::loadfonts(device="win"))
 
+# Directories
 pkg_dir <- "C:/Users/Blake/OneDrive/Work/R/Projects/multiscale_optim"
 tex_dir <- "C:/Users/Blake/OneDrive/Work/LaTeX/BMassey_Dissertation"
-
-BoldText <- function(x) {paste('{\\textbf{',x,'}}', sep ='')}
-BoldTextCentered <- function(x) {paste('{c}{\\textbf{',x,'}}', sep ='')}
-
-# Theme (for LaTeX font)
-theme_latex <- theme(text = element_text(family = "Latin Modern Roman")) +
-  theme(axis.text = element_text(size = 10)) +
-  theme(axis.title = element_text(size = 12)) +
-  theme(plot.title = element_text(size = 14))
-
-# Directories
 mod_dir <- "Output/Analysis/SSF/Models"
 mod_fit_dir <- file.path(mod_dir, "model_fits")
 mod_best_dir <- file.path(mod_dir, "model_fits_best")
@@ -22,11 +18,27 @@ mod_best_dir <- file.path(mod_dir, "model_fits_best")
 # Model files
 fits_best_file <- file.path(mod_best_dir, "model_fits_best.rds")
 
-############################################################################# ##
-#### -------------------------- CHAPTER 2 --------------------------------- ####
-############################################################################# ##
+# Functions
+BoldText <- function(x) {paste('{\\textbf{',x,'}}', sep ='')}
+BoldTextCentered <- function(x) {paste('{c}{\\textbf{',x,'}}', sep ='')}
+UpdateSignifDigits <- function(char_string, sig_digits = 2){
+  str1 <- as.numeric(str_extract_all(char_string, "-*\\d+\\.*\\d*")[[1]])
+  str1 <- as.character(c(signif(str1, sig_digits), ""))
+  str2 <- str_split(char_string, "-*\\d+\\.*\\d*")[[1]]
+  str_final <- paste0(str2, str1, collapse = "")
+  return(str_final)
+}
 
-## GPS Deployment and Territoriality -------------------------------------
+# Theme (for LaTeX font)
+theme_latex <- theme(text = element_text(family = "Latin Modern Roman")) +
+  theme(axis.text = element_text(size = 10)) +
+  theme(axis.title = element_text(size = 12)) +
+  theme(plot.title = element_text(size = 14))
+
+
+# -------------------------- CHAPTER 2 -----------------------------------------
+
+# GPS Deployment and Territoriality --------------------------------------------
 
 baea_hr_org <- readRDS("Data/BAEA/baea_homerange.rds")
 baea_hr <- table(baea_hr_org$id, baea_hr_org$year) %>%
@@ -47,7 +59,6 @@ baea_hr <- table(baea_hr_org$id, baea_hr_org$year) %>%
   mutate(terr_years = str_replace_all(terr_years, "2015, 2016, 2017",
     "2015 -- 2017"))
 
-
 gps_deploys_org <- read_csv("Data/GPS/GPS_Deployments.csv")
 gps_deploys <- gps_deploys_org %>%
   filter(!is.na(deploy_seq) & !is.na(trap_site)) %>%
@@ -55,8 +66,6 @@ gps_deploys <- gps_deploys_org %>%
   select(serial, deployed, sex, deploy_location, trap_site, county) %>%
   mutate(id = deploy_location) %>%
   mutate(deployed = lubridate::ymd(deployed))
-
-gps_deploys
 
 deployments <- gps_deploys %>% left_join(., baea_hr, by = "id") %>%
   transmute(`Bird ID` = id,
@@ -90,7 +99,7 @@ print(deployments_xtable,
   file = file.path("C:/Users/blake/OneDrive/Work/LaTeX/BMassey_Dissertation",
                    "Tables/Ch2/Deployments.tex"))
 
-## Homerange Metrics -----------------------------------------------------------
+# Homerange Metrics ------------------------------------------------------------
 
 hr_metrics_org <- readRDS(file.path("Output/Analysis/Homerange",
   "hr_all_metrics.rds")) #%>% filter(!id %in% c("Eskutassis", "Sheepscot"))
@@ -137,7 +146,7 @@ print(hr_metrics_xtable,
   file = file.path("C:/Users/blake/OneDrive/Work/LaTeX/BMassey_Dissertation",
                    "Tables/Ch2/Homerange_Metrics.tex"))
 
-## SSF Analysis Covariates -----------------------------------------------------
+# SSF Analysis Covariates ------------------------------------------------------
 
 ssf_land_covar_org <- read_csv("Data/Assets/ssf_landscape_covariates.csv")
 
@@ -151,7 +160,7 @@ ssf_land_covar <- ssf_land_covar_org %>%
 ssf_land_covar_xtable <- xtable(ssf_land_covar,
   only.contents = TRUE, floating = FALSE,
   caption = "My caption\\label{tab:SSF_Landscape_Covariates}",
-  label="tab:SSF_Landscape_Covariates")
+  label = "tab:SSF_Landscape_Covariates")
 
 align(ssf_land_covar_xtable) <- c("L{0}", "L{.7}", "L{.8}", "L{1.6}", "L{.9}")
 # translates to relative column widths (first value, rownames, is ignored)
@@ -174,12 +183,12 @@ print(ssf_land_covar_xtable,
   tabular.environment = "tabularx",
   booktabs = TRUE, # thick top/bottom line, Premable add "\usepackage{booktabs}"
   include.rownames=FALSE,
-  size="\\fontsize{11pt}{12pt}\\selectfont",
-  sanitize.colnames.function=BoldText,
+  size = "\\fontsize{11pt}{12pt}\\selectfont",
+  sanitize.colnames.function = BoldText,
   file = file.path("C:/Users/blake/OneDrive/Work/LaTeX/BMassey_Dissertation",
                    "Tables/Ch2/SSF_Landscape_Covariates.tex"))
 
-## ConNest Distribution Fits ---------------------------------------------------
+# ConNest Distribution Fits ----------------------------------------------------
 
 fits_baea_dist_org <- readRDS("Output/Analysis/Territorial/fits_baea_dist.rds")
 fits_baea_dist_df <- SummarizeFitDist(fits_baea_dist_org) %>%
@@ -215,7 +224,7 @@ print(fits_baea_dist_xtable,
   file = file.path("C:/Users/blake/OneDrive/Work/LaTeX/BMassey_Dissertation",
                    "Tables/Ch2/BAEA_Dist_Fits.tex"))
 
-## Movement Parameter Fits -----------------------------------------------------
+# Movement Parameter Fits ------------------------------------------------------
 
 fits_move_pars_org <- readRDS("Output/Analysis/Movements/move_pars.rds")
 
@@ -288,7 +297,7 @@ print(fits_move_pars_xtable,
   file = file.path("C:/Users/blake/OneDrive/Work/LaTeX/BMassey_Dissertation",
                    "Tables/Ch2/Movement_Pars.tex"))
 
-## SSF Models Compiled Best ----------------------------------------------------
+# SSF Models Compiled Best -----------------------------------------------------
 
 # SSF Fits
 ssf_fits_best_org <- readRDS(fits_best_file) #%>% slice(c(step_type_index))
@@ -414,6 +423,95 @@ for (i in step_type_groups){
     "OneDrive/Work/LaTeX/BMassey_Dissertation/Tables/Ch2",
     paste0("SSF_Fits_Terms_", i_underscore, ".tex")))
 }
+
+# -------------------------- APPENDIX 2 ----------------------------------------
+
+# SSF Models Top10 -------------------------------------------------------------
+
+model_fits_dir <- "Output/Analysis/SSF/Models/model_fits"
+model_fit_folders <- list.dirs(model_fits_dir, recursive = FALSE)
+for (i in model_fit_folders){
+  model_fit_file_i <- list.files(i, pattern = ".rds", full.names = TRUE)
+  if(i == model_fit_folders[1]){
+    model_fit_files <- model_fit_file_i
+  } else {
+    model_fit_files <- append(model_fit_files, model_fit_file_i)
+  }
+}
+
+for (j in seq_len(length(model_fit_files))){
+  step_type_j <- readRDS(model_fit_files[j]) %>% ungroup(.) %>% pull(step_type)
+  step_type_j_start <- word(step_type_j, 1, sep = "_") %>% str_to_title(.)
+  step_type_j_end <- word(step_type_j, 2, sep = "_") %>% str_to_title(.)
+  step_type_j_tex <- step_type_j %>%
+    str_replace_all(., "_", " _ ") %>%
+    str_to_title(.) %>%
+    str_replace_all(., " _ ", " $\\\\rightarrow$ ")
+
+  model_fits_top10_j <- readRDS(model_fit_files[j]) %>% ungroup(.) %>%
+    pluck("models_top_10", 1) %>%
+    mutate(model_rank = 1:n()) %>%
+    select(model_rank, fit_aicc, delta_aicc, concordance_value, model_full) %>%
+    mutate(model_full = unlist(model_full)) %>%
+    mutate(model_full = model_full %>%
+      str_replace_all(., "dist_hydro0", "DistHydro") %>%
+      str_replace_all(., "dist_turbine0", "DistTurbine") %>%
+      str_replace_all(., "eastness", "Eastness") %>%
+      str_replace_all(., "forest", "Forest") %>%
+      str_replace_all(., "northness", "Northness") %>%
+      str_replace_all(., "open_water", "OpenWater") %>%
+      str_replace_all(., "roughness", "Roughness") %>%
+      str_replace_all(., "shrub_herb", "ShrubHerb") %>%
+      str_replace_all(., "tpi", "TPI") %>%
+      str_replace_all(., "tri", "TRI") %>%
+      str_replace_all(., "wetland", "Wetland")) %>%
+    mutate(model_full = map_chr(model_full, UpdateSignifDigits, 2)) %>%
+    rename(., "Model Rank" = "model_rank",
+      "AICc" = "fit_aicc",
+      "$\\Delta$AICc" = "delta_aicc",
+      "Concordance" = "concordance_value",
+      "Full Model" = "model_full")
+
+  model_fits_top10_j_xtable <- xtable(model_fits_top10_j,
+    only.contents = TRUE, floating = FALSE,
+    caption = paste0("My caption\\label{tab:SSF_Top10", step_type_j_start, "_",
+      step_type_j_start, "}"),
+    label = paste0("tab:SSF_Top10_", step_type_j_start, "_", step_type_j_start,
+      ".tex"))
+
+  align(model_fits_top10_j_xtable) <- c("C{0}", "C{.4}", "C{.4}", "C{.4}",
+    "C{1}", "L{2.8}")
+
+  model_fits_top10_j_xtable_output <- capture.output(
+    print(model_fits_top10_j_xtable,
+      floating = FALSE, width = "\\textwidth",
+      tabular.environment = "tabularx",
+      booktabs = TRUE,
+      include.rownames = FALSE,
+      size = "\\fontsize{11pt}{12pt}\\selectfont",
+      sanitize.colnames.function = BoldText,
+      sanitize.text.function = identity))
+
+  model_fits_top10_j_xtable_output_final <- model_fits_top10_j_xtable_output %>%
+    str_replace(., "textbf\\{AICc\\}", "\\vfill{}\\\\textbf{AICc}") %>%
+    str_replace(., "textbf\\{\\$\\\\Delta\\$AICc\\}",
+               "\\vfill{}\\\\textbf{$\\\\Delta$AICc}") %>%
+    str_replace(., "textbf\\{Concordance\\}",
+      "\\vfill{}\\\\textbf{Concordance}") %>%
+    str_replace(., "\\{\\\\textbf\\{Full Model\\}\\}",
+      "\\\\multicolumn{1}{C{2.8}}{\\\\vfill{}\\\\textbf{Full Model}}")
+
+  # For testing
+  testing <- FALSE
+  if(testing) print(model_fits_top10_j_xtable_output)
+
+  # For LaTeX Folder
+  writeLines(model_fits_top10_j_xtable_output_final,
+    file.path("C:/Users/blake/OneDrive/Work/LaTeX/BMassey_Dissertation",
+      "Tables/Appendix3", paste0("SSF_Fits_Top10_",step_type_j_start, "_",
+      step_type_j_end, ".tex")))
+}
+
 
 # ---------------------------------------------------------------------------- #
 ################################ OLD CODE ######################################
