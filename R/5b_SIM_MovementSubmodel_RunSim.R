@@ -1,6 +1,4 @@
-
-
-MovementSubModelBAEA4 <- function(sim = sim,
+MovementSubModelBAEA <- function(sim = sim,
                                   agent_states = agent_states,
                                   step_data = step_data,
                                   step = step) {
@@ -156,8 +154,8 @@ MovementSubModelBAEA4 <- function(sim = sim,
     }
     # Calculate probabilty raster - air to flight
     if (behavior_trans %in% c("1_2", "2_2")){
-      kernel_weights <- c(3, 3, 2)
-      destination_cells_n <- 100
+      kernel_weights <- c(3, 2, 1)
+      destination_cells_n <- 25
     }
     # Calculate probabilty raster - perch/roost to air
     if (behavior_trans %in% c("4_1", "4_2", "5_2")){
@@ -166,7 +164,7 @@ MovementSubModelBAEA4 <- function(sim = sim,
     }
     # Calculate probabilty raster - nest to air
     if (behavior_trans %in% c("3_1", "3_2")){
-      kernel_weights <- c(3, 4, 2)
+      kernel_weights <- c(3, 3, 1)
       destination_cells_n <- 25
     }
     # Calculate probabilty raster - air to stationary
@@ -182,7 +180,7 @@ MovementSubModelBAEA4 <- function(sim = sim,
     # Calculate probabilty raster - stationary to stationary
     if (behavior_trans %in% c("4_4", "5_4", "4_5")){
       kernel_weights <- c(5, 2, 3)
-      destination_cells_n <- 1500
+      destination_cells_n <- 1000
     }
 
     kernel_stack <- raster::stack(list(ssf_kernel, move_kernel,
@@ -297,12 +295,12 @@ if(FALSE){
 RunSimulationBAEA <- function(sim = sim,
                           runs = 1,
                           write = FALSE,
-                          output_dir = getwd()) {
+                          output_dir = getwd()){
   runs <- CreateRunsList(runs)
   for (i in 1:length(runs)){
     rep_intervals <- CreateReportIntervals(sim)
-    sim <- UpdateAgentStates(init = TRUE, sim = sim)
-    sim <- UpdateAgentStepDataBAEA2(init = TRUE, sim = sim,
+    sim <- UpdateAgentStatesBAEA(init = TRUE, sim = sim)
+    sim <- UpdateAgentStepDataBAEA(init = TRUE, sim = sim,
       rep_intervals = rep_intervals)
     sim <- UpdateAgentParsData(init = TRUE, sim = sim)
     sim <- UpdateSpatialBAEA(init = TRUE, sim = sim)
@@ -311,7 +309,7 @@ RunSimulationBAEA <- function(sim = sim,
         step_period = sim$pars$global$step_period)
       for (k in 1:length(step_intervals)) {
         step_interval <- step_intervals[[k]]
-        time_steps <- CreateTimeStepsInStepIntervalBAEA2(step_interval, sim=sim)
+        time_steps <- CreateTimeStepsInStepIntervalBAEA(step_interval, sim=sim)
         for (m in 1:length(time_steps)){
           time_step <- time_steps[[m]]
           writeLines(paste0("Starting time_step: ", time_steps[[m]]))
@@ -325,13 +323,15 @@ RunSimulationBAEA <- function(sim = sim,
               steps <- which(step_data$datetime %within% time_step)
               for (o in steps){
                 step <- step_data$datetime[o]
-                step_data <- BehaviorSubModelBAEA2(sim, agent_states, step_data,
+                step_data <- BehaviorSubModelBAEA(sim, agent_states, step_data,
                   step)
-                step_data <- MovementSubModelBAEA4(sim, agent_states, step_data,
+                step_data <- MovementSubModelBAEA(sim, agent_states, step_data,
                   step)
               }
-              sim$agents$all[[n]][["states"]] <- UpdateAgentStates(agent_states)
-              sim$agents$all[[n]][["step_data"]]<-UpdateAgentStepData(step_data)
+              sim$agents$all[[n]][["states"]] <-
+                UpdateAgentStatesBAEA(agent_states)
+              sim$agents$all[[n]][["step_data"]] <-
+                UpdateAgentStepDataBAEA(step_data)
             }
           }
           sim$spatial <- UpdateSpatial(sim$spatial)
@@ -345,385 +345,74 @@ RunSimulationBAEA <- function(sim = sim,
   return(runs)
 }
 
-BehaviorSubModelBAEA2 <- function(sim = sim,
-                                 agent_states = agent_states,
-                                 step_data = step_data,
-                                 step = step){
-  verbose <- FALSE
-  sex <- agent_states$sex
-  beta <- as.matrix(sim$pars$classes[[sex]]$constant$fixed$behavior_betas)
-  step_row <- which(step_data$datetime == step)
-  current_behavior <- as.numeric(step_data[step_row, "behavior"])
-  current_time_prop <- as.numeric(step_data[step_row, "time_proportion"])
-  next_time_prop <- as.numeric(step_data[step_row + 1, "time_proportion"])
-  julian <- yday(step_data[step_row, "datetime"])
-  step_data <- as.data.frame(step_data)
-  time_prop_second_to_last <- step_data %>%
-    mutate(day = date(datetime)) %>%
-    filter(day == date(step)) %>%
-    filter(row_number() == (n() - 1)) %>%
-    pull(time_proportion)
-  gamma <- diag(5)
-  g <- beta[1, ]  #  g = state transition probabilities intercepts
-  g <- g +
-    beta[2, ] * cos(2*pi * (julian/365)) +
-    beta[3, ] * sin(2*pi * (julian/365)) +
-    beta[4, ] * cos(2*pi * (current_time_prop)) +
-    beta[5, ] * sin(2*pi * (current_time_prop))
-  gamma[!gamma] <- exp(g) # Beta values in non-diagonal locations in matrix
-  gamma2 <- t(gamma) # probabilities for state transitions are now in rows
-  gamma3 <- gamma2/apply(gamma2, 1, sum) # rows sum to 1
-  if(current_time_prop <= .5 & current_behavior != 5){
-    gamma3[, 5] <- 0
-    gamma3 <- gamma3/apply(gamma3, 1, sum)
-    gamma3[, 5] <- 0
-  }
-  # next control is new - it forces agent to leave roost after .3 time prop
-  if(current_time_prop >= .3 & current_time_prop <= .5 & current_behavior == 5){
-    gamma3[, 5] <- 0
-    gamma3 <- gamma3/apply(gamma3, 1, sum)
-    gamma3[, 5] <- 0
-  }
-  if(current_time_prop > .5 & current_behavior == 5){
-    gamma3[, 1:4] <- 0
-    gamma3[, 5] <- 1
-  }
-  if(current_behavior == 1){ # prevents 1 -> 5 (Cruise to Roost)
-    gamma3[, 5] <- 0
-    gamma3 <- gamma3/apply(gamma3, 1, sum)
-    gamma3[, 5] <- 0
-  }
-  if(current_behavior == 5){ # prevents 5 -> 1 (Roost to Cruise)
-    gamma3[, 1] <- 0
-    gamma3 <- gamma3/apply(gamma3, 1, sum)
-    gamma3[, 1] <- 0
-  }
-
-  # trans prob. given current behavior
-  gamma4 <- gamma3
-  next_behavior <- sample(1:5, size = 1, prob = gamma4[current_behavior, ])
-
-  if(step_row != nrow(step_data)) { # prevent the creation of an "extra" step
-    if(next_time_prop == time_prop_second_to_last){ # Second to last step
-      if (next_behavior != 1){ # For next behavior to be not Cruise
-        step_data[step_row + 1, "behavior"] <- next_behavior
-      } else { # forces selection of non-Cruise behavior
-        gamma4[, 1] <- 0
-        gamma4 <- gamma4/apply(gamma4, 1, sum)
-        gamma4[, 1] <- 0
-        next_behavior <- sample(1:5, size = 1, prob = gamma4[current_behavior,])
-        step_data[step_row + 1, "behavior"] <- next_behavior
-      }
-    }
-    if(next_time_prop == 1){ # only Nest or Roost for last location of day
-      if(verbose) writeLines("End of day")
-      if (next_behavior %in% c(3,5)){
-        step_data[step_row + 1, "behavior"] <- next_behavior
-      } else { # forces selection of Nest or Roost
-        gamma4[, c(1,2,4)] <- 0
-        gamma4 <- gamma4/apply(gamma4, 1, sum)
-        gamma4[, c(1,2,4)] <- 0
-        next_behavior <- sample(1:5, size = 1, prob = gamma4[current_behavior,])
-        step_data[step_row + 1, "behavior"] <- next_behavior
-      }
-    }
-    if(current_time_prop == 1){
-      step_data[step_row + 1, "behavior"] <- current_behavior
-    }
-    step_data[step_row + 1, "behavior"] <- next_behavior
-  }
-  return(step_data)
-}
-
-UpdateAgentStepDataBAEA2 <- function(step_data = NULL,
-                                    sim = sim,
-                                    init = FALSE,
-                                    rep_intervals = rep_intervals) {
-  if (init == TRUE){
-    sim_start <- sim$pars$global$sim_start
-    all <- sim$agents$all
-    for (i in 1:length(all)) {
-      agent <- all[[i]]
-      writeLines(paste("Creating initial 'step_data' dataframe for", i, "of",
-        length(all)))
-      all_time_steps <- as.POSIXct(NA)
-      for (j in 1:length(rep_intervals)){
-        #j <- 1
-        step_intervals <- CreateStepIntervals(rep_intervals[[j]],
-          step_period = sim$pars$global$step_period)
-        for (k in 1:length(step_intervals)){
-          #k <- 1
-          time_steps <- CreateTimeStepsBAEA(step_intervals[[k]], agent = agent,
-            sim = sim)
-          for (m in 1:length(time_steps)){
-            all_time_steps <- append(all_time_steps, int_start(time_steps[[m]]))
-            if (m == length(time_steps)) all_time_steps <- append(all_time_steps,
-              int_end(time_steps[[m]]))
-          }
-        }
-      }   # this is all about getting 'all_time_steps'
-      if(is.na(all_time_steps[1])) all_time_steps <- all_time_steps[-1]
-      time_steps_df <- data.frame(datetime = all_time_steps) %>%
-        mutate(julian = yday(datetime)) %>%
-        group_by(julian) %>%
-        mutate(day_start = min(datetime),
-          day_end = max(datetime),
-          day_minutes = as.integer(difftime(day_end,day_start,units="mins"))) %>%
-        ungroup() %>%
-        mutate(time_after_start = as.integer(difftime(datetime, day_start,
-          units="mins"))) %>%
-        mutate(time_proportion = time_after_start/day_minutes) %>%
-        dplyr::select(datetime, time_proportion)
-      step_data <- time_steps_df %>%
-        mutate(id = agent$states$id,
-          behavior = NA_integer_,
-          x = NA_real_,
-          y = NA_real_,
-          nest_dist = NA_real_,
-          exp_angle = NA_real_,
-          abs_angle = NA_real_) %>%
-        dplyr::select(id, datetime, behavior, x, y, exp_angle, abs_angle,
-          nest_dist, time_proportion) %>%
-        as.data.frame() # when saved as a tibble, broke BehaviorSubModel
-      step_data[1, "behavior"] <- 3
-      step_data[1, "nest_dist"] <- 0
-      step_data[1, "x"] <- agent$states$start_x
-      step_data[1, "y"] <- agent$states$start_y
-      agent <- append(agent, NamedList(step_data))
-      all[[i]] <- agent
-    }
-    sim$agents$all <- all
-    return(sim)
-  } else {
-    step_data <- step_data
-    return(step_data)
-  }
-}
-
-PlotProbabilityRaster <- function(prob_raster,
-                                  sample_n = 5000){
-  #IMPORTANT - Process to plot probability plot
-  destination_xy <- tibble(x = vector(mode = "numeric", sample_n),
-    y = vector(mode = "numeric", sample_n))
-  for (i in seq_len(sample_n)){
-    destination_cell <- suppressWarnings(sampling::strata(data = data.frame(
-        cell = 1:raster::ncell(prob_raster)), stratanames = NULL, size = 1,
-      method = "systematic", pik = prob_raster@data@values))
-      while(is.na(destination_cell[1,1])) {
-        destination_cell <- suppressWarnings(sampling::strata(data=data.frame(
-          cell = 1:raster::ncell(prob_raster)), stratanames = NULL, size = 1,
-          method="systematic", pik = prob_raster@data@values))
-      }
-    destination_xy[i, ] <- raster::xyFromCell(prob_raster, destination_cell[,1])
-  }
-  destination_raster <- rasterize(destination_xy, prob_raster, field = 1,
-    fun = 'sum', background = NA, mask = FALSE, update = FALSE,
-    updateValue = 'all', filename = "", na.rm = TRUE)
-  if(FALSE) plot(prob_raster)
-  if(FALSE) plot(destination_raster)
-  Plot3DRaster(destination_raster, col = viridis::viridis(20),
-    main = "Probability Plot")
-}
-
-CreateTimeStepsInStepIntervalBAEA2 <- function(step_interval = step_interval,
-                                              sim = sim) {
-  time_step_period = sim$pars$global$time_step_period
-  options(lubridate.verbose=FALSE)
-  xy_coords <- matrix(c(-67.7778, 44.8012), nrow = 1)
-  interval_start_East <- force_tz(lubridate::int_start(step_interval),
-    tzone = "US/Eastern")
-  interval_end_East <- force_tz(lubridate::int_end(step_interval)-minutes(1),
-    tzone = "US/Eastern") #subtracting one minute to make it the same day
-  sunrise <- maptools::sunriset(xy_coords, interval_start_East,
-    proj4string = sp::CRS("+proj=longlat +datum=WGS84"), direction ="sunrise",
-    POSIXct.out= TRUE)[1,2]
-  sunset <- maptools::sunriset(xy_coords, interval_end_East,
-    proj4string = sp::CRS("+proj=longlat +datum=WGS84"), direction ="sunset",
-    POSIXct.out= TRUE)[1,2]
-  step_interval_start <- round_date(sunrise, "minute") - hours(2)
-  step_interval_end <- round_date(sunset, "minute") + hours(2)
-  end_int <- lubridate::int_end(lubridate::as.interval(time_step_period,
-    step_interval_start))
-  steps <- tibble(start_time = step_interval_start,
-    end_time = end_int - seconds(1)) # sub 1 sec prevents overlap
-  while (end_int < step_interval_end) {
-    start_int <- end_int
-    end_int <- end_int + time_step_period
-    steps <- steps %>%
-      add_row(start_time = start_int,
-               end_time = end_int - seconds(1)) # sub 1 sec prevents overlap
-  }
-  steps[nrow(steps), "end_time"] <- step_interval_end
-  time_step_list <- steps %>%
-    mutate(step_interval = lubridate::as.interval(start_time, end_time,
-      tzone = "US/Eastern")) %>%
-    pull(step_interval)
-  return(time_step_list)
-}
-
-SimplifySimSpatialBAEA <- function(sim){
-    ssf_source <- sim %>%
-      pluck('spatial', 'ssf_layers') %>%
-      keep(., is.character)
-    sim$spatial <- NULL
-    sim[["spatial"]][["ssf_layers"]] <- ssf_source
-    return(sim)
-}
-
-CreateBirthDate <- function(sim = sim){
-  # Only proceed if there is no birth_date column
-  sim = sim
-  input = sim$agents$input
-  if(!"birth_date" %in% colnames(input)){
-    # Loop through each row in the input
-    input_age_period <- sim$pars$global$input_age_period
-    birth_day <- sim$pars$global$birth_day
-    input <- tibble::add_column(input, birth_date = NA)
-    for(a in 1:nrow(input)){
-      # Is the age_period a year?
-      if(input_age_period == "year" || input_age_period == "years") {
-        # Determine the first sim_start date after the birth_day
-        one_year <- as.period(1, "year")
-        s0 <- as.Date(sim$pars$global$sim_start - (one_year*input$age[a]))
-        # Set the format of the birth_day
-        birth_day_format <- tail(guess_formats(birth_day, orders ="dm"), 1)
-        birth_day_format <- paste(birth_day_format,"%Y",sep="")
-        # Determine the first birth_day after s0
-        s1 <- as.Date(paste(birth_day,year(s0),sep=""), format=birth_day_format)
-        if(s0 >= s1) {
-          input$birth_date[a] <- as.character(s1)
-        } else {
-          input$birth_date[a] <- as.character(s1-one_year)
-        }
-      } else {
-        # If age period is not a year
-        age_period_unit <- as.period(1, input_age_period)
-        input$birth_date[a] <- as.character(sim$pars$global$sim_start -
-          (age_period_unit*input$age[a]))
-      }
-    }
-  }
-  return(input)
-}
-
-UpdateAgentStates <- function(agent_states = NULL,
-                              sim = sim,
-                              init = FALSE) {
-  if (init == TRUE) {
-    input <- sim$agents$input
-    input <- CreateBirthDate(sim)
-    input_columns <- colnames(input)
-    na_columns <- c("start_datetime", "died")
-    all <- list()
-    for (i in 1:nrow(input)) {
-      states <- list()
-      for (j in input_columns) states <- append(states, input[i, j])
-      for (k in 1:length(na_columns)) states <- append(states, NA)
-      states <- setNames(states, c(input_columns, na_columns))
-      agent <- NamedList(states)
-      all <- append(all, NamedList(agent))
-    }
-    sim$agents <- append(sim$agents, NamedList(all))
-    return(sim)
-  } else {
-    agent_states <- agent_states
-    return(agent_states)
-  }
-}
-
-UpdateAgentStepDataBAEA <- function(step_data = NULL,
-                                    sim = sim,
-                                    init = FALSE,
-                                    rep_intervals = rep_intervals) {
-  if (init == TRUE) {
-    sim_start <- sim$pars$global$sim_start
-    all <- sim$agents$all
-    for (i in 1:length(all)) {
-      agent <- all[[i]]
-      writeLines(paste("Creating initial 'step_data' dataframe for", i, "of",
-        length(all)))
-      all_time_steps <- as.POSIXct(NA)
-      for (j in 1:length(rep_intervals)){
-        #j <- 1
-        step_intervals <- CreateStepIntervals(rep_intervals[[j]],
-          step_period = sim$pars$global$step_period)
-        for (k in 1:length(step_intervals)){
-          #k <- 1
-          time_steps <- CreateTimeStepsBAEA(step_intervals[[k]], agent=agent,
-            sim=sim)
-          for (m in 1:length(time_steps)){
-            all_time_steps <- append(all_time_steps, int_start(time_steps[[m]]))
-            if (m == length(time_steps)) all_time_steps <-append(all_time_steps,
-              int_end(time_steps[[m]]))
-          }
-        }
-      }   # this is all about getting 'all_time_steps'
-      if(is.na(all_time_steps[1])) all_time_steps <- all_time_steps[-1]
-      time_steps_df <- data.frame(datetime = all_time_steps) %>%
-        mutate(julian = yday(datetime)) %>%
-        group_by(julian) %>%
-        mutate(day_start = min(datetime),
-          day_end = max(datetime),
-          day_minutes = as.integer(difftime(day_end,day_start,units="mins")))%>%
-        ungroup() %>%
-        mutate(time_after_start = as.integer(difftime(datetime, day_start,
-          units="mins"))) %>%
-        mutate(time_proportion = time_after_start/day_minutes) %>%
-        dplyr::select(datetime, julian, time_proportion)
-      step_data <- time_steps_df %>%
-        mutate(id=agent$states$id,
-          behavior = NA,
-          x = NA,
-          y = NA,
-          exp_angle = NA,
-          abs_angle = NA) %>%
-        dplyr::select(id, datetime, behavior, x, y, exp_angle, abs_angle,
-          julian, time_proportion) %>%
-        as.data.frame() # when saved as a tibble, broke BehaviorSubModel
-      step_data[1, "behavior"] <- 3
-      step_data[1, "x"] <- agent$states$start_x
-      step_data[1, "y"] <- agent$states$start_y
-      agent  <- append(agent, NamedList(step_data))
-      all[[i]] <- agent
-    }
-    sim$agents$all <- all
-    return(sim)
-  } else {
-    step_data <- step_data
-    return(step_data)
-  }
-}
-
-CreateStepIntervals <- function(rep_interval = rep_interval,
-                                step_period = sim$pars$global$step_period) {
-  step_period <- step_period
-  step_intervals <- list()
-  interval_counter <- 1
-  current_start <- lubridate::int_start(rep_interval)
-  current_end <- (current_start + step_period)
-  stop_point <- lubridate::int_end(rep_interval)
-  while(current_start < (stop_point)) {
-    current_end <- (current_start+step_period)
-    step_intervals[[interval_counter]] <- lubridate::interval(current_start,
-      current_end)
-    interval_counter <- interval_counter + 1
-    current_start <- current_start + step_period
-    }
-  if (lubridate::int_end(step_intervals[[length(step_intervals)]])>stop_point){
-    step_intervals[[length(step_intervals)]] <-
-      interval(lubridate::int_start(step_intervals[[length(step_intervals)]]),
-        stop_point)
-    }
-  return(step_intervals)
-}
-
-toc_msg <- function(tic, toc, msg, info){
-  outmsg <- paste(seconds_to_period(round(toc - tic)))
-}
-
 #------------------------------------------------------------------------------#
 ################################ OLD CODE ######################################
 #------------------------------------------------------------------------------#
+
+# UpdateAgentStepDataBAEA <- function(step_data = NULL,
+#                                     sim = sim,
+#                                     init = FALSE,
+#                                     rep_intervals = rep_intervals) {
+#   if (init == TRUE){
+#     sim_start <- sim$pars$global$sim_start
+#     all <- sim$agents$all
+#     for (i in 1:length(all)) {
+#       agent <- all[[i]]
+#       writeLines(paste("Creating initial 'step_data' dataframe for", i, "of",
+#         length(all)))
+#       all_time_steps <- as.POSIXct(NA)
+#       for (j in 1:length(rep_intervals)){
+#         #j <- 1
+#         step_intervals <- CreateStepIntervals(rep_intervals[[j]],
+#           step_period = sim$pars$global$step_period)
+#         for (k in 1:length(step_intervals)){
+#           #k <- 1
+#           time_steps <- CreateTimeStepsBAEA(step_intervals[[k]], agent = agent,
+#             sim = sim)
+#           for (m in 1:length(time_steps)){
+#             all_time_steps <- append(all_time_steps, int_start(time_steps[[m]]))
+#             if (m == length(time_steps)) all_time_steps <- append(all_time_steps,
+#               int_end(time_steps[[m]]))
+#           }
+#         }
+#       }   # this is all about getting 'all_time_steps'
+#       if(is.na(all_time_steps[1])) all_time_steps <- all_time_steps[-1]
+#       time_steps_df <- data.frame(datetime = all_time_steps) %>%
+#         mutate(julian = yday(datetime)) %>%
+#         group_by(julian) %>%
+#         mutate(day_start = min(datetime),
+#           day_end = max(datetime),
+#           day_minutes = as.integer(difftime(day_end,day_start,units="mins"))) %>%
+#         ungroup() %>%
+#         mutate(time_after_start = as.integer(difftime(datetime, day_start,
+#           units="mins"))) %>%
+#         mutate(time_proportion = time_after_start/day_minutes) %>%
+#         dplyr::select(datetime, time_proportion)
+#       step_data <- time_steps_df %>%
+#         mutate(id = agent$states$id,
+#           behavior = NA_integer_,
+#           x = NA_real_,
+#           y = NA_real_,
+#           nest_dist = NA_real_,
+#           exp_angle = NA_real_,
+#           abs_angle = NA_real_) %>%
+#         dplyr::select(id, datetime, behavior, x, y, exp_angle, abs_angle,
+#           nest_dist, time_proportion) %>%
+#         as.data.frame() # when saved as a tibble, broke BehaviorSubModel
+#       step_data[1, "behavior"] <- 3
+#       step_data[1, "nest_dist"] <- 0
+#       step_data[1, "x"] <- agent$states$start_x
+#       step_data[1, "y"] <- agent$states$start_y
+#       agent <- append(agent, NamedList(step_data))
+#       all[[i]] <- agent
+#     }
+#     sim$agents$all <- all
+#     return(sim)
+#   } else {
+#     step_data <- step_data
+#     return(step_data)
+#   }
+# }
 
 # MovementSubModelBAEA3 <- function(sim = sim,
 #                                   agent_states = agent_states,
@@ -1469,3 +1158,93 @@ toc_msg <- function(tic, toc, msg, info){
 
 
 
+
+# BehaviorSubModelBAEA2 <- function(sim = sim,
+#                                  agent_states = agent_states,
+#                                  step_data = step_data,
+#                                  step = step){
+#   verbose <- FALSE
+#   sex <- agent_states$sex
+#   beta <- as.matrix(sim$pars$classes[[sex]]$constant$fixed$behavior_betas)
+#   step_row <- which(step_data$datetime == step)
+#   current_behavior <- as.numeric(step_data[step_row, "behavior"])
+#   current_time_prop <- as.numeric(step_data[step_row, "time_proportion"])
+#   next_time_prop <- as.numeric(step_data[step_row + 1, "time_proportion"])
+#   julian <- yday(step_data[step_row, "datetime"])
+#   step_data <- as.data.frame(step_data)
+#   time_prop_second_to_last <- step_data %>%
+#     mutate(day = date(datetime)) %>%
+#     filter(day == date(step)) %>%
+#     filter(row_number() == (n() - 1)) %>%
+#     pull(time_proportion)
+#   gamma <- diag(5)
+#   g <- beta[1, ]  #  g = state transition probabilities intercepts
+#   g <- g +
+#     beta[2, ] * cos(2*pi * (julian/365)) +
+#     beta[3, ] * sin(2*pi * (julian/365)) +
+#     beta[4, ] * cos(2*pi * (current_time_prop)) +
+#     beta[5, ] * sin(2*pi * (current_time_prop))
+#   gamma[!gamma] <- exp(g) # Beta values in non-diagonal locations in matrix
+#   gamma2 <- t(gamma) # probabilities for state transitions are now in rows
+#   gamma3 <- gamma2/apply(gamma2, 1, sum) # rows sum to 1
+#   if(current_time_prop <= .5 & current_behavior != 5){
+#     gamma3[, 5] <- 0
+#     gamma3 <- gamma3/apply(gamma3, 1, sum)
+#     gamma3[, 5] <- 0
+#   }
+#   # next control is new - it forces agent to leave roost after .3 time prop
+#   if(current_time_prop >= .3 & current_time_prop <= .5 & current_behavior == 5){
+#     gamma3[, 5] <- 0
+#     gamma3 <- gamma3/apply(gamma3, 1, sum)
+#     gamma3[, 5] <- 0
+#   }
+#   if(current_time_prop > .5 & current_behavior == 5){
+#     gamma3[, 1:4] <- 0
+#     gamma3[, 5] <- 1
+#   }
+#   if(current_behavior == 1){ # prevents 1 -> 5 (Cruise to Roost)
+#     gamma3[, 5] <- 0
+#     gamma3 <- gamma3/apply(gamma3, 1, sum)
+#     gamma3[, 5] <- 0
+#   }
+#   if(current_behavior == 5){ # prevents 5 -> 1 (Roost to Cruise)
+#     gamma3[, 1] <- 0
+#     gamma3 <- gamma3/apply(gamma3, 1, sum)
+#     gamma3[, 1] <- 0
+#   }
+#
+#   # trans prob. given current behavior
+#   gamma4 <- gamma3
+#   next_behavior <- sample(1:5, size = 1, prob = gamma4[current_behavior, ])
+#
+#   if(step_row != nrow(step_data)) { # prevent the creation of an "extra" step
+#     if(next_time_prop == time_prop_second_to_last){ # Second to last step
+#       if (next_behavior != 1){ # For next behavior to be not Cruise
+#         step_data[step_row + 1, "behavior"] <- next_behavior
+#       } else { # forces selection of non-Cruise behavior
+#         gamma4[, 1] <- 0
+#         gamma4 <- gamma4/apply(gamma4, 1, sum)
+#         gamma4[, 1] <- 0
+#         next_behavior <- sample(1:5, size = 1, prob = gamma4[current_behavior,])
+#         step_data[step_row + 1, "behavior"] <- next_behavior
+#       }
+#     }
+#     if(next_time_prop == 1){ # only Nest or Roost for last location of day
+#       if(verbose) writeLines("End of day")
+#       if (next_behavior %in% c(3,5)){
+#         step_data[step_row + 1, "behavior"] <- next_behavior
+#       } else { # forces selection of Nest or Roost
+#         gamma4[, c(1,2,4)] <- 0
+#         gamma4 <- gamma4/apply(gamma4, 1, sum)
+#         gamma4[, c(1,2,4)] <- 0
+#         next_behavior <- sample(1:5, size = 1, prob = gamma4[current_behavior,])
+#         step_data[step_row + 1, "behavior"] <- next_behavior
+#       }
+#     }
+#     if(current_time_prop == 1){
+#       step_data[step_row + 1, "behavior"] <- current_behavior
+#     }
+#     step_data[step_row + 1, "behavior"] <- next_behavior
+#   }
+#   return(step_data)
+# }

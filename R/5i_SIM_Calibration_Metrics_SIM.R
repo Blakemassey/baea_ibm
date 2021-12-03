@@ -8,9 +8,9 @@
 pacman::p_load(cartography, ctmm, dplyr, fasterize, forcats, gplots, ggplot2,
   ggthemes, ggpubr, grid, leaflet, lubridate, magick, mapview, move,
   OpenStreetMap, patchwork, plotly, prettymapr, purrr, raster, readr, rosm,
-  rsvg, sf, s2, stringr, tmap, tmaptools, viridis, units, webshot, zoo)
+  rsvg, sf, s2, stringr, tidyr, tmap, tmaptools, viridis, units, webshot, zoo)
 pacman::p_load(baear, gisr, ibmr)
-suppressMessages(extrafont::loadfonts(device="win"))
+suppressMessages(extrafont::loadfonts(device = "win"))
 set_thin_PROJ6_warnings(TRUE)
 
 # Set options
@@ -18,7 +18,7 @@ rasterOptions(maxmem = Inf, progress = "text", timer = TRUE, chunksize = 1e9,
   memfrac = .9)
 
 # Individual sim file
-sim_rds_vec <- "sim_20210725-63.rds"
+sim_rds_vec <- "sim_20210725-81.rds"
 
 # All sim files in TEMP directory
 if(FALSE){
@@ -31,12 +31,16 @@ if(FALSE){
     sim_rds_vec <- append(sim_rds_vec, sim_rds_m)
   }
   sim_rds_vec <- (sim_rds_vec[!is.na(sim_rds_vec) & sim_rds_vec != ""])
-  if(FALSE) sim_rds_vec <- sim_rds_vec[c(39:52)]
+  if(TRUE) sim_rds_vec <- sim_rds_vec[c(1:4)]
 }
+
+# Variable
+match_baea <- TRUE
 
 # Directories
 input_dir <- "C:/ArcGIS/Data/R_Input/BAEA"
 sim_dir <- "C:/TEMP"
+sim_step_data_dir <- "Step_Data"
 sim_calibration_dir <- "Calibration"
 baea_calibration_dir <- "Output/Sim/Calibration"
 ridge_file_dir <- "C:/ArcGIS/Data/R_Input/BAEA/Ridgelines"
@@ -114,19 +118,19 @@ for (m in seq_len(length(sim_rds_vec))){
   sim_runs <- readRDS(file.path(sim_dir, sim_id, sim_rds))
 
   for (i in seq_len(length(sim_runs))){
-    sim_out <- sim_runs %>% pluck(i)
-    sim_step_data <- CompileAllAgentsStepData(sim = sim_out) %>%
-      mutate(behavior = as.factor(behavior)) %>%
-      group_by(id) %>%
-        mutate(step_type = paste0(behavior, "_", lead(behavior))) %>%
-        mutate(previous_step_type = lag(step_type)) %>%
-      ungroup() %>%
-      filter(!is.na(datetime))
-    sim_step_data <- ConvertStepDataCoordinates(sim_step_data)
-
-    sim_step_data$behavior <- fct_recode(sim_step_data$behavior, "Cruise" = "1",
-      "Flight" = "2", "Nest" = "3", "Perch" = "4", "Roost" = "5")
-    sim_step_data$behavior <- as.character(sim_step_data$behavior)
+    sim_step_data_nested <- file.path(sim_dir, sim_id, sim_step_data_dir,
+        paste0(sim_id, "_", str_pad(i, 2, side = "left", "0"),
+          "_step_data.rds")) %>%
+      readRDS(.)
+    if(match_baea){
+      sim_step_data <- sim_step_data_nested %>%
+        select(id, step_data) %>%
+        unnest(., cols = step_data)
+    } else {
+      sim_step_data <- sim_step_data_nested %>%
+        select(id, step_data_matched) %>%
+        unnest(., cols = step_data_matched)
+    }
 
     # Create Spatialdataframe of baea w/'Perch' behavior
     sim_perch <- sim_step_data %>%
@@ -148,7 +152,7 @@ for (m in seq_len(length(sim_rds_vec))){
     saveRDS(sim_perch_dist, file.path(sim_dir, sim_id, sim_calibration_dir,
       paste0("sim_perch_dist_", i, ".rds")))
 
-    rm(sim_out, sim_step_data, sim_perch, sim_perch_xy, sim_perch_sp,
+    rm(sim_perch, sim_perch_xy, sim_perch_sp,
       hydro_dist_crop, hydro_dist)
   }
 
@@ -218,23 +222,6 @@ for (m in seq_len(length(sim_rds_vec))){
 
   # Sim data
   for (i in seq_len(length(sim_runs))){
-    sim_out <- sim_runs %>% pluck(i)
-    print(paste0("Starting run: ", i, " of ", length(sim_runs)))
-
-    sim_agents_input <- sim_out %>% pluck("agents", "input")
-    sim_step_data <- CompileAllAgentsStepData(sim = sim_out) %>%
-      mutate(behavior = as.factor(behavior)) %>%
-      group_by(id) %>%
-        mutate(step_type = paste0(behavior, "_", lead(behavior))) %>%
-        mutate(previous_step_type = lag(step_type)) %>%
-      ungroup() %>%
-      filter(!is.na(datetime)) %>%
-      ConvertStepDataCoordinates(.)
-
-    sim_step_data$behavior <- fct_recode(sim_step_data$behavior, "Cruise" = "1",
-      "Flight" = "2", "Nest" = "3", "Perch" = "4", "Roost" = "5")
-    sim_step_data$behavior <- as.character(sim_step_data$behavior)
-
     sim_steps <- sim_step_data %>%
       mutate(behavior_next = lead(behavior)) %>%
       mutate(behavior_behavior = paste(behavior, "->", behavior_next)) %>%
@@ -257,11 +244,9 @@ for (m in seq_len(length(sim_rds_vec))){
 
     for (j in unique(sim_steps$id)){
       if (j == unique(sim_steps$id)[1]){
-        sim_ridge_sum <- sim_steps %>%
-          left_join(., sim_agents_input, by = c("id", "sex")) %>%
-          group_by(id) %>%
-          summarize(nest_id = unique(nest_id), sex = Capitalize(first(sex)),
-            .groups = "drop") %>%
+        sim_ridge_sum <- sim_step_data_nested %>%
+          select(id, sex, nest_id) %>%
+          mutate(sex = Capitalize(sex)) %>%
           mutate(total_steps_n = NA_integer_, ridge_steps_n = NA_integer_,
             ridge_steps_prop = NA_real_)
       }
@@ -329,8 +314,8 @@ for (m in seq_len(length(sim_rds_vec))){
     mutate(nest_name = RecodeNestIdToName(nest_id))
 
   # Clean up objects
-  rm(ridge_line_file, ridge_poly_file, ridge_poly, baea_terr, sim_out,
-    sim_agents_input, sim_step_data, sim_steps, baea_id_nest)
+  rm(ridge_line_file, ridge_poly_file, ridge_poly, baea_terr,
+    sim_step_data, sim_steps, baea_id_nest)
 
   # Compare simulation and empirical data
   baea_ridge_sum <- readRDS(baea_ridge_sum_file) %>%
@@ -758,3 +743,16 @@ for (m in seq_len(length(sim_rds_vec))){
 ### ------------------------------------------------------------------------ ###
 ############################### OLD CODE #######################################
 ### ------------------------------------------------------------------------ ###
+
+    # sim_out <- sim_runs %>% pluck(i)
+    # sim_step_data <- CompileAllAgentsStepData(sim = sim_out) %>%
+    #   mutate(behavior = as.factor(behavior)) %>%
+    #   group_by(id) %>%
+    #     mutate(step_type = paste0(behavior, "_", lead(behavior))) %>%
+    #     mutate(previous_step_type = lag(step_type)) %>%
+    #   ungroup() %>%
+    #   filter(!is.na(datetime))
+    # sim_step_data <- ConvertStepDataCoordinates(sim_step_data)
+    # sim_step_data$behavior <- fct_recode(sim_step_data$behavior, "Cruise" = "1",
+    #   "Flight" = "2", "Nest" = "3", "Perch" = "4", "Roost" = "5")
+    # sim_step_data$behavior <- as.character(sim_step_data$behavior)

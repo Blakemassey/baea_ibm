@@ -1,0 +1,56 @@
+---
+#title: "Sim Maps"
+author: "Blake H Massey"
+date: "`r format(Sys.time(), '%Y-%m-%d')`"
+knit: (function(inputFile, encoding) { 
+  rmarkdown::render(inputFile, encoding = encoding, 
+    output_file = file.path("C:/Users/blake/Desktop/Slidy_Presentations", 
+    "Sim_Results.html"))})
+output: 
+  slidy_presentation:
+    theme: flatly
+    font_adjustment: -1
+    keep_md: no
+params:
+  sims: 1
+  nest: "Ellis"
+  points: "all"
+title: "`r paste0('Sim Runs - ', params$nest)`"  
+  
+---
+
+```{r echo=FALSE, fig.width=6, message=FALSE, results="asis"}
+pacman::p_load(imager, knitr, tidyverse, kableExtra)
+sim_id <- "sim_20210725"
+sim_dir <- file.path("C:/TEMP", paste0(sim_id, "-"))  
+sims <- params$sims
+nest <- params$nest
+points <- params$points
+
+cat(paste("## Nest", nest, '\n'))
+for (i in sims){
+  cat(paste(':::: {style="display: flex;"}\n'))
+  cat(paste('::: {.column width=80%}\n'))
+  file_name <- paste0(sim_dir, str_pad(i, 2, side = "left", "0"), "/AKDEs/",
+    sim_id, "-", str_pad(i, 2, side = "left", "0"), "_01-", nest,
+    "_", points ,"_matched.png")
+  image_code <- paste0('![](', file_name, '){width=100%}\n')
+  cat(image_code)
+  cat(paste(':::\n'))
+  cat(paste('::: {.column width=20%}\n'))
+  sim_log_i <- sim_log %>%
+    filter(sim == paste0("20210725-", i)) %>%
+    mutate(notes = str_replace_all(notes, "->", "$\\\\rightarrow$")) %>%
+    select(Parameters = notes)
+  cat(paste('\n'))
+  cat(paste('<br><br>'))
+  cat(paste0('<center>__', sim_id, "-", str_pad(i, 2, side = "left", "0"),
+    "__</center>"))
+  cat(paste('<br>'))
+  cat(kable(sim_log_i))
+  cat(paste(':::\n'))
+  cat(paste('::::\n\n'))
+}
+cat("\n")
+
+```
