@@ -1,0 +1,124 @@
+---
+title: "Test Examples - Text, Maps, Columns"  
+author: "Blake H Massey"
+date: "`r format(Sys.time(), '%Y-%m-%d')`"
+knit: (function(inputFile, encoding) { 
+  rmarkdown::render(inputFile, encoding = encoding, 
+    output_file = file.path("C:/Users/blake/Desktop/Slidy_Presentations", 
+    "Test Examples - Text Maps Cols.html"))})
+output: 
+  slidy_presentation:
+    theme:
+    font_adjustment: 0
+    keep_md: false
+    css: "Assets/CSS/style_helvetica.css"
+---
+
+# List of items.
+
+ - One
+ - Two
+ - Three
+
+# Header 1  
+
+## Heading 2.1  
+ 
+<h2 class="leftalign">Heading 2.2</h2>
+
+<h2 class="rightalign">Heading 2.3</h2>
+
+     
+### Heading 3  
+
+#### Heading 4  
+
+##### Heading 5  
+
+###### Heading 6  
+
+# Font Sizes
+
+Standard font
+
+- <span style="color:red">Change the font colour</span>
+- <font size="1">This is some text size 1!</font>
+- <font size="2">This is some text size 2!</font>
+- <font size="3">This is some text size 3!</font>
+- <font size="4">This is some text size 4!</font>
+- <font size="5">This is some text size 5!</font>
+
+***
+
+<div class='left' style='float:left;width:48%;height:45%'>
+## Header 2  
+<br>
+Since R Markdown use the bootstrap framework under the hood. It is possible to 
+benefit its powerful grid system. Basically, you can consider thatyour row is 
+divided in 12 subunits of same width. You can then choose to use only a few of 
+this subunits.
+</div>
+
+<div class='right' style='float:right;width:48%;height:45%'>
+### Header 3  
+
+```{r echo=FALSE, message=FALSE}
+pacman::p_load(ggplot2)
+#ggplot(mtcars, aes(x=mpg)) + 
+#  geom_histogram(fill="skyblue", alpha=0.5) + 
+#  theme_minimal()
+
+library(sf)
+library(mapview)
+nc <- sf::st_read(system.file("shape/nc.shp", package = "sf"), quiet = TRUE)
+map1 <- mapview(nc, col.regions = "blue")
+map2 <- mapview(nc, col.regions = "red")
+leafsync::sync(map1, map2)
+
+```
+</div>
+
+<div class='left' style='float:left;width:48%'>
+## Header 2  REPEATED  
+<br>
+Since R Markdown use the bootstrap framework under the hood. It is possible to 
+benefit its powerful grid system. Basically, you can consider thatyour row is 
+divided in 12 subunits of same width. You can then choose to use only a few of 
+this subunits.
+</div>
+
+<div class='right' style='float:right;width:48%'>
+
+### Header 3 REPEATED  
+
+```{r echo=FALSE, message=FALSE}
+pacman::p_load(ggplot2)
+#ggplot(mtcars, aes(x=mpg)) + 
+#  geom_histogram(fill="skyblue", alpha=0.5) + 
+#  theme_minimal()
+
+library(sf)
+library(mapview)
+nc <- sf::st_read(system.file("shape/nc.shp", package = "sf"), quiet = TRUE)
+map1 <- mapview(nc, col.regions = "blue")
+map2 <- mapview(nc, col.regions = "red")
+leafsync::sync(map1, map2)
+
+```
+</div>
+
+
+***
+
+#### Heading 4
+
+<center>
+```{r echo=F, message=F, warning=FALSE, fig.width=8}
+library(sf)
+library(mapview)
+nc <- sf::st_read(system.file("shape/nc.shp", package = "sf"), quiet = TRUE)
+map1 <- mapview(nc, col.regions = "blue")
+map2 <- mapview(nc, col.regions = "red")
+leafsync::sync(map1, map2)
+```
+</center>

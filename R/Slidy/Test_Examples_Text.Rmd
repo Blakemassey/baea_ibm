@@ -1,0 +1,48 @@
+---
+title: "Test Examples - Text"  
+author: "Blake H Massey"
+date: "`r format(Sys.time(), '%Y-%m-%d')`"
+knit: (function(inputFile, encoding) { 
+  rmarkdown::render(inputFile, encoding = encoding, 
+    output_file = file.path("C:/Users/blake/Desktop/Slidy_Presentations", 
+    "Test Examples - Text.html"))})
+output: 
+  slidy_presentation:
+    theme:
+    slide_level: 1
+    font_adjustment: 0
+    keep_md: no
+    css: "Assets/CSS/style_helvetica.css"
+
+---
+
+# Heading 1  
+
+---
+
+## List of items.  
+
+ - One
+ - Two
+ - Three
+ 
+Standard Text  
+Standard Text
+
+## Heading 2
+ 
+### Heading 3
+
+# Heading 1
+
+## Heading 2  
+
+### Heading 3  
+
+#### Heading 4  
+
+##### Heading 5   
+
+###### Heading 6  
+
+Standard font

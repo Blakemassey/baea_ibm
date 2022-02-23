@@ -4,20 +4,21 @@ date: "`r format(Sys.time(), '%Y-%m-%d')`"
 knit: (function(inputFile, encoding) { 
   rmarkdown::render(inputFile, encoding = encoding, 
     output_file = file.path("C:/Users/blake/Desktop/Slidy_Presentations", 
-    "Sim_Results.html"))})
+    "Sim_Results_By_Sim.html"))})
 output: 
   slidy_presentation:
-    theme: flatly
+    theme: 
     font_adjustment: -1
     keep_md: no
+    css: "Assets/CSS/style_helvetica.css"    
 params:
-  sims: 1
+  sims: 88:102
   points: "all"
-title: "`r paste0('Sim Runs - ', str_to_title(params$points))`"    
+title: "`r paste0('Sim Results By Sim - ', str_to_title(params$points))`"    
 ---
 
 ```{r echo=FALSE, fig.width=6, message=FALSE, results="asis"}
-pacman::p_load(imager, knitr, tidyverse, kableExtra)
+pacman::p_load(imager, kableExtra, knitr, tidyverse)
 sim_id <- "sim_20210725"
 sim_dir <- file.path("C:/TEMP", paste0(sim_id, "-"))  
 sims <- params$sims
@@ -28,14 +29,16 @@ for (i in sims) {
   cat(paste("## Simulation", j, '\n'))
   cat(paste(':::: {style="display: flex;"}\n'))
   
+  # Hydro distances
   cat(paste('::: {.column width=40%}\n'))
-  file_name <- paste0(sim_dir, j, "/Calibration/gg_combine_ridge.png")
+  file_name <- paste0(sim_dir, j, "/Calibration/gg_combine_hydro_dist.png")
   image_code <- paste0('![](', file_name, '){width=100%}\n')
   cat(image_code)
   cat(paste(':::\n'))
   
+  # Ridgeline flights
   cat(paste('::: {.column width=40%}\n'))
-  file_name <- paste0(sim_dir, j, "/Calibration/gg_combine_hydro_dist.png")
+  file_name <- paste0(sim_dir, j, "/Calibration/gg_combine_ridge.png")
   image_code <- paste0('![](', file_name, '){width=100%}\n')
   cat(image_code)
   cat(paste(':::\n'))
@@ -44,7 +47,7 @@ for (i in sims) {
   sim_log_i <- sim_log %>%
     filter(sim == paste0("20210725-", j)) %>%
     mutate(notes = str_replace_all(notes, "->", "$\\\\rightarrow$")) %>%
-    select(Parameters = notes)
+    dplyr::select(Parameters = notes)
   cat(kable(sim_log_i))  
   cat(paste(':::\n'))
   cat(paste('::::\n'))

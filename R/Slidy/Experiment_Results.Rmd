@@ -1,0 +1,470 @@
+---
+author: "Blake H Massey"
+date: "`r format(Sys.time(), '%Y-%m-%d')`"
+knit: (function(inputFile, encoding) { 
+  rmarkdown::render(inputFile, encoding = encoding, 
+    output_file = file.path("C:/Users/blake/Desktop/Slidy_Presentations", 
+    "Experiment Results.html"))})
+output: 
+  slidy_presentation:
+    theme: flatly
+    font_adjustment: 0
+    keep_md: false
+    css: "Assets/CSS/style-1.css"    
+params:
+title: "Experiment Results"  
+---
+
+<!-- ## WindfarmGA -->
+<br>
+<center>
+```{r echo=FALSE, fig.width=6, message=FALSE, results="asis"}
+windfarmga_image <- paste0("C:/Users/blake/OneDrive/Work/R/Projects/baea_ibm/",
+  "Data/Assets/Icons/windfarmGA.png")
+image_code <- paste0('![](', windfarmga_image, '){width=10%}\n')
+cat(image_code)
+```
+&nbsp;Genetic algorithm to optimize the layout of windfarms
+</center>
+<br>
+
+:::: {style="display: flex;"}
+::: {.column width=45%}
+<center>
+Greenville Airport Windrose
+</center>
+:::
+::: {.column width=55%}
+<center>
+Wind Farm Areas  
+</center>
+:::
+::::
+
+:::: {style="display: flex;"}
+::: {.column width=50%}
+<center>
+```{r echo=FALSE, message=FALSE, results="asis", fig.align = "center"}
+windrose_image <- paste0("C:/Users/blake/OneDrive/Work/LaTeX/",
+  "BMassey_Dissertation/Figures/Ch4/greenville_windrose.svg")
+image_code <- paste0('![](', windrose_image, '){width=100%}\n')
+cat(image_code)
+```
+</center>
+:::
+::: {.column width=33%}
+<center>
+```{r echo=FALSE, message=FALSE, results="asis", fig.align = "center"}
+wind_areas_image <- paste0("C:/Users/blake/OneDrive/Work/LaTeX/",
+  "BMassey_Dissertation/Figures/Ch4/Wilson_Scenarios/Wilson_Wind_Areas.svg")
+image_code <- paste0('![](', wind_areas_image, '){width=100%}\n\n')
+cat(image_code)
+```
+</center>
+:::
+::: {.column width=17%}
+<br>  
+<br>  
+<center>
+__Parameters__  
+Hub Height = 80m  
+Rotor Radius = 56m
+<!-- <font size="6">Rotor Radius = 56m</font> -->  
+</center>
+:::
+::::
+
+<!-- ## Wilson Turbine Scenarios -->
+
+***
+<br>
+<center><font size="7">Wind Farm Scenarios Turbine Locations</font></center>
+<br>
+
+:::: {style="display: flex;"}
+::: {.column width=50%}
+<center>  
+Control (None)
+```{r echo=FALSE, message=FALSE, results="asis", fig.align = "center"}
+control_image <- paste0("C:/Users/blake/OneDrive/Work/LaTeX/",
+  "BMassey_Dissertation/Figures/Ch4/Wilson_Scenarios/Wilson_C.svg")
+image_code <- paste0('![](', control_image, '){width=50%}\n')
+cat(image_code)
+```
+</center>  
+<center>  
+North and South
+```{r echo=FALSE, message=FALSE, results="asis", fig.align = "center"}
+north_south_image <- paste0("C:/Users/blake/OneDrive/Work/LaTeX/",
+  "BMassey_Dissertation/Figures/Ch4/Wilson_Scenarios/Wilson_NS.svg")
+image_code <- paste0('![](', north_south_image, '){width=50%}\n\n')
+cat(image_code)
+```
+</center>  
+:::
+::: {.column width=50%}
+<center>
+North
+```{r echo=FALSE, message=FALSE, results="asis", fig.align = "center"}
+north_image <- paste0("C:/Users/blake/OneDrive/Work/LaTeX/",
+  "BMassey_Dissertation/Figures/Ch4/Wilson_Scenarios/Wilson_N.svg")
+image_code <- paste0('![](', north_image, '){width=50%}\n')
+cat(image_code)
+```
+</center>  
+<center>  
+South
+```{r echo=FALSE, message=FALSE, results="asis", fig.align = "center"}
+south_image <- paste0("C:/Users/blake/OneDrive/Work/LaTeX/",
+  "BMassey_Dissertation/Figures/Ch4/Wilson_Scenarios/Wilson_S.svg")
+image_code <- paste0('![](', south_image, '){width=50%}\n\n')
+cat(image_code)
+```
+</center>
+:::
+::::
+
+<!-- ## Experiment Results - Line Density - Cruise -->
+***
+<br>
+<center><font size="7">Cruise Path Density</font></center>
+<br>
+<center>  
+```{r echo=FALSE, message=FALSE, results="asis", fig.align = "center"}
+control_image <- paste0("C:/Users/blake/OneDrive/Work/LaTeX/",
+  "BMassey_Dissertation/Figures/Ch4/Line_Density/Line_Density_Cruise_C.svg")
+image_code <- paste0('![](', control_image, '){width=30%}\n')
+cat(image_code)
+```
+```{r echo=FALSE, message=FALSE, results="asis", fig.align = "center"}
+north_south_image <- paste0("C:/Users/blake/OneDrive/Work/LaTeX/",
+  "BMassey_Dissertation/Figures/Ch4/Line_Density/Line_Density_Cruise_NS.svg")
+image_code <- paste0('![](', north_south_image, '){width=30%}\n\n')
+cat(image_code)
+```
+</center>  
+<br>
+<center>
+```{r echo=FALSE, message=FALSE, results="asis", fig.align = "center"}
+north_image <- paste0("C:/Users/blake/OneDrive/Work/LaTeX/",
+  "BMassey_Dissertation/Figures/Ch4/Line_Density/Line_Density_Cruise_N.svg")
+image_code <- paste0('![](', north_image, '){width=30%}\n')
+cat(image_code)
+```
+```{r echo=FALSE, message=FALSE, results="asis", fig.align = "center"}
+south_image <- paste0("C:/Users/blake/OneDrive/Work/LaTeX/",
+  "BMassey_Dissertation/Figures/Ch4/Line_Density/Line_Density_Cruise_S.svg")
+image_code <- paste0('![](', south_image, '){width=30%}\n\n')
+cat(image_code)
+```
+</center>
+
+<!-- ## Experiment Results - Line Density - Flight -->
+
+***  
+<br>
+<center><font size="7">Flight Path Density</font></center>
+<br>
+<center>  
+```{r echo=FALSE, message=FALSE, results="asis", fig.align = "center"}
+control_image <- paste0("C:/Users/blake/OneDrive/Work/LaTeX/",
+  "BMassey_Dissertation/Figures/Ch4/Line_Density/Line_Density_Flight_C.svg")
+image_code <- paste0('![](', control_image, '){width=30%}\n')
+cat(image_code)
+```
+```{r echo=FALSE, message=FALSE, results="asis", fig.align = "center"}
+north_south_image <- paste0("C:/Users/blake/OneDrive/Work/LaTeX/",
+  "BMassey_Dissertation/Figures/Ch4/Line_Density/Line_Density_Flight_NS.svg")
+image_code <- paste0('![](', north_south_image, '){width=30%}\n\n\n')
+cat(image_code)
+```
+</center>  
+&nbsp;\n\n  
+<center>
+```{r echo=FALSE, message=FALSE, results="asis", fig.align = "center"}
+north_image <- paste0("C:/Users/blake/OneDrive/Work/LaTeX/",
+  "BMassey_Dissertation/Figures/Ch4/Line_Density/Line_Density_Flight_N.svg")
+image_code <- paste0('![](', north_image, '){width=30%}\n')
+cat(image_code)
+```
+```{r echo=FALSE, message=FALSE, results="asis", fig.align = "center"}
+south_image <- paste0("C:/Users/blake/OneDrive/Work/LaTeX/",
+  "BMassey_Dissertation/Figures/Ch4/Line_Density/Line_Density_Flight_S.svg")
+image_code <- paste0('![](', south_image, '){width=30%}\n')
+cat(image_code)
+```
+</center>
+
+<!-- ## Experiment Results - Patch Density - Cruise (Interactive) -->
+***
+<div class = "row">
+<div class = "col-md-1">
+<br><br>
+</div>
+<div class = "col-md-10">
+<br>
+<center><font size="7">Cruise Path Density</font></center>
+<br>
+```{r echo=F, fig.height=9, message=FALSE, warning=FALSE}
+pacman::p_load(dplyr, mapview, sf, viridis)
+
+mapviewOptions(basemaps = c("Esri.NatGeoWorldMap", "Esri.WorldImagery"),
+  raster.palette = plasma,
+  vector.palette = colorRampPalette(c("snow", "cornflowerblue", "grey10")),
+  na.color = NA, homebutton = FALSE,
+  layers.control.pos = "topleft")
+
+# Variables
+mapping <- FALSE
+nest_color <- "yellow"
+wind_area_color <- "darkorange"
+turbine_color <- "purple"
+turbine_color_present <- "white"
+turbine_color_absent <- "black"
+
+# Directories
+exp_output_dir <- file.path("C:/Users/blake/OneDrive/Work/R/Projects/baea_ibm",
+  "Output/Experiment")
+exp_turbines_dir <- "C:/ArcGIS/Data/R_Input/EXP"
+line_density_dir <- "Line_Density_Rasters"
+line_density_agg_dir <- "Agg_10"
+nests_dir <- file.path("C:/Users/blake/OneDrive/Work/R/Projects/baea_ibm",
+  "Data/Nests/Nests_rds")
+
+# Nests
+nests_study_org <- readRDS(file.path(nests_dir, "nests_study.rds"))
+nests_study <- st_as_sf(x = nests_study_org, coords = c("long", "lat"),
+  crs = "+proj=longlat +datum=WGS84") %>% filter(!name %in% c("Davis", "Upper"))
+
+# Layers
+wilson_wt_n = st_read(file.path(exp_turbines_dir, "wilson_n_turbines.shp"),
+  quiet = TRUE)
+wilson_wt_s = st_read(file.path(exp_turbines_dir, "wilson_s_turbines.shp"),
+  quiet = TRUE)
+wilson_wt_n_buff <- wilson_wt_n %>% st_buffer(56)
+wilson_wt_s_buff <- wilson_wt_s %>% st_buffer(56)
+
+j <- "Cruise"
+exp_lines_raster_c <- readRDS(file.path(exp_output_dir, line_density_dir,
+  line_density_agg_dir, paste0("Exp_Lines_", j, "_C.rds")))
+exp_lines_raster_n <- readRDS(file.path(exp_output_dir, line_density_dir,
+  line_density_agg_dir, paste0("Exp_Lines_", j, "_N.rds"))) 
+exp_lines_raster_ns <- readRDS(file.path(exp_output_dir, line_density_dir,
+  line_density_agg_dir, paste0("Exp_Lines_", j, "_NS.rds")))
+exp_lines_raster_s <- readRDS(file.path(exp_output_dir, line_density_dir,
+  line_density_agg_dir, paste0("Exp_Lines_", j, "_S.rds")))
+
+# Get nest
+nest_wilson <- nests_study %>% slice(c(5)) %>% st_transform(st_crs(wilson_wt_n))
+
+nest_mapview <- mapview(nest_wilson, shape = 20, legend = FALSE,
+  color = "red", col.region = "red", size = .075) 
+
+# Create turbines mapviews
+turbines_n_present <- mapview(wilson_wt_n_buff, legend = FALSE, 
+  color = turbine_color_present, col.regions = turbine_color_present, lwd = 1)
+turbines_n_absent <- mapview(wilson_wt_n_buff, legend = FALSE,
+  color = turbine_color_absent, col.regions = turbine_color_absent, lwd = 1)
+turbines_s_present <- mapview(wilson_wt_s_buff, legend = FALSE,
+  color = turbine_color_present, col.regions = turbine_color_present, lwd = 1)
+turbines_s_absent <- mapview(wilson_wt_s_buff, legend = FALSE,
+  color = turbine_color_absent, col.regions = turbine_color_absent, lwd = 1)
+
+# Set legend breaks for raster
+map_breaks <- c(1, 10, 100, 1000, 10000, 100000)
+
+# Create scenario mapviews
+map_c <- mapview(exp_lines_raster_c, at = map_breaks, alpha = .6, 
+  layer.name = "Control Path Density") +
+  turbines_n_absent + turbines_s_absent + nest_mapview
+map_ns <- mapview(exp_lines_raster_n, at = map_breaks, alpha = .6, 
+  layer.name = "North and South Path Density") +
+  turbines_n_present + turbines_s_present + nest_mapview
+map_n <- mapview(exp_lines_raster_n, at = map_breaks, alpha = .6, 
+  layer.name = "North Path Density") +
+  turbines_n_present + turbines_s_absent + nest_mapview 
+map_s <- mapview(exp_lines_raster_s, at = map_breaks, alpha = .6,
+  layer.name = "South Scenario Path Density") +
+  turbines_n_absent + turbines_s_present + nest_mapview
+
+# Hide attribution
+map_c@map[["x"]][["options"]][["attributionControl"]] <- FALSE
+map_ns@map[["x"]][["options"]][["attributionControl"]] <- FALSE
+map_n@map[["x"]][["options"]][["attributionControl"]] <- FALSE
+map_s@map[["x"]][["options"]][["attributionControl"]] <- FALSE
+
+leafsync::sync(map_c, map_ns, map_n, map_s)
+```
+</div>
+<div class = "col-md-1">
+</div>
+</div>
+
+<!-- ## Experiment Results - Patch Density - Flight (Interactive) -->
+***
+<div class = "row">
+<div class = "col-md-1">
+<br><br>
+</div>
+<div class = "col-md-10">
+<br>
+<center><font size="7">Flight Path Density</font></center>
+<br>
+```{r echo=F, fig.height=9, message=FALSE, warning=FALSE}
+pacman::p_load(dplyr, mapview, sf, viridis)
+
+mapviewOptions(basemaps = c("Esri.NatGeoWorldMap", "Esri.WorldImagery"),
+  raster.palette = plasma,
+  vector.palette = colorRampPalette(c("snow", "cornflowerblue", "grey10")),
+  na.color = NA, homebutton = FALSE,
+  layers.control.pos = "topleft")
+
+# Variables
+mapping <- FALSE
+nest_color <- "yellow"
+wind_area_color <- "darkorange"
+turbine_color <- "purple"
+turbine_color_present <- "white"
+turbine_color_absent <- "black"
+
+# Directories
+exp_output_dir <- file.path("C:/Users/blake/OneDrive/Work/R/Projects/baea_ibm",
+  "Output/Experiment")
+exp_turbines_dir <- "C:/ArcGIS/Data/R_Input/EXP"
+line_density_dir <- "Line_Density_Rasters"
+line_density_agg_dir <- "Agg_10"
+nests_dir <- file.path("C:/Users/blake/OneDrive/Work/R/Projects/baea_ibm",
+  "Data/Nests/Nests_rds")
+
+# Nests
+nests_study_org <- readRDS(file.path(nests_dir, "nests_study.rds"))
+nests_study <- st_as_sf(x = nests_study_org, coords = c("long", "lat"),
+  crs = "+proj=longlat +datum=WGS84") %>% filter(!name %in% c("Davis", "Upper"))
+
+# Layers
+wilson_wt_n = st_read(file.path(exp_turbines_dir, "wilson_n_turbines.shp"),
+  quiet = TRUE)
+wilson_wt_s = st_read(file.path(exp_turbines_dir, "wilson_s_turbines.shp"),
+  quiet = TRUE)
+wilson_wt_n_buff <- wilson_wt_n %>% st_buffer(56)
+wilson_wt_s_buff <- wilson_wt_s %>% st_buffer(56)
+
+j <- "Flight"
+exp_lines_raster_c <- readRDS(file.path(exp_output_dir, line_density_dir,
+  line_density_agg_dir, paste0("Exp_Lines_", j, "_C.rds")))
+exp_lines_raster_n <- readRDS(file.path(exp_output_dir, line_density_dir,
+  line_density_agg_dir, paste0("Exp_Lines_", j, "_N.rds"))) 
+exp_lines_raster_ns <- readRDS(file.path(exp_output_dir, line_density_dir,
+  line_density_agg_dir, paste0("Exp_Lines_", j, "_NS.rds")))
+exp_lines_raster_s <- readRDS(file.path(exp_output_dir, line_density_dir,
+  line_density_agg_dir, paste0("Exp_Lines_", j, "_S.rds")))
+
+# Get nest
+nest_wilson <- nests_study %>% slice(c(5)) %>% st_transform(st_crs(wilson_wt_n))
+
+nest_mapview <- mapview(nest_wilson, shape = 20, legend = FALSE,
+  color = "red", col.region = "red", size = .075) 
+
+# Create turbines mapviews
+turbines_n_present <- mapview(wilson_wt_n_buff, legend = FALSE, 
+  color = turbine_color_present, col.regions = turbine_color_present, lwd = 1)
+turbines_n_absent <- mapview(wilson_wt_n_buff, legend = FALSE,
+  color = turbine_color_absent, col.regions = turbine_color_absent, lwd = 1)
+turbines_s_present <- mapview(wilson_wt_s_buff, legend = FALSE,
+  color = turbine_color_present, col.regions = turbine_color_present, lwd = 1)
+turbines_s_absent <- mapview(wilson_wt_s_buff, legend = FALSE,
+  color = turbine_color_absent, col.regions = turbine_color_absent, lwd = 1)
+
+# Set legend breaks for raster
+map_breaks <- c(1, 10, 100, 1000, 10000, 100000)
+
+# Create scenario mapviews
+map_c <- mapview(exp_lines_raster_c, at = map_breaks, alpha = .6, 
+  layer.name = "Control Path Density") +
+  turbines_n_absent + turbines_s_absent + nest_mapview
+map_ns <- mapview(exp_lines_raster_n, at = map_breaks, alpha = .6, 
+  layer.name = "North and South Path Density") +
+  turbines_n_present + turbines_s_present + nest_mapview
+map_n <- mapview(exp_lines_raster_n, at = map_breaks, alpha = .6, 
+  layer.name = "North Path Density") +
+  turbines_n_present + turbines_s_absent + nest_mapview 
+map_s <- mapview(exp_lines_raster_s, at = map_breaks, alpha = .6,
+  layer.name = "South Scenario Path Density") +
+  turbines_n_absent + turbines_s_present + nest_mapview
+
+# Hide attribution
+map_c@map[["x"]][["options"]][["attributionControl"]] <- FALSE
+map_ns@map[["x"]][["options"]][["attributionControl"]] <- FALSE
+map_n@map[["x"]][["options"]][["attributionControl"]] <- FALSE
+map_s@map[["x"]][["options"]][["attributionControl"]] <- FALSE
+
+leafsync::sync(map_c, map_ns, map_n, map_s)
+```
+</div>
+<div class = "col-md-1">
+</div>
+</div>
+
+<!-- ## Experiment Results - Crossings Wind Areas -->
+
+***  
+<br>
+<center><font size="7">Wind Area Crossings </font></center>
+<br>
+
+:::: {style="display: flex;"}
+::: {.column width=50%}
+<center>  
+North Wind Area Crossings
+```{r echo=FALSE, message=FALSE, results="asis", fig.align = "center"}
+north_area_image <- paste0("C:/Users/blake/OneDrive/Work/LaTeX/",
+  "BMassey_Dissertation/Figures/Ch4/Crossings/North_Area.svg")
+image_code <- paste0('![](', north_area_image, '){width=95%}\n')
+cat(image_code)
+```
+</center>  
+:::
+::: {.column width=50%}
+<center>  
+South Wind Area Crossings
+```{r echo=FALSE, message=FALSE, results="asis", fig.align = "center"}
+south_area_image <- paste0("C:/Users/blake/OneDrive/Work/LaTeX/",
+  "BMassey_Dissertation/Figures/Ch4/Crossings/South_Area.svg")
+image_code <- paste0('![](', south_area_image, '){width=95%}\n\n')
+cat(image_code)
+```
+</center>  
+:::
+::::
+
+<!-- ## Experiment Results - Crossings Turbines -->
+
+***  
+<br>
+<center><font size="7">Turbine Crossings</font></center>
+<br>
+
+:::: {style="display: flex;"}
+::: {.column width=50%}
+<center>  
+North Turbine Crossings
+```{r echo=FALSE, message=FALSE, results="asis", fig.align = "center"}
+north_area_image <- paste0("C:/Users/blake/OneDrive/Work/LaTeX/",
+  "BMassey_Dissertation/Figures/Ch4/Crossings/North_Turbines.svg")
+image_code <- paste0('![](', north_area_image, '){width=95%}\n')
+cat(image_code)
+```
+</center>  
+:::
+::: {.column width=50%}
+<center>  
+South Turbine Crossings
+```{r echo=FALSE, message=FALSE, results="asis", fig.align = "center"}
+south_area_image <- paste0("C:/Users/blake/OneDrive/Work/LaTeX/",
+  "BMassey_Dissertation/Figures/Ch4/Crossings/South_Turbines.svg")
+image_code <- paste0('![](', south_area_image, '){width=95%}\n\n')
+cat(image_code)
+```
+</center>  
+:::
+::::

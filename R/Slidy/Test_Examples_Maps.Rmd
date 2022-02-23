@@ -1,0 +1,72 @@
+---
+author: "Blake H Massey"
+date: "`r format(Sys.time(), '%Y-%m-%d')`"
+knit: (function(inputFile, encoding) { 
+  rmarkdown::render(inputFile, encoding = encoding, 
+    output_file = file.path("C:/Users/blake/Desktop/Slidy_Presentations", 
+    "Test Examples - Maps.html"))})
+output: 
+  slidy_presentation:
+    theme: flatly
+    font_adjustment: +2
+    keep_md: no
+    css: "Assets/CSS/style_helvetica.css"
+params:
+title: "Test Examples - Maps"  
+---
+<div class = "row">
+<div class = "col-md-4">
+
+<br><br>
+Since R Markdown use the bootstrap framework under the hood. It is possible to 
+benefit its powerful grid system. Basically, you can consider thatyour row is 
+divided in 12 subunits of same width. You can then choose to use only a few of 
+this subunits.
+</div>
+  
+<div class = "col-md-4">
+<br><br>
+Here, I use 3 subunits of size 4 (4x3=12). The last column is used for 
+a plot. You can read more about the grid system [here](bootstrap grid system). 
+I got this result showing the following code in my R Markdown document.
+</div>
+  
+<div class = "col-md-4">
+```{r echo=FALSE, message=FALSE}
+pacman::p_load(ggplot2)
+#ggplot(mtcars, aes(x=mpg)) + 
+#  geom_histogram(fill="skyblue", alpha=0.5) + 
+#  theme_minimal()
+
+library(sf)
+library(mapview)
+nc <- sf::st_read(system.file("shape/nc.shp", package = "sf"), quiet = TRUE)
+map1 <- mapview(nc, col.regions = "blue")
+map2 <- mapview(nc, col.regions = "red")
+leafsync::sync(map1, map2)
+
+```
+</div>
+</div>
+
+***
+<center>
+```{r echo=F, message=F, warning=FALSE, fig.width=8}
+library(sf)
+library(mapview)
+nc <- sf::st_read(system.file("shape/nc.shp", package = "sf"), quiet = TRUE)
+mapview(nc)
+```
+</center>
+
+***
+<center>
+```{r echo=F, message=F, warning=FALSE, fig.width=8}
+library(sf)
+library(mapview)
+nc <- sf::st_read(system.file("shape/nc.shp", package = "sf"), quiet = TRUE)
+map1 <- mapview(nc, col.regions = "blue")
+map2 <- mapview(nc, col.regions = "red")
+leafsync::sync(map1, map2)
+```
+</center>

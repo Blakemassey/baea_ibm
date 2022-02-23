@@ -2,7 +2,9 @@ library(shiny)
 library(leaflet)
 library(plotly)
 library(ibmr)
+library(baear)
 
+baear::
 ui <-
   fluidPage(
     titlePanel("Redistribution Kernel"),
@@ -36,6 +38,9 @@ server <- function(input, output) {
       FALSE)
     ignore_weibull <-ifelse("weibull" %in% input$ignore_distribution, TRUE,
       FALSE)
+
+    # NEED TO change to: CreateMoveKernelWeibullVonMises
+
     kernel <- CreateRedistKernelWeibull(max_r = input$max_r,
       cellsize = input$cellsize,
       mu = (input$mu*pi)/180, rho = input$rho, shape = input$shape,

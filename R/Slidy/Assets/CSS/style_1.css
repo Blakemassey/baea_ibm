@@ -1,0 +1,64 @@
+/* Whole document: */
+body {
+  font-family: Helvetica;
+  font-size: 1.25em;
+}
+
+div.slide h1 {
+  color: red;
+  font-size: 0em;
+  text-align: left;
+}
+
+/* Controls title page text (for Header1) */
+div.slide.titlepage h1 {
+  color: black;
+  font-size: 2em;
+  padding-top: 5%;
+  margin: .75em auto;
+  min-height: .75em; /* Controls minimum height of text box */
+  height: 3em; /* Controls total height (adjust for # of lines in title) */
+  text-align: center;
+  line-height: 1.5em; /* Controls vertical position of text */
+}
+
+/* Controls Header2-6 */
+h2,h3,h4,h4,h5,h6 {
+  width: 100%;
+  margin:.75em auto;
+  padding: 0;
+}
+
+h3 {
+  font-size: 2em;
+  text-align: center;
+}
+
+h4 {
+  font-size: 1.8em;
+  text-align: left;
+}
+
+h5 {
+  font-size: 1.6em;
+  text-align: center;
+}
+
+h6 {
+  font-size: 1.4em;
+  text-align: left;
+}
+
+/* Paragraph text */
+p {
+  font-size: 1.25em;
+  line-height: 1.5em; /* Controls vertical position of text */
+}
+/* List items */
+li {
+  font-size: 1.25em;
+}
+/* Ordered list items */
+ol {
+  font-size: 1.25em;
+}

@@ -1,0 +1,468 @@
+---
+author: "Blake H Massey"
+date: "`r format(Sys.time(), '%Y-%m-%d')`"
+knit: (function(inputFile, encoding) { 
+  rmarkdown::render(inputFile, encoding = encoding, 
+    output_file = file.path("C:/Users/blake/Desktop/Slidy_Presentations", 
+    "Sim_Results_By_Sims_Set.html"))})
+output: 
+  slidy_presentation:
+    theme: flatly
+    font_adjustment: -1
+    keep_md: no
+    css: "Assets/CSS/style_helvetica.css"    
+params:
+  sims: 88
+  points: "all"
+title: "`r paste0('Sim Results by Sim Set - ', paste0(params$sims, collapse = '/'))`"
+
+---
+
+```{r echo=FALSE, fig.width=6, message=FALSE, warning=FALSE, results="asis"}
+pacman::p_load(ggthemes, ggpubr, gplots, grid, imager, kableExtra, knitr,
+  lubridate, patchwork, raster, rgdal, sp, sf, tidyverse, tmap, tmaptools)
+pacman::p_load(baear, gisr, ibmr)
+suppressMessages(extrafont::loadfonts(device = "win"))
+set_thin_PROJ6_warnings(TRUE)
+
+sim_id <- "sim_20210725"
+match_baea <- TRUE
+
+sims <- params$sims
+#points <- c("all") #params$points
+
+# Directories
+baea_calibration_dir <- "C:/Users/blake/OneDrive/Work/R/Projects/baea_ibm/Output/Sim/Calibration"
+baea_akde_dir <- "C:/Users/blake/OneDrive/Work/R/Projects/baea_ibm/Output/Analysis/Homerange"
+baea_hr_dir <- "C:/Users/blake/OneDrive/Work/R/Projects/baea_ibm/Data/BAEA"
+input_dir <- "C:/ArcGIS/Data/R_Input/BAEA"
+ridgeline_dir <- "C:/ArcGIS/Data/R_Input/BAEA/Ridgelines"
+sim_calibration_dir <- "Calibration"
+sim_dir <- file.path("C:/TEMP", paste0(sim_id, "-"))
+sim_step_data_dir <- "Step_Data"
+sim_step_data_dir <- "Step_Data"
+temp_dir <- "C:/TEMP"
+temp_calibration_dir <- "C:/TEMP/TEMP_Calibration"
+wind_input_dir <- "C:/ARCGIS/Data/Wind"
+
+# Files
+baea_hr_file <- file.path(baea_hr_dir, "baea_homerange.rds")
+base_file <- "C:/ArcGIS/Data/BlankRaster/maine_30mc.tif"
+baea_ridge_sum_file <- file.path(baea_calibration_dir, "baea_ridge_sum.rds")
+uswtdb_file <- file.path(wind_input_dir, "USGS_Wind_Turbine_2018-12-21",
+  "uswtdb_v1_2_20181001.shp")
+me_turbines_buff_file <- file.path(wind_input_dir, "ME_Turbines_Buffer.rds")
+ridge_poly_file <- file.path(ridgeline_dir, "ridge_poly.shp")
+baea_akde_file <- file.path(baea_akde_dir, "hr_akde.rds")
+baea_hr_file <- file.path(baea_hr_dir, "baea_homerange.rds")
+maine_file <- "C:/ArcGIS/Data/BlankPolygon/MaineOutline.shp"
+hydro_dist_ras_file <- "dist_hydro_30mc.tif"
+
+# Coordinate systems
+wgs84 <- 4326 # WGS84 Lat/Long
+wgs84n19 <- 32619 # WGS84 UTM 19N
+crs_wgs84n19 <- CRS(SRS_string = "EPSG:32619")
+
+# ESRI Baselayers
+esri_url <- "https://server.arcgisonline.com/ArcGIS/rest/services/"
+esri_tile <- "/MapServer/tile/{z}/{y}/{x}"
+om_nat_geo <- paste0(esri_url, "NatGeo_World_Map", esri_tile)
+
+# Theme (for blank background)
+theme_blank <- theme(legend.position = "none",
+  text = element_text(family = "Latin Modern Roman"),
+  plot.title = element_text(size=14),
+  panel.grid = element_blank(), axis.title = element_blank(),
+  axis.text = element_blank(), axis.ticks = element_blank(),
+  panel.background = element_rect(fill = "transparent", colour = NA),
+  plot.background = element_rect(fill = "transparent", colour = NA))
+
+# Colors
+nest_color <- "yellow"
+turbine_color <- "darkorange"
+
+# Import files
+base <- raster(base_file)
+baea_hr <- readRDS(baea_hr_file)
+me_turbines_buff <- readRDS(me_turbines_buff_file)
+ridge_poly <- read_sf(ridge_poly_file)
+baea_hr <- readRDS(baea_hr_file)
+baea_akde <- readRDS(baea_akde_file)
+maine <- read_sf(maine_file) %>%
+  st_transform(., crs = wgs84) %>%
+  mutate(state = "Maine")  %>%
+  dplyr::select(state)
+hydro_dist_ras <- raster(file.path(input_dir, hydro_dist_ras_file))
+
+# Use "Tmap_baselayers.R" script to get other baselayers
+maine_bb_sf <- st_as_sfc(bb(maine, relative = TRUE, height = 1, width = 2))
+maine_bb <- bb_poly(bb(maine_bb_sf, ext = 1.15))
+maine_om <- read_osm(maine_bb, zoom = 5, minNumTiles = 9, type = om_nat_geo)
+
+# Behavior colors
+behavior_colors <- CreateColorsByMetadata(file = 
+  file.path("C:/Users/blake/OneDrive/Work/R/Projects/baea_ibm/Data/Assets",
+    "behavior_colors.csv"), metadata_id = "behavior")
+sex_colors <- tibble(#female = col2hex("yellow"), male = col2hex("tomato"),
+  Female = col2hex("yellow"), Male = col2hex("tomato"))
+
+# Plot themes
+theme_latex <- theme(text = element_text(family = "Latin Modern Roman")) +
+  theme(axis.text = element_text(size = 10)) +
+  theme(axis.title = element_text(size = 12)) +
+  theme(plot.title = element_text(size = 14))
+theme_blank <- theme(legend.position = "none",
+  text = element_text(family = "Latin Modern Roman"),
+  plot.title = element_text(size=14),
+  panel.grid = element_blank(), axis.title = element_blank(),
+  axis.text = element_blank(), axis.ticks = element_blank(),
+  panel.background = element_rect(fill = "transparent", colour = NA),
+  plot.background = element_rect(fill = "transparent", colour = NA))
+theme_update(plot.title = element_text(hjust = 0.5))
+
+# Functions
+MakeLines <- function(x, y, x_end, y_end) {
+  st_linestring(matrix(c(x, x_end, y, y_end), 2, 2))
+}
+
+RecodeNestIdToName <- function(value){
+  recoded_value <- fct_recode(value,
+    "Ellis" = "282A",
+    "Sandy" = "423R01",
+    "Hebron" = "659A",
+    "Musquash" = "446R01")
+  return(recoded_value)
+}
+
+# Clean up objects
+rm(base_file, ridgeline_dir, ridge_poly_file, baea_hr_file, baea_akde_file)
+
+# Start Markdown ---------------------------------------------------------------
+
+cat(paste("## Simulation", paste0(sims, collapse = "/"),
+  '\n'))
+cat(paste(':::: {style="display: flex;"}\n'))
+
+# Hydro Distance ---------------------------------------------------------------
+for (i in seq_len(length(sims))){
+  sim_i <- sims[i]
+  sim_dir_i <- paste0(sim_dir, str_pad(sim_i, 2, side = "left", pad = "0"))
+  sim_perch_dist_i <- list.files(path = file.path(sim_dir_i,
+      sim_calibration_dir), pattern = "sim_perch_dist_*")  %>%
+    map(~ readRDS(file.path(sim_dir_i, sim_calibration_dir, .))) %>%
+    reduce(bind_rows)
+  if(i == 1){
+    sim_perch_dist <- sim_perch_dist_i
+  } else {
+    sim_perch_dist <- bind_rows(sim_perch_dist, sim_perch_dist_i)
+  }
+}
+
+gg_sim_dist <- ggplot(sim_perch_dist) +
+  geom_histogram(aes(x = hydro_dist, y = after_stat(count/sum(count))),
+    boundary = 0, binwidth = 30, color = "black",
+    fill = behavior_colors["Perch"]) +
+  ggtitle("Simulation") +
+  xlab("Hydro Distance Metric (m)") +
+  ylab("Proportion of Perch Locations") +
+  theme_minimal() + theme_latex +
+  theme(axis.text = element_text(size = 8)) +
+  theme(axis.title = element_text(size = 9)) +
+  theme(plot.title = element_text(size = 11, hjust = 0.5)) +
+  theme(legend.title = element_text(size = 11, hjust = 0.5)) +
+  theme(panel.grid.minor.x = element_blank())
+
+# Compare simulation and empirical data
+baea_perch_dist <- readRDS(file.path(baea_calibration_dir,
+  "baea_perch_dist.rds"))
+
+gg_baea_dist <- ggplot(baea_perch_dist) +
+  geom_histogram(aes(x = hydro_dist, y = after_stat(count/sum(count))),
+    boundary = 0, binwidth = 30, color = "black",
+    fill = behavior_colors["Perch"]) +
+  ggtitle("Empirical") +
+  xlab("Hydro Distance Metric (m)") +
+  ylab("Proportion of Perch Locations") +
+  theme_minimal() + theme_latex +
+  theme(axis.text = element_text(size = 8)) +
+  theme(axis.title = element_text(size = 9)) +
+  theme(plot.title = element_text(size = 11, hjust = 0.5)) +
+  theme(legend.title = element_text(size = 11, hjust = 0.5)) +
+  theme(panel.grid.minor.x = element_blank())
+
+gg_combine_hydro_dist <- gg_baea_dist + gg_sim_dist
+
+ggsave(filename = "gg_combine_hydro_dist.png", plot = gg_combine_hydro_dist,
+  path = file.path(temp_dir), scale = 1,
+  width = 6, height = 4, units = "in", dpi = 300)
+
+cat(paste('::: {.column width=40%}\n'))
+file_name <- file.path(temp_dir, "gg_combine_hydro_dist.png")
+image_code <- paste0('![](', file_name, '){width=100%}\n')
+cat(image_code)
+cat(paste(':::\n'))
+
+# Ridgeline Flights ------------------------------------------------------------
+
+for (i in seq_len(length(sims))){
+  sim_i <- sims[i]
+  sim_dir_i <- paste0(sim_dir, str_pad(sim_i, 2, side = "left", pad = "0"))
+  sim_ridge_sum_i <- list.files(path = file.path(sim_dir_i,
+      sim_calibration_dir), pattern = "sim_ridge_sum_*")  %>%
+    map(~ readRDS(file.path(sim_dir_i, sim_calibration_dir, .))) %>%
+    reduce(bind_rows) %>%
+    mutate(nest_name = RecodeNestIdToName(nest_id))
+  if(i == 1){
+    sim_ridge_sum <- sim_ridge_sum_i
+  } else {
+    sim_ridge_sum <- bind_rows(sim_ridge_sum, sim_ridge_sum_i)
+  }
+}
+
+# Compare simulation and empirical data
+baea_ridge_sum <- readRDS(baea_ridge_sum_file) %>%
+  mutate(nest_name = RecodeNestIdToName(nest_id))
+
+# Graph ridge-crossing summary data
+gg_combine_ridge <- ggplot() +
+  geom_point(data = baea_ridge_sum, aes(x = nest_name, y = ridge_steps_prop))+
+  geom_errorbar(data = baea_ridge_sum,
+    aes(x = nest_name, y = ridge_steps_prop, ymin = quant_05, ymax = quant_95,
+      width = .1, color = "Mean + 95% CI")) +
+  geom_point(data = sim_ridge_sum, aes(x = nest_name, y = ridge_steps_prop,
+    fill = sex), color = "black",  shape = 24, size = 2, show.legend = TRUE) +
+  scale_fill_manual(name = "Simulation", values = sex_colors) +
+  scale_color_manual(name = "Empirical", values = c("black", "black")) +
+  guides(colour = guide_legend(override.aes = list(
+    linetype = c("solid"),
+    shape = c(16)))) +
+  theme_minimal() +
+  theme_latex +
+  theme(axis.text = element_text(size = 8)) +
+  theme(axis.title = element_text(size = 9)) +
+  theme(plot.title = element_text(size = 11, hjust = 0.5)) +
+  theme(legend.title = element_text(size = 11)) +
+  xlab("Nest Area") + ylab("Ridge-Crossing Step Proportion") +
+  labs(fill = "Agent Sex") +
+  theme(legend.position = "right")
+
+ggsave(filename = "gg_combine_ridge.png", plot = gg_combine_ridge,
+  path = file.path(temp_calibration_dir), scale = 1,
+  width = 6, height = 4, units = "in", dpi = 300, bg = "white")
+
+
+
+cat(paste('::: {.column width=40%}\n'))
+file_name <- paste0(temp_calibration_dir, "/gg_combine_ridge.png")
+image_code <- paste0('![](', file_name, '){width=100%}\n')
+cat(image_code)
+cat(paste(':::\n'))
+
+# Parameters -------------------------------------------------------------------
+
+cat(paste('::: {.column width=20%}\n'))
+sim_log_i <- sim_log %>%
+  filter(sim == paste0("20210725-", sims[1])) %>%
+  mutate(notes = str_replace_all(notes, "->", "$\\\\rightarrow$")) %>%
+  dplyr::select(Parameters = notes)
+cat(kable(sim_log_i))  
+cat(paste(':::\n'))
+
+cat(paste('::::\n'))
+
+# Step Data --------------------------------------------------------------------
+
+for (i in seq_len(length(sims))){
+  sim_i <- sims[i]
+  sim_step_data_i <- file.path(paste0(sim_dir, sim_i),
+    sim_step_data_dir,
+    paste0(sim_id, "-", sim_i, "_01_step_data.rds")) %>%
+    readRDS(.)
+  if(i == 1){
+    sim_step_data <- sim_step_data_i
+  } else {
+    sim_step_data <- bind_rows(sim_step_data, sim_step_data_i)
+  }
+}
+
+for (j in unique(sim_step_data$baea_id)){
+  sim_step_data_j <- sim_step_data %>%
+    filter(baea_id == j) %>%
+    dplyr::select(id, baea_id, baea_year, step_data_matched) %>%
+    unnest(., cols = step_data_matched) %>%
+    as_tibble(.) %>%
+    dplyr::select(sim = id, x, y) %>%
+    st_as_sf(., coords = c("x", "y"), crs = 32619,
+      agr = "constant")
+
+  baea_year <- sim_step_data %>%
+    filter(baea_id == j) %>%
+    pull(baea_year) %>% unique(.)
+  baea_step_id <- baea_hr %>% filter(id == j) %>%
+    arrange(datetime) %>%
+    filter(year(date) == baea_year) %>%
+    as_tibble(.) %>%
+    dplyr::select(baea = id, long_utm, lat_utm) %>%
+    st_as_sf(., coords = c("long_utm", "lat_utm"), crs = 32619,
+      agr = "constant")
+
+  baea_id_bb1_sfc <- st_as_sfc(bb(baea_step_id, relative = TRUE, height = 1,
+      width = 1)) %>%
+    st_transform(., crs = as.character(OpenStreetMap::osm()))
+
+  # Get sim map bb (for final map extent)
+  sim_j_bb1_sfc <- sim_step_data_j %>%
+    st_as_sf(., coords = c("x", "y"), crs = wgs84n19, agr = "constant") %>%
+    bb(., relative = TRUE, height = 1, width = 1) %>%
+    st_as_sfc(.) %>%
+    st_transform(., crs = as.character(OpenStreetMap::osm()))
+
+  # Get combined bb
+  combined_bb1_sfc <- st_union(sim_j_bb1_sfc, baea_id_bb1_sfc) %>%
+    st_transform(., crs = crs(base))
+
+  # Crop base
+  base_clip_aggregated <- base %>%
+    crop(., bb(combined_bb1_sfc, ext = 1)) %>%
+    aggregate(., fact = 20)
+
+  # Rasterize points
+  sim_data_j_raster <- sim_step_data_j %>%
+    as_Spatial(.) %>%
+    rasterize(., base_clip_aggregated, fun = "count") %>%
+    subset(., subset = "sim")
+  baea_data_id_raster <- baea_step_id %>%
+    as_Spatial(.) %>%
+    rasterize(., base_clip_aggregated, fun = "count") %>%
+    subset(., subset = "baea")
+
+  sim_data_j_raster_standardized <- sim_data_j_raster /
+    cellStats(sim_data_j_raster, stat = "sum")
+  baea_data_id_raster_standardized <- baea_data_id_raster /
+    cellStats(baea_data_id_raster, stat = "sum")
+
+  # Clip wind turbines
+  me_turbines_buff_clip <- me_turbines_buff %>%
+    st_transform(., crs = st_crs(combined_bb1_sfc)) %>%
+    st_crop(., bb(combined_bb1_sfc, ext = 2))
+  # Clip ridgeline polygon
+  ridge_poly_clip <- ridge_poly %>%
+    st_transform(., st_crs(combined_bb1_sfc)) %>%
+    st_crop(., bb(combined_bb1_sfc, ext = 2))
+  # Get combined map scalebar distances
+  combined_dist_sf <- st_as_sfc(bb(combined_bb1_sfc, relative = TRUE,
+    height = 1, width = 1))
+  combined_x_dist <- as.numeric(approx_distances(bb(combined_dist_sf,
+    ext = 1.15))[1])/1000/5
+  combined_x_breaks <- as.numeric(unlist(scales::cbreaks(c(0,
+    combined_x_dist), scales::pretty_breaks(2))[1]))
+
+  # Get osm baselayer for sim_step_sf_k and baea_step_sf_id
+  sim_k_bb2_sfc <- st_as_sfc(bb(sim_j_bb1_sfc, relative = TRUE,
+    height = 2, width = 2)) %>%
+    st_transform(., crs = as.character(OpenStreetMap::osm()))
+  baea_id_bb2_sfc <- st_as_sfc(bb(baea_step_id, relative = TRUE,
+    height = 2, width = 2)) %>%
+    st_transform(., crs = as.character(OpenStreetMap::osm()))
+  combined_om <- st_union(sim_k_bb2_sfc, baea_id_bb2_sfc) %>%
+    read_osm(., minNumTiles = 21,
+    type = om_nat_geo)  # may need to add and adjust 'zoom' arg
+
+  # Inset map
+  combined_bb = CreateMapExtentBB(combined_bb1_sfc, asp = 1, ext = 1.15)
+  maine_overview <-
+    tm_shape(maine_om, raster.downsample = FALSE) +
+    tm_rgb() +
+    tm_shape(maine) + # setting this as master sets lat/long
+    tm_borders(col = "black") +
+    tm_shape(combined_bb) +
+    tm_borders(col = "red")
+
+  baea_id_map <-
+    tm_layout(asp = 1) +
+    tm_shape(combined_om, raster.downsample = FALSE) +
+    tm_rgb() +
+    tm_shape(baea_data_id_raster_standardized,
+      bbox = bb(combined_bb1_sfc, ext = 1.1), is.master = TRUE) +
+    tm_raster(alpha = .8, palette = "viridis", legend.reverse = TRUE,
+      title = "BAEA Density") +
+    tm_shape(ridge_poly_clip) +
+    tm_borders(col = "wheat4", alpha = .6) +
+    tm_shape(ridge_poly_clip) +
+    tm_fill("forestgreen", alpha = .4) +
+    tm_shape(me_turbines_buff_clip, title = "Wind Turbines") +
+    tm_polygons(col = turbine_color,
+      border.col = "black",  lwd = 1) +
+    tm_layout(main.title = NULL,
+      main.title.position = "center",
+      main.title.size = 1.15,
+      title.snap.to.legend = TRUE) +
+    tm_legend(title.size = .85, text.size = .65,
+      bg.color = "white",
+      outside = FALSE, position = c("left", "bottom")) +
+    tm_scale_bar(text.size = .65,
+      breaks = combined_x_breaks,
+      position = c(.35, .01)) +
+    tm_compass(type = "4star",  show.labels = 1, size = 2.2,
+      position = c(.875, .86)) +
+    tm_xlab("") + tm_ylab("") +
+    tm_credits(paste0(j, " - ", baea_year, "\n(n = ",
+      nrow(baea_step_id), ")"), bg.color = "white",
+      position = c("LEFT", "TOP"))
+
+  sim_j_map <-
+    tm_layout(asp = 1) +
+    tm_shape(combined_om, raster.downsample = FALSE) +
+    tm_rgb() +
+    tm_shape(sim_data_j_raster_standardized,
+      bbox = bb(combined_bb1_sfc, ext = 1.1), is.master = TRUE) +
+    tm_raster(alpha = .8, palette = "viridis", legend.reverse = TRUE,
+      title = "Sim Density") +
+    tm_shape(ridge_poly_clip) +
+    tm_borders(col = "wheat4", alpha = .6) +
+    tm_shape(ridge_poly_clip) +
+    tm_fill("forestgreen", alpha = .4) +
+    tm_shape(me_turbines_buff_clip, title = "Wind Turbines") +
+    tm_polygons(col = turbine_color,
+      border.col = "black",  lwd = 1) +
+    tm_layout(main.title = NULL, 
+      main.title.position = "center",
+      main.title.size = 1.15,
+      title.snap.to.legend = TRUE) +
+    tm_legend(title.size = .85, text.size = .65,
+      bg.color = "white",
+      outside = FALSE, position = c("left", "bottom")) +
+    tm_scale_bar(text.size = .65,
+      breaks = combined_x_breaks,
+      position = c(.35, .01)) +
+    tm_compass(type = "4star",  show.labels = 1, size = 2.2,
+      position = c(.875, .86)) +
+    tm_xlab("") + tm_ylab("") +
+    tm_credits(paste0("Sim - ", paste0(sims, collapse = "/"),
+        " - ", j, "\n(n = ", nrow(sim_step_data_j), ")"),
+      bg.color = "white", position = c("LEFT", "TOP"))
+
+  # Export to TEMP Folder
+  baea_id_map_file <- file.path("C:/Temp/TEMP_Maps",
+    paste0("BAEA_", j, "_raster.png"))
+  tmap_save(tm = baea_id_map, filename = baea_id_map_file,
+    insets_tm = maine_overview,
+    insets_vp =  viewport(x = 0.881, y = 0.095, width = 0.2, height = 0.2),
+    unit = "in", dpi = 300, height = 4, width = 4)
+
+  sim_j_map_file <- file.path("C:/TEMP/TEMP_Maps",
+    paste0("SIM_", paste0(sims, collapse = "_"), "_", j, "_raster.png"))
+  tmap_save(tm = sim_j_map, filename = sim_j_map_file,
+    insets_tm = maine_overview,
+    insets_vp =  viewport(x = 0.881, y = 0.095, width = 0.2,
+      height = 0.2),
+    unit = "in", dpi = 300, height = 4, width = 4)
+
+  image_code <- paste0('![](', baea_id_map_file, '){width=35%}\n')
+  cat(image_code)
+
+  image_code <- paste0('![](', sim_j_map_file, '){width=35%}\n')
+  cat(image_code)
+}
+
+```
