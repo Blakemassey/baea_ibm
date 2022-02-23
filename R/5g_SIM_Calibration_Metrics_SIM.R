@@ -18,12 +18,12 @@ rasterOptions(maxmem = Inf, progress = "text", timer = TRUE, chunksize = 1e9,
   memfrac = .9)
 
 # Individual sim file
-sim_rds_vec <- "sim_20210725-81.rds"
+sim_rds_vec <- "sim_20210725-78.rds"
 
 # All sim files in TEMP directory
 if(FALSE){
   sim_only_dir <- list.dirs("C:/TEMP", recursive = FALSE) %>%
-    str_subset(., "[:digit:]-[:digit:]{2}$")
+    str_subset(., "[:digit:]-[:digit:]{2,3}$")
   sim_rds_vec <- vector(mode = 'character', length = 0)
   for (m in seq_len(length(sim_only_dir))){
     sim_only_dir_m <- sim_only_dir[m]
@@ -31,7 +31,11 @@ if(FALSE){
     sim_rds_vec <- append(sim_rds_vec, sim_rds_m)
   }
   sim_rds_vec <- (sim_rds_vec[!is.na(sim_rds_vec) & sim_rds_vec != ""])
-  if(TRUE) sim_rds_vec <- sim_rds_vec[c(1:4)]
+  if(TRUE) sim_rds_vec <- sim_rds_vec[c(1:78)]
+
+  if(TRUE) sim_rds_vec <- paste0("sim_20210725-",
+    c(103,104,108,109,110,111,112,77,105,100,107,101,106), ".rds")
+
 }
 
 # Variable
@@ -124,12 +128,12 @@ for (m in seq_len(length(sim_rds_vec))){
       readRDS(.)
     if(match_baea){
       sim_step_data <- sim_step_data_nested %>%
-        select(id, step_data) %>%
-        unnest(., cols = step_data)
-    } else {
-      sim_step_data <- sim_step_data_nested %>%
         select(id, step_data_matched) %>%
         unnest(., cols = step_data_matched)
+    } else {
+      sim_step_data <- sim_step_data_nested %>%
+        select(id, step_data) %>%
+        unnest(., cols = step_data)
     }
 
     # Create Spatialdataframe of baea w/'Perch' behavior
@@ -220,23 +224,37 @@ for (m in seq_len(length(sim_rds_vec))){
   # File directory and id
   sim_runs <- readRDS(file.path(sim_dir, sim_id, sim_rds))
 
-  # Sim data
   for (i in seq_len(length(sim_runs))){
-    sim_steps <- sim_step_data %>%
-      mutate(behavior_next = lead(behavior)) %>%
-      mutate(behavior_behavior = paste(behavior, "->", behavior_next)) %>%
-      filter(step_length > 42.43) %>%
-     filter(behavior_behavior != "Nest -> Nest",
-       behavior_behavior != "Roost -> Roost",
-       behavior_behavior != "Cruise -> Roost",
-       behavior_behavior != "Roost -> Cruise") %>%
-      group_by(id) %>%
-      mutate(x_end = lead(x),
-             y_end = lead(y)) %>%
-      ungroup(.) %>%
-      filter(!is.na(x_end))
+    sim_step_data_nested <- file.path(sim_dir, sim_id, sim_step_data_dir,
+        paste0(sim_id, "_", str_pad(i, 2, side = "left", "0"),
+          "_step_data.rds")) %>%
+      readRDS(.)
+    if(match_baea){
+      sim_step_data <- sim_step_data_nested %>%
+        select(id, step_data_matched) %>%
+        unnest(., cols = step_data_matched)
+    } else {
+      sim_step_data <- sim_step_data_nested %>%
+        select(id, step_data) %>%
+        unnest(., cols = step_data)
+    }
 
-    table(sim_steps$behavior_behavior)
+    # Sim data
+    sim_steps <- sim_step_data %>%
+      group_by(id) %>%
+        mutate(x_end = lead(x),
+               y_end = lead(y)) %>%
+        mutate(behavior_next = lead(behavior)) %>%
+        mutate(behavior_behavior = paste(behavior, "->", behavior_next)) %>%
+        mutate(step_time2 = lead(datetime) - datetime) %>%
+      ungroup(.) %>%
+      filter(step_time2 <= 20)  %>%
+      filter(step_length > 42.43) %>% # ORIGINAL VALUE = 42.43
+      filter(behavior_behavior != "Nest -> Nest",
+        behavior_behavior != "Roost -> Roost",
+        behavior_behavior != "Cruise -> Roost",
+        behavior_behavior != "Roost -> Cruise") %>%
+      filter(!is.na(x_end))
 
     baea_id_nest <- baea_terr %>%
       group_by(id) %>%
@@ -264,7 +282,8 @@ for (m in seq_len(length(sim_rds_vec))){
         st_as_sfc(crs = wgs84n19)
       sim_lines_j_sf <- sim_steps_j %>%
         st_as_sf(., geom = sim_lines_j_sfc) %>%
-        tibble::rowid_to_column("row_id")
+        tibble::rowid_to_column("row_id") %>%
+        select(-c(step_time2))
 
       sim_lines_j_bb_sf <- st_as_sfc(bb(sim_lines_j_sf, relative = TRUE,
         height = 1, width = 1))
@@ -272,7 +291,7 @@ for (m in seq_len(length(sim_rds_vec))){
       ridge_poly_crop <- suppressWarnings(st_crop(st_buffer(ridge_poly,
         dist = 0), st_buffer(sim_lines_j_bb_sf, dist = 0))) # buffer fixes topo
 
-      if(TRUE) mapview(sim_lines_j_sf) + mapview::mapview(ridge_poly_crop)
+      if(FALSE) mapview(sim_lines_j_sf) + mapview(ridge_poly_crop)
 
       sim_lines_j_intersects <- st_intersects(sim_lines_j_sf,
           ridge_poly, sparse = TRUE) %>%
@@ -299,7 +318,7 @@ for (m in seq_len(length(sim_rds_vec))){
         pull(ridge_steps_n)
       sim_ridge_sum[row_j, "ridge_steps_prop"] <- sim_lines_j_intersects_sum %>%
         pull(ridge_steps_prop)
-    }
+      }
     rm(row_j, sim_steps_j, sim_lines_j_sf, sim_lines_j_sfc, sim_lines_j_bb_sf,
       ridge_poly_crop, sim_lines_j_intersects, sim_lines_j_intersects_sum)
     saveRDS(sim_ridge_sum, file.path(sim_dir, sim_id, sim_calibration_dir,

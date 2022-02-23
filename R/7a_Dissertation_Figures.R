@@ -6,8 +6,8 @@
 # Setup ------------------------------------------------------------------------
 
 # Load packages, helpers, and functions
-pacman::p_load(CircStats, ggplot2, gridExtra, magick, latex2exp, patchwork,
-  reshape2, tidyverse, viridis)
+pacman::p_load(CircStats, gplots, ggplot2, gridExtra, magick, latex2exp,
+  patchwork, reshape2, tidyverse, viridis)
 suppressMessages(extrafont::loadfonts(device="win"))
 pacman::p_load(baear, gisr, ibmr)
 
@@ -28,6 +28,12 @@ theme_blank <- theme(legend.position = "none",
   axis.text = element_blank(), axis.ticks = element_blank(),
   panel.background = element_rect(fill = "transparent", colour = NA),
   plot.background = element_rect(fill = "transparent", colour = NA))
+
+# Behavior colors
+behavior_colors <- CreateColorsByMetadata(file = file.path("Data/Assets",
+  "behavior_colors.csv"), metadata_id = "behavior")
+cruise_flight_colors <- behavior_colors %>% .[1:2]
+sex_colors <- tibble(Female = col2hex("yellow"), Male = col2hex("tomato"))
 
 # ---------------------------- CHAPTER 2 ---------------------------------------
 
@@ -1027,7 +1033,7 @@ levels(wind_df_binned$dir_binned) <- dir_labels
 # Labels on y-axis
 y_labels <- data.frame(x = pi, y = c(5, 10, 15), labels = c("5%", "10%", "15%"))
 
-# Create tplot
+# Create windrose plot
 gg_windrose <- ggplot(data = wind_df_binned,
   aes(x = dir_binned, fill = fct_rev(ws_bin), y = probab)) +
   geom_col() +
@@ -1063,6 +1069,70 @@ ggsave(filename = "greenville_windrose.png", plot = gg_windrose,
 ggsave(filename = "greenville_windrose.svg", plot = gg_windrose,
   path = file.path(tex_dir, "Figures/Ch4"), scale = 1, width = 6, height = 4,
   units = "in", dpi = 300)
+
+# Wind Crossing Summaries ------------------------------------------------------
+
+wind_crossings_sum <- readRDS("Output/Experiment/wind_crossings_sum.rds")
+
+theme_crossings <- theme(
+    axis.title.y = element_text(margin = margin(t = 0, r = 15, b = 0, l = 0)),
+    axis.title.x = element_text(margin = margin(t = 15, r = 0, b = 0, l = 0)),
+    panel.background = element_rect(fill = "white", colour = NA),
+    axis.ticks = element_line(colour = NA),
+    panel.grid.major.y = element_line(colour = "grey90"),
+    panel.grid.minor = element_line(size = rel(0.5)))
+
+gg_north_area <- ggplot(wind_crossings_sum) +
+  geom_boxplot(aes(scenario, y = n_area_prop, fill = behavior_line),
+    position = "dodge") +
+  labs(x = "Wind Farm Scenario",
+    y ="Steps Crossing North Wind Area\n(Proportion of Total Steps)")+
+  scale_fill_manual(values = cruise_flight_colors, name = "Behavior") +
+  theme_latex +
+  theme_crossings
+
+gg_south_area <- ggplot(wind_crossings_sum) +
+  geom_boxplot(aes(scenario, y = s_area_prop, fill = behavior_line),
+    position = "dodge") +
+  labs(x = "Wind Farm Scenario",
+    y ="Steps Crossing South Wind Area\n(Proportion of Total Steps)")+
+  scale_fill_manual(values = cruise_flight_colors, name = "Behavior") +
+  theme_latex +
+  theme_crossings
+
+gg_north_turbines <- ggplot(wind_crossings_sum) +
+  geom_boxplot(aes(scenario, y = n_turbines_prop, fill = behavior_line),
+    position = "dodge") +
+  labs(x = "Wind Farm Scenario",
+    y = "Steps Crossing North Turbines\n(Proportion of Total Steps)")+
+  scale_fill_manual(values = cruise_flight_colors, name = "Behavior") +
+  theme_latex +
+  theme_crossings
+
+gg_south_turbines <- ggplot(wind_crossings_sum) +
+  geom_boxplot(aes(scenario, y = s_turbines_prop, fill = behavior_line),
+    position = "dodge") +
+  labs(x = "Wind Farm Scenario",
+    y = "Steps Crossing South Turbines\n(Proportion of Total Steps)")+
+  scale_fill_manual(values = cruise_flight_colors, name = "Behavior") +
+  theme_latex +
+  theme_crossings
+
+ggsave(filename = "North_Area.svg", plot = gg_north_area,
+  path = file.path(tex_dir, "Figures/Ch4/Crossings"), scale = 1, width = 6,
+  height = 5, units = "in", dpi = 300)
+
+ggsave(filename = "South_Area.svg", plot = gg_south_area,
+  path = file.path(tex_dir, "Figures/Ch4/Crossings"), scale = 1, width = 6,
+  height = 5, units = "in", dpi = 300)
+
+ggsave(filename = "North_Turbines.svg", plot = gg_north_turbines,
+  path = file.path(tex_dir, "Figures/Ch4/Crossings"), scale = 1, width = 6,
+  height = 5, units = "in", dpi = 300)
+
+ggsave(filename = "South_Turbines.svg", plot = gg_south_turbines,
+  path = file.path(tex_dir, "Figures/Ch4/Crossings"), scale = 1, width = 6,
+  height = 5, units = "in", dpi = 300)
 
 # ---------------------------------------------------------------------------- #
 ################################ OLD CODE ######################################

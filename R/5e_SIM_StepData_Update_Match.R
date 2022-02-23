@@ -13,12 +13,12 @@ theme_update(plot.title = element_text(hjust = 0.5))
 suppressMessages(extrafont::loadfonts(device = "win"))
 
 # Individual sim file
-sim_rds_vec <- "sim_20210725-81.rds"
+sim_rds_vec <- "sim_20210725-112.rds"
 
 # All sim files in TEMP directory
 if(FALSE){
   sim_only_dir <- list.dirs("C:/TEMP", recursive = FALSE) %>%
-    str_subset(., "[:digit:]-[:digit:]{2}$")
+    str_subset(., "[:digit:]-[:digit:]{2,3}$")
   sim_rds_vec <- vector(mode = 'character', length = 0)
   for (m in seq_len(length(sim_only_dir))){
     sim_only_dir_m <- sim_only_dir[m]
@@ -26,7 +26,7 @@ if(FALSE){
     sim_rds_vec <- append(sim_rds_vec, sim_rds_m)
   }
   sim_rds_vec <- (sim_rds_vec[!is.na(sim_rds_vec) & sim_rds_vec != ""])
-  if(FALSE) sim_rds_vec <- sim_rds_vec[c(49:73)]
+  if(FALSE) sim_rds_vec <- 86:88
 }
 
 # Variables

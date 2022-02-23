@@ -1,0 +1,26 @@
+
+---
+class: center, top
+
+background-image: url("Assets/Images/windfarmGA.png")
+background-position: 40% 5%
+background-size: 85px
+
+
+
+
+### &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;windfarmGA
+
+.pull-left[.center[
+#### Greenville Airport Windrose  
+<img src="C:/Users/blake/OneDrive/Work/LaTeX/BMassey_Dissertation/Figures/Ch4/greenville_windrose.svg" width="100%" />
+]]
+
+.pull-right[.center[
+#### Wind Farm Areas
+<img src="C:/Users/blake/OneDrive/Work/LaTeX/BMassey_Dissertation/Figures/Ch4/Wilson_Scenarios/Wilson_Wind_Areas.svg" width="70%" />  
+<u>Parameters</u>  
+Hub Height = 80m  
+Rotor Radius = 56m
+background-size: 110px 120px
+]]

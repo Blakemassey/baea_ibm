@@ -1,0 +1,94 @@
+/* This style is best used with the "flatly" theme */
+
+/* Whole document: */
+body {
+  font-family: Helvetica;
+  font-size: 1.25em;
+}
+
+
+/* Controls slides' title text (for Header1)  */
+/* Made invisible to document a full outline (e.g. names for slides w/o text) */
+div.slide h1 {
+  color: red;
+  font-size: 0em;
+  padding: 0;
+  margin: 0em auto;
+  min-height: 0em; /* Controls total vertical height of text box */
+  height: 0em; /* Controls total vertical height of text box */
+  text-align: center;
+  line-height: 0em; /* Controls vertical position of text */
+}
+
+
+/* Controls title page text (for Header1) */
+div.slide.titlepage h1 {
+  color: black;
+  font-size: 2em;
+  padding-top: 5%;
+  margin: .75em auto;
+  min-height: .75em; /* Controls minimum height of text box */
+  height: 7em; /* Controls total height (adjust for # of lines in title) */
+  text-align: center;
+  line-height: 1.5em; /* Controls vertical position of text */
+}
+
+/* Controls Header2-6 */
+h2,h3,h4,h4,h5,h6 {
+  width: 100%;
+  margin:.75em auto;
+  padding: 0;
+}
+h2 {
+  font-size: 2.25em;
+  text-align: center;
+}
+h3 {
+  font-size: 1.8em;
+  text-align: left;
+}
+h4 {
+  font-size: 1.8em;
+  text-align: center;
+}
+h5 {
+  font-size: 1.4em;
+  text-align: left;
+}
+h6 {
+  font-size: 1.4em;
+  text-align: center;
+}
+
+/* Paragraph text */
+p {
+  font-size: 1.25em;
+  line-height: 1.25em;
+}
+/* List items */
+li {
+  font-size: 1.25em;
+}
+/* Ordered list items */
+ol {
+  font-size: 1.25em;
+}
+
+.centercell{
+  font-size: 1.25em;
+  line-height: 1.5em;
+  text-align: center;
+  vertical-align: middle;
+  display: table-cell;
+  margin: 0
+}
+
+.centertitle{
+  font-size: 2em;
+  line-height: 1.5em;
+  text-align: center;
+  vertical-align: middle;
+  margin: 0
+}
+
+

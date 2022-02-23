@@ -13,12 +13,12 @@ theme_update(plot.title = element_text(hjust = 0.5))
 suppressMessages(extrafont::loadfonts(device = "win"))
 
 # Individual sim file
-sim_rds_vec <- "sim_20210725-81.rds"
+sim_rds_vec <- "sim_20210725-112.rds"
 
 # All sim files in TEMP directory
 if(FALSE){
   sim_only_dir <- list.dirs("C:/TEMP", recursive = FALSE) %>%
-    str_subset(., "[:digit:]-[:digit:]{2}$")
+    str_subset(., "[:digit:]-[:digit:]{2,3}$")
   sim_rds_vec <- vector(mode = 'character', length = 0)
   for (m in seq_len(length(sim_only_dir))){
     sim_only_dir_m <- sim_only_dir[m]
@@ -26,7 +26,7 @@ if(FALSE){
     sim_rds_vec <- append(sim_rds_vec, sim_rds_m)
   }
   sim_rds_vec <- (sim_rds_vec[!is.na(sim_rds_vec) & sim_rds_vec != ""])
-  if(FALSE) sim_rds_vec <- sim_rds_vec[c(2:53)]
+  if(FALSE) sim_rds_vec <- sim_rds_vec[c(91:92)]
 }
 
 # Boolean parameters
@@ -266,7 +266,8 @@ for (m in seq_len(length(sim_rds_vec))){
           st_transform(., crs = as.character(OpenStreetMap::osm()))
 
         # Get combined bb
-        combined_bb1_sfc <- st_union(sim_j_bb1_sfc, baea_id_bb1_sfc)
+        combined_bb1_sfc <- st_union(sim_j_bb1_sfc, baea_id_bb1_sfc) %>%
+          st_transform(., crs = crs(base))
 
         # Clip wind turbines
         me_turbines_buff_clip <- me_turbines_buff %>%

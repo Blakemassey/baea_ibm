@@ -153,7 +153,7 @@ if(nrow(ssf_fits_best_updates) > 0){
       1) %>% pull("coef_signif")
 
     # Generate formulas
-    ssf_formula <- paste0("(", paste0(paste0(coefs_i, "*",covars_i),
+    ssf_formula <- paste0("(", paste0(paste0(coefs_i, "*", covars_i),
       collapse = ") + ("), ")")
     writeLines(ssf_formula)
 
@@ -291,9 +291,6 @@ for (j in seq_len(nrow(nests_sim))){
     file.path("C:/TEMP/SSF_Maps/",
     paste0("SSF_Probability_Maps_Nest_", model_id, "_", nest_j_name, ".pdf")))
 
-  #file.remove(file.path("C:/TEMP/SSF_Maps/",
-  #  paste0("SSF_Probability_Maps_Nest_", model_id, "_", nest_j_name, ".svg")))
-
 }
 
 ## Run RMarkdown report --------------------------------------------------------
@@ -302,8 +299,7 @@ nest_map_files <- list.files(path = "C:/TEMP/SSF_Maps/",  full.names = TRUE,
   pattern = paste0("SSF_Probability_Maps_Nest_", model_id, "*"))
 
 rmarkdown::render(input = "R/RMarkdown/SSF_Map.Rmd",
-  params = list(
-    nest_map_files = nest_map_files),
+  params = list(nest_map_files = nest_map_files),
   output_dir = "C:/TEMP/SSF_Maps", output_file = paste0("SSF_Fits_", model_id,
     ".pdf"), quiet = TRUE, clean = TRUE)
 

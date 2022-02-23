@@ -5,7 +5,8 @@
 # Setup ------------------------------------------------------------------------
 
 # Load Packages
-pacman::p_load(DT, lubridate, tibble, tidyverse, ggplot2, readr, xtable)
+pacman::p_load(DT, lubridate, tibble, tidyverse, ggpubr, ggplot2, readr,
+  rstatix, xtable)
 suppressMessages(extrafont::loadfonts(device="win"))
 
 # Directories
@@ -423,6 +424,30 @@ for (i in step_type_groups){
     "OneDrive/Work/LaTeX/BMassey_Dissertation/Tables/Ch2",
     paste0("SSF_Fits_Terms_", i_underscore, ".tex")))
 }
+
+# -------------------------- CHAPTER 4 -----------------------------------------
+
+wind_crossings_sum <- readRDS("Output/Experiment/wind_crossings_sum.rds")
+
+cruises_c_n <- wind_crossings_sum %>%
+  filter(behavior_line == "Cruise") %>%
+  filter(scenario == "North" | scenario == "Control") %>%
+  anova(lm(.$n_area_prop ~ as.factor(.$scenario)))
+
+flights_c_n <- wind_crossings_sum %>%
+  filter(behavior_line == "Cruise") %>%
+  filter(scenario == "Control" | scenario == "North")
+
+flights_c_s <- wind_crossings_sum %>%
+  filter(behavior_line == "Cruise") %>%
+  filter(scenario == "Control" | scenario == "South")
+
+anova(lm(cruises_c_n$n_area_prop ~ as.factor(cruises_c_n$scenario)))
+anova(lm(flights_c_s$s_area_prop ~ as.factor(flights_c_s$scenario)))
+
+t.test(x, y = NULL, alternative = c("two.sided", "less", "greater"), mu = 0,
+        paired = FALSE, var.equal = FALSE, conf.level = 0.95)
+
 
 # -------------------------- APPENDIX 2 ----------------------------------------
 

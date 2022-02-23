@@ -518,8 +518,279 @@ sim_log <- tibble(
   add_row(notes = "A -> S = 5:1:3 n=1000") %>%
   add_row(notes = "N -> S = 5:1:3 n=1000") %>%
   add_row(notes = "S -> S = 5:2:3 n=1000") %>%
-
-
+  add_row(sim = "20210725-82") %>%  # REPEAT OF 78
+  add_row(notes = "A -> C = 3:4:1 n=25") %>%
+  add_row(notes = "A -> F = 3:2:1 n=25") %>%
+  add_row(notes = "P/R -> A = 3:3:2 n=25") %>%
+  add_row(notes = "N -> A = 3:3:1 n=25") %>%
+  add_row(notes = "A -> S = 5:1:3 n=1000") %>%
+  add_row(notes = "N -> S = 5:1:3 n=1000") %>%
+  add_row(notes = "S -> S = 5:2:3 n=1000") %>%
+  add_row(sim = "20210725-83") %>%  # REPEAT OF 78
+  add_row(notes = "A -> C = 3:4:1 n=25") %>%
+  add_row(notes = "A -> F = 3:2:1 n=25") %>%
+  add_row(notes = "P/R -> A = 3:3:2 n=25") %>%
+  add_row(notes = "N -> A = 3:3:1 n=25") %>%
+  add_row(notes = "A -> S = 5:1:3 n=1000") %>%
+  add_row(notes = "N -> S = 5:1:3 n=1000") %>%
+  add_row(notes = "S -> S = 5:2:3 n=1000") %>%
+  tidyr::fill(sim, .direction = "down") %>%
+  add_row(sim = "20210725-84") %>%  # REPEAT OF 78
+  add_row(notes = "A -> C = 3:4:1 n=25") %>%
+  add_row(notes = "A -> F = 3:2:1 n=25") %>%
+  add_row(notes = "P/R -> A = 3:3:2 n=25") %>%
+  add_row(notes = "N -> A = 3:3:1 n=25") %>%
+  add_row(notes = "A -> S = 5:1:3 n=1000") %>%
+  add_row(notes = "N -> S = 5:1:3 n=1000") %>%
+  add_row(notes = "S -> S = 5:2:3 n=1000") %>%
+  add_row(sim = "20210725-85") %>%  # REPEAT OF 77
+  add_row(notes = "A -> C = 3:4:1 n=25") %>%
+  add_row(notes = "A -> F = 3:2:1 n=25") %>%
+  add_row(notes = "P/R -> A = 3:3:2 n=25") %>%
+  add_row(notes = "N -> A = 2:3:1 n=25") %>%
+  add_row(notes = "A -> S = 5:1:3 n=1000") %>%
+  add_row(notes = "N -> S = 5:1:3 n=1000") %>%
+  add_row(notes = "S -> S = 5:2:3 n=1000") %>%
+  add_row(sim = "20210725-86") %>%  # REPEAT OF 77
+  add_row(notes = "A -> C = 3:4:1 n=25") %>%
+  add_row(notes = "A -> F = 3:2:1 n=25") %>%
+  add_row(notes = "P/R -> A = 3:3:2 n=25") %>%
+  add_row(notes = "N -> A = 2:3:1 n=25") %>%
+  add_row(notes = "A -> S = 5:1:3 n=1000") %>%
+  add_row(notes = "N -> S = 5:1:3 n=1000") %>%
+  add_row(notes = "S -> S = 5:2:3 n=1000") %>%
+  add_row(sim = "20210725-87") %>%  # REPEAT OF 77
+  add_row(notes = "A -> C = 3:4:1 n=25") %>%
+  add_row(notes = "A -> F = 3:2:1 n=25") %>%
+  add_row(notes = "P/R -> A = 3:3:2 n=25") %>%
+  add_row(notes = "N -> A = 2:3:1 n=25") %>%
+  add_row(notes = "A -> S = 5:1:3 n=1000") %>%
+  add_row(notes = "N -> S = 5:1:3 n=1000") %>%
+  add_row(notes = "S -> S = 5:2:3 n=1000") %>%
+  add_row(sim = "20210725-88") %>%  # REPEAT OF 77
+  add_row(notes = "A -> C = 3:4:1 n=25") %>%
+  add_row(notes = "A -> F = 3:2:1 n=25") %>%
+  add_row(notes = "P/R -> A = 3:3:2 n=25") %>%
+  add_row(notes = "N -> A = 2:3:1 n=25") %>%
+  add_row(notes = "A -> S = 5:1:3 n=1000") %>%
+  add_row(notes = "N -> S = 5:1:3 n=1000") %>%
+  add_row(notes = "S -> S = 5:2:3 n=1000") %>%
+  add_row(sim = "20210725-89") %>%  # REPEAT OF 77 - NEW SAMPLE METHOD
+  add_row(notes = "A -> C = 3:4:1") %>%
+  add_row(notes = "A -> F = 3:2:1") %>%
+  add_row(notes = "P/R -> A = 3:3:2") %>%
+  add_row(notes = "N -> A = 2:3:1") %>%
+  add_row(notes = "A -> S = 5:1:3") %>%
+  add_row(notes = "N -> S = 5:1:3") %>%
+  add_row(notes = "S -> S = 5:2:3") %>%
+  add_row(notes = "Prob = c(1:10/10)") %>%
+  add_row(sim = "20210725-90") %>%  # REPEAT OF 77 - NEW SAMPLE METHOD
+  add_row(notes = "A -> C = 3:4:1") %>%
+  add_row(notes = "A -> F = 3:2:1") %>%
+  add_row(notes = "P/R -> A = 3:3:2") %>%
+  add_row(notes = "N -> A = 2:3:1") %>%
+  add_row(notes = "A -> S = 5:1:3") %>%
+  add_row(notes = "N -> S = 5:1:3") %>%
+  add_row(notes = "S -> S = 5:2:3") %>%
+  add_row(notes = "Prob = c(1:10/10)") %>%
+  add_row(sim = "20210725-91") %>%  # NEW SAMPLE METHOD
+  add_row(notes = "A -> C = 3:4:1") %>%
+  add_row(notes = "A -> F = 3:2:1") %>%
+  add_row(notes = "P/R -> A = 3:3:2") %>%
+  add_row(notes = "N -> A = 2:3:1") %>%
+  add_row(notes = "A -> S = 10:1:3") %>%
+  add_row(notes = "N -> S = 10:1:3") %>%
+  add_row(notes = "S -> S = 10:2:3") %>%
+  add_row(notes = "Prob = c(1:10/10)") %>%
+  add_row(sim = "20210725-92") %>%  # NEW SAMPLE METHOD
+  add_row(notes = "A -> C = 3:4:1") %>%
+  add_row(notes = "A -> F = 3:2:1") %>%
+  add_row(notes = "P/R -> A = 3:3:2") %>%
+  add_row(notes = "N -> A = 2:3:1") %>%
+  add_row(notes = "A -> S = 5:1:10") %>%
+  add_row(notes = "N -> S = 5:1:10") %>%
+  add_row(notes = "S -> S = 5:2:10") %>%
+  add_row(notes = "Prob = c(1:10/10)") %>%
+  add_row(sim = "20210725-93") %>%  # NEW SAMPLE METHOD
+  add_row(notes = "A -> C = 3:4:5") %>%
+  add_row(notes = "A -> F = 3:2:5") %>%
+  add_row(notes = "P/R -> A = 3:3:5") %>%
+  add_row(notes = "N -> A = 2:3:5") %>%
+  add_row(notes = "A -> S = 5:1:10") %>%
+  add_row(notes = "N -> S = 5:1:10") %>%
+  add_row(notes = "S -> S = 5:2:10") %>%
+  add_row(notes = "Prob = c(1:10/10)") %>%
+  add_row(sim = "20210725-94") %>%  # NEW SAMPLE METHOD
+  add_row(notes = "A -> C = 2:1:1") %>%
+  add_row(notes = "A -> F = 2:1:1") %>%
+  add_row(notes = "P/R -> A = 2:1:1") %>%
+  add_row(notes = "N -> A = 2:1:1") %>%
+  add_row(notes = "A -> S = 2:1:1") %>%
+  add_row(notes = "N -> S = 2:1:1") %>%
+  add_row(notes = "S -> S = 2:1:1") %>%
+  add_row(notes = "Prob = c(1:10/10)") %>%
+  add_row(sim = "20210725-95") %>%  # NEW SAMPLE METHOD
+  add_row(notes = "A -> C = 2:1:1") %>%
+  add_row(notes = "A -> F = 2:1:1") %>%
+  add_row(notes = "P/R -> A = 2:1:1") %>%
+  add_row(notes = "N -> A = 2:1:1") %>%
+  add_row(notes = "A -> S = 2:1:1") %>%
+  add_row(notes = "N -> S = 2:1:1") %>%
+  add_row(notes = "S -> S = 2:1:1") %>%
+  add_row(notes = "Prob = c(1:10)^2/100") %>%
+  add_row(sim = "20210725-96") %>%  # NEW SAMPLE METHOD
+  add_row(notes = "A -> C = 2:1:1") %>%
+  add_row(notes = "A -> F = 2:1:1") %>%
+  add_row(notes = "P/R -> A = 2:1:1") %>%
+  add_row(notes = "N -> A = 2:1:1") %>%
+  add_row(notes = "A -> S = 5:1:3") %>%
+  add_row(notes = "N -> S = 5:1:3") %>%
+  add_row(notes = "S -> S = 5:1:3") %>%
+  add_row(notes = "Prob = c(1:10)^2/100") %>%
+  add_row(sim = "20210725-97") %>%  # NEW SAMPLE METHOD
+  add_row(notes = "A -> C = 2:1:1") %>%
+  add_row(notes = "A -> F = 2:1:1") %>%
+  add_row(notes = "P/R -> A = 2:1:1") %>%
+  add_row(notes = "N -> A = 2:1:1") %>%
+  add_row(notes = "A -> S = 5:1:3") %>%
+  add_row(notes = "N -> S = 5:1:3") %>%
+  add_row(notes = "S -> S = 5:1:3") %>%
+  add_row(notes = "Prob = c(2^(1:10)/100))") %>%
+  add_row(sim = "20210725-98") %>%  # NEW SAMPLE METHOD
+  add_row(notes = "A -> C = 3:4:1") %>%
+  add_row(notes = "A -> F = 3:2:1") %>%
+  add_row(notes = "P/R -> A = 3:3:2") %>%
+  add_row(notes = "N -> A = 2:3:1") %>%
+  add_row(notes = "A -> S = 5:1:3") %>%
+  add_row(notes = "N -> S = 5:1:3") %>%
+  add_row(notes = "S -> S = 5:1:3") %>%
+  add_row(notes = "Prob = c(2^(1:10)/100))") %>%
+  add_row(sim = "20210725-99") %>%  # NEW SAMPLE METHOD
+  add_row(notes = "A -> C = 3:4:1") %>%
+  add_row(notes = "A -> F = 3:2:1") %>%
+  add_row(notes = "P/R -> A = 3:3:2") %>%
+  add_row(notes = "N -> A = 2:3:1") %>%
+  add_row(notes = "A -> S = 10:1:3") %>%
+  add_row(notes = "N -> S = 10:1:3") %>%
+  add_row(notes = "S -> S = 10:1:3") %>%
+  add_row(notes = "Prob = c(2^(1:10)/100))") %>%
+  add_row(sim = "20210725-100") %>%  # NEW SAMPLE METHOD
+  add_row(notes = "A -> C = 3:4:1") %>%
+  add_row(notes = "A -> F = 3:2:1") %>%
+  add_row(notes = "P/R -> A = 3:3:2") %>%
+  add_row(notes = "N -> A = 2:3:1") %>%
+  add_row(notes = "A -> S = 4:1:1") %>%
+  add_row(notes = "N -> S = 4:1:1") %>%
+  add_row(notes = "S -> S = 4:1:1") %>%
+  add_row(notes = "Prob = c(2^(1:10)/100))") %>%
+  add_row(sim = "20210725-101") %>%  # NEW SAMPLE METHOD
+  add_row(notes = "A -> C = 3:4:1") %>%
+  add_row(notes = "A -> F = 3:2:1") %>%
+  add_row(notes = "P/R -> A = 3:3:2") %>%
+  add_row(notes = "N -> A = 2:3:1") %>%
+  add_row(notes = "A -> S = 8:1:1") %>%
+  add_row(notes = "N -> S = 8:1:1") %>%
+  add_row(notes = "S -> S = 8:1:1") %>%
+  add_row(notes = "Prob = c(2^(1:10)/100))") %>%
+  add_row(sim = "20210725-102") %>%  # NEW SAMPLE METHOD
+  add_row(notes = "A -> C = 3:4:1") %>%
+  add_row(notes = "A -> F = 3:2:1") %>%
+  add_row(notes = "P/R -> A = 3:3:2") %>%
+  add_row(notes = "N -> A = 2:3:1") %>%
+  add_row(notes = "A -> S = 8:1:3") %>%
+  add_row(notes = "N -> S = 8:1:3") %>%
+  add_row(notes = "S -> S = 8:1:3") %>%
+  add_row(notes = "Prob = c(2^(1:10)/100))") %>%
+  add_row(sim = "20210725-103") %>%  # NEW SAMPLE METHOD
+  add_row(notes = "A -> C = 3:4:1") %>%
+  add_row(notes = "A -> F = 3:2:1") %>%
+  add_row(notes = "P/R -> A = 3:3:2") %>%
+  add_row(notes = "N -> A = 2:3:1") %>%
+  add_row(notes = "A -> S = 2:1:1") %>%
+  add_row(notes = "N -> S = 2:1:1") %>%
+  add_row(notes = "S -> S = 2:1:1") %>%
+  add_row(notes = "Prob = c(2^(1:10)/100))") %>%
+  add_row(sim = "20210725-104") %>%  # NEW SAMPLE METHOD
+  add_row(notes = "A -> C = 3:4:1") %>%
+  add_row(notes = "A -> F = 3:2:1") %>%
+  add_row(notes = "P/R -> A = 3:3:2") %>%
+  add_row(notes = "N -> A = 2:3:1") %>%
+  add_row(notes = "A -> S = 2:1:2") %>%
+  add_row(notes = "N -> S = 2:1:2") %>%
+  add_row(notes = "S -> S = 2:1:2") %>%
+  add_row(notes = "Prob = c(2^(1:10)/100))") %>%
+  add_row(sim = "20210725-105") %>%  # NEW SAMPLE METHOD
+  add_row(notes = "A -> C = 3:4:1") %>%
+  add_row(notes = "A -> F = 3:2:1") %>%
+  add_row(notes = "P/R -> A = 3:3:2") %>%
+  add_row(notes = "N -> A = 2:3:1") %>%
+  add_row(notes = "A -> S = 3:1:1") %>%
+  add_row(notes = "N -> S = 3:1:1") %>%
+  add_row(notes = "S -> S = 3:1:1") %>%
+  add_row(notes = "Prob = c(2^(1:10)/100))") %>%
+  add_row(sim = "20210725-106") %>%  # NEW SAMPLE METHOD
+  add_row(notes = "A -> C = 3:4:1") %>%
+  add_row(notes = "A -> F = 3:2:1") %>%
+  add_row(notes = "P/R -> A = 3:3:2") %>%
+  add_row(notes = "N -> A = 2:3:1") %>%
+  add_row(notes = "A -> S = 10:1:1") %>%
+  add_row(notes = "N -> S = 10:1:1") %>%
+  add_row(notes = "S -> S = 10:1:1") %>%
+  add_row(notes = "Prob = c(2^(1:10)/100))") %>%
+  add_row(sim = "20210725-107") %>%  # NEW SAMPLE METHOD
+  add_row(notes = "A -> C = 3:4:1") %>%
+  add_row(notes = "A -> F = 3:2:1") %>%
+  add_row(notes = "P/R -> A = 3:3:2") %>%
+  add_row(notes = "N -> A = 2:3:1") %>%
+  add_row(notes = "A -> S = 5:1:1") %>%
+  add_row(notes = "N -> S = 5:1:1") %>%
+  add_row(notes = "S -> S = 5:1:1") %>%
+  add_row(notes = "Prob = c(2^(1:10)/100))") %>%
+  add_row(sim = "20210725-108") %>%  # NEW SAMPLE METHOD
+  add_row(notes = "A -> C = 1:1:1") %>%
+  add_row(notes = "A -> F = 1:1:1") %>%
+  add_row(notes = "P/R -> A = 1:1:1") %>%
+  add_row(notes = "N -> A = 1:1:1") %>%
+  add_row(notes = "A -> S = 3:1:1") %>%
+  add_row(notes = "N -> S = 3:1:1") %>%
+  add_row(notes = "S -> S = 3:1:1") %>%
+  add_row(notes = "Prob = c(2^(1:10)/100))") %>%
+  add_row(sim = "20210725-109") %>%  # NEW SAMPLE METHOD
+  add_row(notes = "A -> C = 2:1:1") %>%
+  add_row(notes = "A -> F = 2:1:1") %>%
+  add_row(notes = "P/R -> A = 2:1:1") %>%
+  add_row(notes = "N -> A = 2:1:1") %>%
+  add_row(notes = "A -> S = 3:1:1") %>%
+  add_row(notes = "N -> S = 3:1:1") %>%
+  add_row(notes = "S -> S = 3:1:1") %>%
+  add_row(notes = "Prob = c(2^(1:10)/100))") %>%
+  add_row(sim = "20210725-110") %>%  # NEW SAMPLE METHOD
+  add_row(notes = "A -> C = 3:1:1") %>%
+  add_row(notes = "A -> F = 3:1:1") %>%
+  add_row(notes = "P/R -> A = 3:1:1") %>%
+  add_row(notes = "N -> A = 3:1:1") %>%
+  add_row(notes = "A -> S = 3:1:1") %>%
+  add_row(notes = "N -> S = 3:1:1") %>%
+  add_row(notes = "S -> S = 3:1:1") %>%
+  add_row(notes = "Prob = c(2^(1:10)/100))") %>%
+  add_row(sim = "20210725-111") %>%  # NEW SAMPLE METHOD
+  add_row(notes = "A -> C = 4:1:1") %>%
+  add_row(notes = "A -> F = 4:1:1") %>%
+  add_row(notes = "P/R -> A = 4:1:1") %>%
+  add_row(notes = "N -> A = 4:1:1") %>%
+  add_row(notes = "A -> S = 3:1:1") %>%
+  add_row(notes = "N -> S = 3:1:1") %>%
+  add_row(notes = "S -> S = 3:1:1") %>%
+  add_row(notes = "Prob = c(2^(1:10)/100))") %>%
+  add_row(sim = "20210725-112") %>%  # NEW SAMPLE METHOD
+  add_row(notes = "A -> C = 4:2:1") %>%
+  add_row(notes = "A -> F = 4:2:1") %>%
+  add_row(notes = "P/R -> A = 4:2:1") %>%
+  add_row(notes = "N -> A = 4:2:1") %>%
+  add_row(notes = "A -> S = 3:1:1") %>%
+  add_row(notes = "N -> S = 3:1:1") %>%
+  add_row(notes = "S -> S = 3:1:1") %>%
+  add_row(notes = "Prob = c(2^(1:10)/100))") %>%
   tidyr::fill(sim, .direction = "down") %>%
   filter(!is.na(notes))
 

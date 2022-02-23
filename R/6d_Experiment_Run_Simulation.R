@@ -4,38 +4,42 @@
 
 pacman::p_load(baear, gisr, ibmr)
 pacman::p_load(gpindex, rgdal, tictoc, tidyverse, lubridate)
-#devtools::reload("C:/Users/blake/OneDrive/Work/R/Packages/ibmr")
-toc_msg <- function(tic, toc, msg, info){
-  outmsg <- paste(seconds_to_period(round(toc - tic)))
-}
 
 ################# LOAD SIM AND RUN SIMULATION ##################################
 
-source('R/5d_SIM_MovementSubmodelBAEA.R')
+source('R/5b_SIM_MovementSubmodel_RunSim.R')
 
-sim <- readRDS("C:/Work/Sim_Data/sim_20210831_Wilson_NS.rds")
-pryr::object_size(sim)
+exp_id <- "15"
 
-sim_out_file <- "sim_20210831_Wilson_NS-01.rds"
-sim_out_dir <- "C:/TEMP"
-sim_id <- tools::file_path_sans_ext(sim_out_file)
+for (i in c("C", "N", "S", "NS")){
+  print(i)
+  sim <- readRDS(paste0("C:/Work/Sim_Data/sim_20210831_Wilson_", i, ".rds"))
+  format(object.size(sim), units = "Gb")
 
-if(!dir.exists(file.path(sim_out_dir, sim_id))){
-  dir.create(file.path(sim_out_dir, sim_id))
+  sim_out_file <- paste0("sim_20210831_Wilson_", i, "-", exp_id, ".rds")
+  sim_out_dir <- "C:/TEMP"
+  sim_id <- tools::file_path_sans_ext(sim_out_file)
+
+  if(!dir.exists(file.path(sim_out_dir, sim_id))){
+    dir.create(file.path(sim_out_dir, sim_id))
+  }
+
+  # Run simulation!
+  source('R/5b_SIM_MovementSubmodel_RunSim.R')
+  tic()
+  sim_out <- RunSimulationBAEA(sim = sim, runs = 1, write = FALSE,
+    output_dir = getwd())
+  toc(func.toc = TocMsg)
+
+  # Save sim as .rds
+  saveRDS(sim_out, file.path(sim_out_dir, sim_id, sim_out_file))
+
+  # Check object size
+  format(object.size(sim_out), units = "Gb")
+
+  rm(sim, sim_out_file, sim_id, sim_out)
+  gc()
 }
-
-# Run simulation!
-source('R/5d_SIM_MovementSubmodelBAEA.R')
-tic()
-sim_out <- RunSimulationBAEA(sim = sim, runs = 1, write = FALSE,
-  output_dir = getwd())
-toc(func.toc = toc_msg)
-
-# Save sim as .rds
-saveRDS(sim_out, file.path(sim_out_dir, sim_id, sim_out_file))
-
-# Check object size
-pryr::object_size(sim_out)
 
 #------------------------------------------------------------------------------#
 ################################ OLD CODE ######################################

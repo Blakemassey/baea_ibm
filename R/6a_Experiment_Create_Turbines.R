@@ -219,7 +219,7 @@ writeRaster(wilson_base_50km, file.path(gis_exp_dir,
 rm(base, wilson_nest, wilson_bb_50km, wilson_base_50km)
 
 # Update code to fix problems with windfarmGA
-source("R/6f_Experiment_Fix_WindfarmGA.R")
+source("R/6h_Experiment_Fix_WindfarmGA.R")
 
 # Import turbine specs
 wt_hub_height_mode <- readRDS(file.path(wind_output_dir,
@@ -248,20 +248,20 @@ greenville_wind_formatted <- readRDS(file.path(wind_output_dir,
 
 # Create buffered Wilson wind areas (to ensure sufficient space for turbines)
 wilson_n_area <- readRDS(file.path(wind_output_dir, "wilson_n_area.rds"))
-wilson_n_area_buffer_200m <- wilson_n_area %>% st_buffer(., dist = 150)
+wilson_n_area_buffer_150m <- wilson_n_area %>% st_buffer(., dist = 150)
 
 # Check grid and run genetric algorithm for Wilson North
-wilson_n_grid <- grid_area_fixed(shape = wilson_n_area_buffer_200m,
+wilson_n_grid <- grid_area_fixed(shape = wilson_n_area_buffer_150m,
   size = (rotor_radius*grid_spacing), prop = area_proportion, plotGrid = TRUE)
 # Running optimization without topographic effects
-wilson_n_result <- genetic_algorithm_fixed(Polygon1 = wilson_n_area_buffer_200m,
+wilson_n_result <- genetic_algorithm_fixed(Polygon1 = wilson_n_area_buffer_150m,
   n = turbines_n, Rotor = rotor_radius, fcrR = grid_spacing,
   referenceHeight = 10, RotorHeight = hub_height, iteration = 50,
   Proportionality = area_proportion, Projection = "EPSG:32619",
   vdirspe = greenville_wind_formatted)
 # Running optimization with topographic effects
 wilson_n_result_topo <- genetic_algorithm_fixed(
-  Polygon1 = wilson_n_area_buffer_200m,
+  Polygon1 = wilson_n_area_buffer_150m,
   n = turbines_n, Rotor = rotor_radius, fcrR = grid_spacing,
   referenceHeight = 10, RotorHeight = hub_height, iteration = 50,
   topograp = TRUE, sourceCCL = file.path(gis_exp_dir, "wilson_base_50km.tif"),
@@ -297,7 +297,7 @@ st_write(wilson_n_turbines_topo_sf, file.path(gis_exp_dir,
   "wilson_n_turbines_topo.shp"), append = FALSE)
 
 # Compare results
-mapview::mapview(wilson_n_area_buffer_200m) +
+mapview::mapview(wilson_n_area_buffer_150m) +
 mapview::mapview(wilson_n_turbines_sf, color = "red") +
 mapview::mapview(wilson_n_turbines_topo_sf, color = "yellow")
 
@@ -315,7 +315,7 @@ print(paste0("Minimum dist values: Wilson N (", wilson_n_dist_min, "), Maine (",
   maine_turbine_dist_min, ")"))
 
 # Clean up objects for Wilson nouth
-rm(wilson_n_area, wilson_n_area_buffer_200m, wilson_n_turbines_sf,
+rm(wilson_n_area, wilson_n_area_buffer_150m, wilson_n_turbines_sf,
   wilson_n_turbines_topo_sf, wilson_n_dist_matrix, maine_turbine_dist_mean,
   maine_turbine_dist_min)
 
@@ -323,20 +323,20 @@ rm(wilson_n_area, wilson_n_area_buffer_200m, wilson_n_turbines_sf,
 
 # Create buffered Wilson wind areas (to ensure sufficient space for turbines)
 wilson_s_area <- readRDS(file.path(wind_output_dir, "wilson_s_area.rds"))
-wilson_s_area_buffer_200m <- wilson_s_area %>% st_buffer(., dist = 150)
+wilson_s_area_buffer_150m <- wilson_s_area %>% st_buffer(., dist = 150)
 
 # Check grid and run genetric algorithm for Wilson North
-wilson_s_grid <- grid_area_fixed(shape = wilson_s_area_buffer_200m,
+wilson_s_grid <- grid_area_fixed(shape = wilson_s_area_buffer_150m,
   size = (rotor_radius*grid_spacing), prop = area_proportion, plotGrid = TRUE)
 # Running optimization without topographic effects
-wilson_s_result <- genetic_algorithm_fixed(Polygon1 = wilson_s_area_buffer_200m,
+wilson_s_result <- genetic_algorithm_fixed(Polygon1 = wilson_s_area_buffer_150m,
   n = turbines_n, Rotor = rotor_radius, fcrR = grid_spacing,
   referenceHeight = 10, RotorHeight = hub_height, iteration = 50,
   Proportionality = area_proportion, Projection = "EPSG:32619",
   vdirspe = greenville_wind_formatted)
 # Running optimization with topographic effects
 wilson_s_result_topo <- genetic_algorithm_fixed(
-  Polygon1 = wilson_s_area_buffer_200m,
+  Polygon1 = wilson_s_area_buffer_150m,
   n = turbines_n, Rotor = rotor_radius, fcrR = grid_spacing,
   referenceHeight = 10, RotorHeight = hub_height, iteration = 50,
   topograp = TRUE, sourceCCL = file.path(gis_exp_dir, "wilson_base_50km.tif"),
@@ -372,7 +372,7 @@ st_write(wilson_s_turbines_topo_sf, file.path(gis_exp_dir,
   "wilson_s_turbines_topo.shp"), append = FALSE)
 
 # Compare results
-mapview::mapview(wilson_s_area_buffer_200m) +
+mapview::mapview(wilson_s_area_buffer_150m) +
 mapview::mapview(wilson_s_turbines_sf, color = "red") +
 mapview::mapview(wilson_s_turbines_topo_sf, color = "yellow")
 
@@ -390,7 +390,7 @@ print(paste0("Minimum dist values: Wilson N (", wilson_s_dist_min, "), Maine (",
   maine_turbine_dist_min, ")"))
 
 # Clean up objects for Wilson south
-rm(wilson_s_area, wilson_s_area_buffer_200m, wilson_s_turbines_sf,
+rm(wilson_s_area, wilson_s_area_buffer_150m, wilson_s_turbines_sf,
   wilson_s_turbines_topo_sf, wilson_s_dist_matrix, maine_turbine_dist_mean,
   maine_turbine_dist_min)
 
