@@ -25,10 +25,11 @@ rasterOptions(maxmem = Inf, progress = "text", timer = TRUE, chunksize = 1e9,
   memfrac = .9)
 
 # Experiment id
-exp_ids <- 1:15
+exp_ids <- 1:10
 
 # Variable
-mapping <- FALSE
+site <- "Grand_Lake" #"Wilson" #
+mapping <- TRUE
 
 # Directories
 exp_dir <- "C:/TEMP"
@@ -78,33 +79,33 @@ ridge_poly <- read_sf(ridge_poly_file) %>%
   st_transform(., crs = CRS(SRS_string = paste0("EPSG:", wgs84n19))) %>%
   st_set_crs(wgs84n19)
 
-wilson_n_area <- readRDS(file.path(wind_output_dir, "wilson_n_area.rds"))
-wilson_s_area <- readRDS(file.path(wind_output_dir, "wilson_s_area.rds"))
+site_n_area <- readRDS(file.path(wind_output_dir, paste0(site, "_n_area.rds")))
+site_s_area <- readRDS(file.path(wind_output_dir, paste0(site, "_s_area.rds")))
 
-wilson_wt_n = readRDS(file.path(wind_output_dir, "wilson_n_turbines.rds"))
-wilson_wt_s = readRDS(file.path(wind_output_dir, "wilson_s_turbines.rds"))
+site_n_wt = readRDS(file.path(wind_output_dir, paste0(site, "_n_turbines.rds")))
+site_s_wt = readRDS(file.path(wind_output_dir, paste0(site, "_s_turbines.rds")))
 
-wilson_n_area_buff <- wilson_n_area %>% st_buffer(150)
-wilson_s_area_buff <- wilson_s_area %>% st_buffer(150)
+site_n_area_buff <- site_n_area %>% st_buffer(150)
+site_s_area_buff <- site_s_area %>% st_buffer(150)
 
-wilson_wt_n_buff <- wilson_wt_n %>% st_buffer(56)
-wilson_wt_s_buff <- wilson_wt_s %>% st_buffer(56)
+site_n_wt_buff <- site_n_wt %>% st_buffer(56)
+site_s_wt_buff <- site_s_wt %>% st_buffer(56)
 
-if(mapping) mapview(wilson_n_area_buff) + mapview(wilson_wt_n_buff)
-if(mapping) mapview(wilson_s_area_buff) + mapview(wilson_wt_s_buff)
+if(mapping) mapview(site_n_area_buff) + mapview(site_n_wt_buff)
+if(mapping) mapview(site_s_area_buff) + mapview(site_s_wt_buff)
 
 for (i in exp_ids){
   exp_id <- i
   # Experiment simulation files in TEMP directory
   exp_id_vec <- list.dirs("C:/TEMP", recursive = FALSE, full.names = FALSE) %>%
-    str_subset(., paste0("Wilson_[:alpha:]{1,}-", str_pad(exp_id, width = 2,
+    str_subset(., paste0(site, "_[:alpha:]{1,}-", str_pad(exp_id, width = 2,
       side = "left", pad = "0")))
 
   for(j in seq_len(length(exp_id_vec))){
     exp_id_j <- exp_id_vec %>% .[j]
     exp_id_j_rds <- exp_id_j %>% paste0(., ".rds")
     scenario <- exp_id_j %>%
-      str_remove(., "sim_20210831_Wilson_") %>%
+      str_remove(., paste0("sim_20210831_", site, "_")) %>%
       str_remove_all(., paste0("-",  str_pad(exp_id, width = 2,
         side = "left", pad = "0")))
 
@@ -172,28 +173,28 @@ for (i in exp_ids){
 
     # Line intersections
     exp_lines_intersects_n_area <- st_intersects(exp_lines_sf,
-        wilson_n_area, sparse = TRUE) %>%
+        site_n_area, sparse = TRUE) %>%
       as.data.frame(.) %>%
       as_tibble(.) %>%
       rename(row_id = row.id,
         intersect_n_area = col.id)
 
     exp_lines_intersects_s_area <- st_intersects(exp_lines_sf,
-        wilson_s_area, sparse = TRUE) %>%
+        site_s_area, sparse = TRUE) %>%
       as.data.frame(.) %>%
       as_tibble(.) %>%
       rename(row_id = row.id,
         intersect_s_area = col.id)
 
     exp_lines_intersects_n_turbines <- st_intersects(exp_lines_sf,
-        wilson_wt_n_buff, sparse = TRUE) %>%
+        site_n_wt_buff, sparse = TRUE) %>%
       as.data.frame(.) %>%
       as_tibble(.) %>%
       rename(row_id = row.id,
         intersect_n_turbines = col.id)
 
     exp_lines_intersects_s_turbines <- st_intersects(exp_lines_sf,
-        wilson_wt_s_buff, sparse = TRUE) %>%
+        site_s_wt_buff, sparse = TRUE) %>%
       as.data.frame(.) %>%
       as_tibble(.) %>%
       rename(row_id = row.id,
@@ -201,11 +202,16 @@ for (i in exp_ids){
 
     if(mapping){
       mapview(exp_lines_sf, zcol = "behavior_line") +
-      mapview(wilson_wt_n) + mapview(wilson_wt_s)
+      mapview(site_n_wt) + mapview(site_s_wt)
     }
 
+    exp_lines_sf %>%
+      filter(row_id %in% 283:284) %>%
+      mapview(.) +
+      mapview(site_n_wt) + mapview(site_s_wt)
+
     # Identify crossings
-    wind_crossings_sum <- exp_lines_sf %>%
+    wind_crossings_join <- exp_lines_sf %>%
       left_join(., exp_lines_intersects_n_area, by = "row_id") %>%
       left_join(., exp_lines_intersects_s_area, by = "row_id") %>%
       left_join(., exp_lines_intersects_n_turbines, by = "row_id") %>%
@@ -213,13 +219,31 @@ for (i in exp_ids){
       dplyr::select(row_id, behavior_line,
         intersect_n_area, intersect_s_area, intersect_n_turbines,
         intersect_s_turbines) %>%
-      st_drop_geometry(.) %>%
+      st_drop_geometry(.)
+
+    wind_crossings_n_turbine_tally <- wind_crossings_join %>%
+      filter(behavior_line == "Flight") %>%
+      pull(intersect_n_turbines) %>%
+      .[!is.na(.)] %>%
+      as_tibble(.) %>%
+      count(value) %>%
+      rename(turbine = value)
+
+    wind_crossings_s_turbine_tally <- wind_crossings_join %>%
+      filter(behavior_line == "Flight") %>%
+      pull(intersect_s_turbines) %>%
+      .[!is.na(.)] %>%
+      as_tibble(.) %>%
+      count(value) %>%
+      rename(turbine = value)
+
+    wind_crossings_sum <- wind_crossings_join %>%
       group_by(row_id) %>%
       summarize(behavior_line = first(behavior_line),
-        n_area_cross = any(!is.na(intersect_n_area)),
-        s_area_cross = any(!is.na(intersect_s_area)),
-        n_turbines_cross = any(!is.na(intersect_n_turbines)),
-        s_turbines_cross = any(!is.na(intersect_s_turbines))) %>%
+        n_area_cross = sum(!is.na(intersect_n_area)),
+        s_area_cross = sum(!is.na(intersect_s_area)),
+        n_turbines_cross = sum(!is.na(intersect_n_turbines)),
+        s_turbines_cross = sum(!is.na(intersect_s_turbines))) %>%
       ungroup(.) %>%
       group_by(behavior_line) %>%
       summarize(total_steps_n = n(),
@@ -230,7 +254,9 @@ for (i in exp_ids){
       ungroup(.) %>%
       mutate(exp_id = exp_id) %>%
       mutate(scenario = scenario) %>%
-      dplyr::select(exp_id, scenario, everything(.))
+      dplyr::select(exp_id, scenario, everything(.)) %>%
+      mutate(n_turbine_tally = list(NA, wind_crossings_n_turbine_tally)) %>%
+      mutate(s_turbine_tally = list(NA, wind_crossings_s_turbine_tally))
 
     # Save wind_crossing_sum file
     saveRDS(wind_crossings_sum, file.path(exp_dir, exp_id_j, exp_results_dir,

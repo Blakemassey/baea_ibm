@@ -19,12 +19,13 @@ rasterOptions(maxmem = Inf, progress = "text", timer = TRUE, chunksize = 1e9,
   memfrac = .9)
 
 # Experiment id
-exp_ids <- 1:15 %>%
+site <- "Grand_Lake"
+exp_ids <- 1:10 %>%
   str_pad(., width = 2, side = "left", pad = "0")
 
 # Experiment simulation files in TEMP directory
 exp_vec <- list.dirs("C:/TEMP", recursive = FALSE, full.names = TRUE) %>%
-  str_subset(., paste0("Wilson_[:alpha:]{1,}-")) %>%
+  str_subset(., paste0(site, "_[:alpha:]{1,}-")) %>%
   str_subset(., exp_ids %>% paste0("-", .) %>% paste0(., collapse = "|"))
 
 # Variables
@@ -65,7 +66,7 @@ sex_colors <- tibble(Female = col2hex("yellow"), Male = col2hex("tomato"))
 ## Import Data -----------------------------------------------------------------
 
 # File directory and id
-wind_crossings_sum <-
+wind_transits_sum <-
   file.path(exp_vec, "Results", "wind_crossings_sum.rds") %>%
   map(readRDS) %>%
   bind_rows() %>%
@@ -79,112 +80,137 @@ wind_crossings_sum <-
     str_replace_all(., "^S$", "South") %>%
     str_replace_all(., "^NS$", "North and South"))
 
-# Save wind_crossing_sum file to Project file
-saveRDS(wind_crossings_sum, file.path(exp_output_dir,
-  paste0("wind_crossings_sum", ".rds")))
-
-# Graphs -----------------------------------------------------------------------
-
-ggplot(wind_crossings_sum) +
-  geom_boxplot(aes(scenario, y = n_area_prop, fill = behavior_line),
-    position = "dodge") +
-  theme_latex +
-  labs(x = "Wind Farm Scenario", y ="Proportion of Flights in North Wind Area")+
-  scale_fill_manual(values = cruise_flight_colors, name = "Behavior") +
-  theme(panel.background = element_rect(fill = "white", colour = NA),
-    axis.ticks = element_line(colour = NA),
-    panel.grid.major.y = element_line(colour = "grey90"),
-    panel.grid.minor = element_line(size = rel(0.5)))
-
-ggplot(wind_crossings_sum) +
-  geom_boxplot(aes(scenario, y = s_area_prop, fill = behavior_line),
-    position = "dodge") +
-  theme_latex +
-  labs(x = "Wind Farm Scenario", y ="Proportion of Flights in South Wind Area")+
-  scale_fill_manual(values = cruise_flight_colors, name = "Behavior") +
-  theme(panel.background = element_rect(fill = "white", colour = NA),
-    axis.ticks = element_line(colour = NA),
-    panel.grid.major.y = element_line(colour = "grey90"),
-    panel.grid.minor = element_line(size = rel(0.5)))
-
-# Statistics -------------------------------------------------------------------
-
-wind_crossings_sum <- readRDS("Output/Experiment/wind_crossings_sum.rds") %>%
-  mutate(behavior_line = as.factor(behavior_line)) %>%
-  mutate(scenario = as.factor(scenario))
-
-# Summary statistics
-wind_crossings_sum_stats <- wind_crossings_sum %>%
-  group_by(behavior_line, scenario) %>%
-  get_summary_stats(.)
-
-# Statistical tests
-wind_crossings_sum_test_north <- wind_crossings_sum %>%
-  group_by(behavior_line) %>%
-  t_test(n_area_prop ~ scenario) %>%
-  adjust_pvalue() %>%
-  add_significance("p.adj")
-wind_crossings_sum_test_north
+# Save wind_transits_sum file to Project file
+saveRDS(wind_transits_sum, file.path(exp_output_dir,
+  paste0("wind_transits_sum_", str_to_lower(site), ".rds")))
 
 
-
-
-# Visualization
-ggboxplot(
-  df, x = "supp", y = "len",
-  color = "supp", palette = "jco", facet.by = "dose",
-  ylim = c(0, 40)
-  ) +
-  stat_pvalue_manual(stat.test, label = "p.adj", y.position = 35)
-
-
-df <- ToothGrowth
-df$dose <- as.factor(df$dose)
-head(df)
-
-# T-test
-stat.test <- wind_crossings_sum %>%
-  filter(behavior_line == "Flight") %>%
-  filter(scenario == "North" | scenario == "Control") %>%
-  t_test(n_area_prop ~ scenario, paired = TRUE)
-stat.test
-
-# Create a box plot
-p <- wind_crossings_sum %>%
-  group_by(behavior_line) %>%
-  filter(scenario == "North" | scenario == "Control") %>%
-  ggboxplot(., x = "scenario", y = "n_area_prop", fill = "scenario",
-    palette = "jco") +
-  labs(x = "Wind Farm Scenario", y ="Proportion of Flights in North Wind Area")+
-  scale_fill_manual(values = viridis(2), name = "Wind Farm Scenario")
-
-# Add the p-value manually
-p <- wind_crossings_sum %>%
-  group_by(behavior_line) %>%
-  filter(scenario == "North" | scenario == "Control") %>%
-  ggboxplot(., x = "scenario", y = "n_area_prop",
-  fill = "scenario", palette = "jco", facet.by = "behavior_line") +
-  labs(x = "Wind Farm Scenario", y ="Proportion of Flights in North Wind Area")+
-  stat_pvalue_manual(stat.test, label = "p.adj", y.position = 0.15)
-
-cruises_c_n <- wind_crossings_sum %>%
-  filter(behavior_line == "Cruise") %>%
-  filter(scenario == "North" | scenario == "Control") %>%
-  anova(lm(.$n_area_prop ~ as.factor(.$scenario)))
-
-flights_c_n <- wind_crossings_sum %>%
-  filter(behavior_line == "Cruise") %>%
-  filter(scenario == "Control" | scenario == "North")
-
-flights_c_s <- wind_crossings_sum %>%
-  filter(behavior_line == "Cruise") %>%
-  filter(scenario == "Control" | scenario == "South")
-
-anova(lm(cruises_c_n$n_area_prop ~ as.factor(cruises_c_n$scenario)))
-anova(lm(flights_c_s$s_area_prop ~ as.factor(flights_c_s$scenario)))
-
-t.test(x, y = NULL, alternative = c("two.sided", "less", "greater"), mu = 0,
-        paired = FALSE, var.equal = FALSE, conf.level = 0.95)
-
+#------------------------------------------------------------------------------#
+################################ OLD CODE ######################################
+#------------------------------------------------------------------------------#
+#
+# # Graphs -----------------------------------------------------------------------
+#
+# # North Wind Area
+# ggplot(wind_transits_sum) +
+#   geom_boxplot(aes(scenario, y = n_area_prop, fill = behavior_line),
+#     position = "dodge") +
+#   theme_latex +
+#   labs(x = "Wind Farm Scenario", y ="Proportion of Flights in North Wind Area")+
+#   scale_fill_manual(values = cruise_flight_colors, name = "Behavior") +
+#   theme(panel.background = element_rect(fill = "white", colour = NA),
+#     axis.ticks = element_line(colour = NA),
+#     panel.grid.major.y = element_line(colour = "grey90"),
+#     panel.grid.minor = element_line(size = rel(0.5)))
+#
+# # South Wind Area
+# ggplot(wind_transits_sum) +
+#   geom_boxplot(aes(scenario, y = s_area_prop, fill = behavior_line),
+#     position = "dodge") +
+#   theme_latex +
+#   labs(x = "Wind Farm Scenario", y ="Proportion of Flights in South Wind Area")+
+#   scale_fill_manual(values = cruise_flight_colors, name = "Behavior") +
+#   theme(panel.background = element_rect(fill = "white", colour = NA),
+#     axis.ticks = element_line(colour = NA),
+#     panel.grid.major.y = element_line(colour = "grey90"),
+#     panel.grid.minor = element_line(size = rel(0.5)))
+#
+# # North Wind Turbines
+# ggplot(wind_transits_sum) +
+#   geom_boxplot(aes(scenario, y = n_area_steps_n, fill = behavior_line),
+#     position = "dodge") +
+#   theme_latex +
+#   labs(x = "Wind Farm Scenario",
+#     y ="Flight Steps Crossing North Wind Turbines") +
+#   scale_fill_manual(values = cruise_flight_colors, name = "Behavior") +
+#   theme(panel.background = element_rect(fill = "white", colour = NA),
+#     axis.ticks = element_line(colour = NA),
+#     panel.grid.major.y = element_line(colour = "grey90"),
+#     panel.grid.minor = element_line(size = rel(0.5)))
+#
+# # South Wind Turbines
+# ggplot(wind_transits_sum) +
+#   geom_boxplot(aes(scenario, y = s_area_steps_n, fill = behavior_line),
+#     position = "dodge") +
+#   theme_latex +
+#   labs(x = "Wind Farm Scenario",
+#     y = "Flight Steps Crossing South Wind Turbines") +
+#   scale_fill_manual(values = cruise_flight_colors, name = "Behavior") +
+#   theme(panel.background = element_rect(fill = "white", colour = NA),
+#     axis.ticks = element_line(colour = NA),
+#     panel.grid.major.y = element_line(colour = "grey90"),
+#     panel.grid.minor = element_line(size = rel(0.5)))
+#
+# # Statistics -------------------------------------------------------------------
+#
+# wind_transits_sum <- readRDS("Output/Experiment/wind_transits_sum.rds") %>%
+#   mutate(behavior_line = as.factor(behavior_line)) %>%
+#   mutate(scenario = as.factor(scenario))
+#
+# # Summary statistics
+# wind_transits_sum_stats <- wind_transits_sum %>%
+#   group_by(behavior_line, scenario) %>%
+#   get_summary_stats(.)
+#
+# # Statistical tests
+# wind_transits_sum_test_north <- wind_transits_sum %>%
+#   group_by(behavior_line) %>%
+#   t_test(n_area_prop ~ scenario) %>%
+#   adjust_pvalue() %>%
+#   add_significance("p.adj")
+# wind_transits_sum_test_north
+#
+# # Visualization
+# ggboxplot(
+#   df, x = "supp", y = "len",
+#   color = "supp", palette = "jco", facet.by = "dose",
+#   ylim = c(0, 40)
+#   ) +
+#   stat_pvalue_manual(stat.test, label = "p.adj", y.position = 35)
+#
+# # T-test
+# stat.test <- wind_transits_sum %>%
+#   filter(behavior_line == "Flight") %>%
+#   filter(scenario == "North" | scenario == "Control") %>%
+#   t_test(n_area_prop ~ scenario, paired = TRUE)
+# stat.test
+#
+# # Create a box plot
+# p <- wind_transits_sum %>%
+#   group_by(behavior_line) %>%
+#   filter(scenario == "North" | scenario == "Control") %>%
+#   ggboxplot(., x = "scenario", y = "n_area_prop", fill = "scenario",
+#     palette = "jco") +
+#   labs(x = "Wind Farm Scenario", y ="Proportion of Flights in North Wind Area")+
+#   scale_fill_manual(values = viridis(2), name = "Wind Farm Scenario")
+#
+# # Add the p-value manually
+# p <- wind_transits_sum %>%
+#   group_by(behavior_line) %>%
+#   filter(scenario == "North" | scenario == "Control") %>%
+#   ggboxplot(., x = "scenario", y = "n_area_prop",
+#   fill = "scenario", palette = "jco", facet.by = "behavior_line") +
+#   labs(x = "Wind Farm Scenario", y ="Proportion of Flights in North Wind Area")+
+#   stat_pvalue_manual(stat.test, label = "p.adj", y.position = 0.15)
+#
+# cruises_c_n <- wind_transits_sum %>%
+#   filter(behavior_line == "Cruise") %>%
+#   filter(scenario == "North" | scenario == "Control") %>%
+#   anova(lm(.$n_area_prop ~ as.factor(.$scenario)))
+#
+# flights_c_n <- wind_transits_sum %>%
+#   filter(behavior_line == "Cruise") %>%
+#   filter(scenario == "Control" | scenario == "North")
+#
+# flights_c_s <- wind_transits_sum %>%
+#   filter(behavior_line == "Cruise") %>%
+#   filter(scenario == "Control" | scenario == "South")
+#
+# anova(lm(cruises_c_n$n_area_prop ~ as.factor(cruises_c_n$scenario)))
+# anova(lm(flights_c_s$s_area_prop ~ as.factor(flights_c_s$scenario)))
+#
+# t.test(x, y = NULL, alternative = c("two.sided", "less", "greater"), mu = 0,
+#         paired = FALSE, var.equal = FALSE, conf.level = 0.95)
+#
 
 

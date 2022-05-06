@@ -8,7 +8,7 @@ output:
   xaringan::moon_reader:
     lib_dir: libs
     seal: false
-    css: ["default", "default-fonts", "xaringan-themer.css", "ninjutsu"]
+    css: ["default", "default-fonts", "xaringan-themer.css", "ninjutsu", 'Assets/CSS/style_scaffold.css']
     nature:
       ratio: 16:9
       highlightStyle: github
@@ -18,7 +18,6 @@ output:
       navigation:
         scroll: false      
 ---
-class: top, left
 
 ```{r setup, include = FALSE}
 knitr::opts_chunk$set(
@@ -36,89 +35,24 @@ style_xaringan(
     ".remark-slide-number" = list("display" = "none")))
 ```
 
-# Heading 1
-
-## Heading 2  
-
-### Heading 3  
-
-#### Heading 4  
-
-##### Heading 5  
-
-###### Heading 6  
-
-Standard font  
-
-### <img src="https://raw.githubusercontent.com/rstudio/hex-stickers/master/PNG/rmarkdown.png" width="5%"/>&nbsp; you know R Markdown 
-
----
-class: split-three red
-
-.column.bg-main1[.content[
-  content of first column
-]]
-.column[.content[
-.split-two[
-.column.bg-black[.content.vmiddle.center[
-      This column just got chopped in half.
-     ]]
-.column.bg-indigo[.content.vmiddle.center[
-      This column just got chopped in half.
-     ]]
-]]]
-.column.bg-main1[.content[
-  content of third column
-]]
-
----
-class: split-four black
-
-.row.bg-main1[.content.center[
-  ### Acknowledgements
-]]
-.row.bg-main1[.content[
-  content of second row
-]]
-.row.bg-main1[.content[
-  content of third row
-]]
-.row.bg-main1[.content[
-  content of fourth column
-]]
-
-
----
-
-class: split-33 with-border
-
-.column.bg-main1[.content.vmiddle[
-.center[
-## Layout Slide
-]
-<br>
-### This is where you should write out full the content of your slides. 
-]]
-.column[.content.center[
-# Main Content
-]]
-
-
-```{r child = 'Dissertation_02_Intro.Rmd', eval = TRUE}
+```{r child = 'Dissertation_02_Title.Rmd', eval = TRUE}
 ```
 
-```{r child = 'Dissertation_03_Ch1.Rmd', eval = FALSE}
+```{r child = 'Dissertation_03_Intro.Rmd', eval = FALSE}
 ```
 
-```{r child = 'Dissertation_04_Ch2.Rmd', eval = FALSE}
+```{r child = 'Dissertation_04_Ch1.Rmd', eval = FALSE}
 ```
 
-```{r child = 'Dissertation_05_Ch3.Rmd', eval = FALSE}
+```{r child = 'Dissertation_05_Ch2.Rmd', eval = FALSE}
 ```
 
-```{r child = 'Dissertation_06_Ch4.Rmd', eval = FALSE}
+```{r child = 'Dissertation_06_Ch3.Rmd', eval = FALSE}
 ```
 
-```{r child = 'Dissertation_07_Conclusion.Rmd', eval = FALSE}
+```{r child = 'Dissertation_07_Ch4.Rmd', eval = TRUE}
+```
+
+```{r child = 'Dissertation_08_Conclusion.Rmd', eval = FALSE}
 ```
 

@@ -14,11 +14,11 @@ output:
 params:
   sims: 88:102
   points: "all"
-title: "`r paste0('Sim Results By Sim - ', str_to_title(params$points))`"    
+title: "`r paste0('Sim Results By Sim - ', stringr::str_to_title(params$points))`"    
 ---
 
 ```{r echo=FALSE, fig.width=6, message=FALSE, results="asis"}
-pacman::p_load(imager, kableExtra, knitr, tidyverse)
+pacman::p_load(imager, kableExtra, knitr, tidyverse, stringr)
 sim_id <- "sim_20210725"
 sim_dir <- file.path("C:/TEMP", paste0(sim_id, "-"))  
 sims <- params$sims

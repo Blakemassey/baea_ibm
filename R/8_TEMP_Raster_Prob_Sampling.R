@@ -128,13 +128,13 @@ WeightedGeoMean <- function(x){
   return(geomeans)
 }
 kernel_geomeans <- raster::calc(kernel_stack, fun = WeightedGeoMean)
+plot(kernel_geomeans)
 
 if (behavior_next_i %in% c("Perch", "Roost")){
   prob_raster <- kernel_geomeans * maine_outline_kernel * land_kernel
 } else {
   prob_raster <- kernel_geomeans * maine_outline_kernel
 }
-
 plot(prob_raster)
 
 prob_raster <- prob_raster/raster::cellStats(prob_raster, stat = "sum")
@@ -251,7 +251,7 @@ if(plotting){
     theme(panel.grid.major.y = element_line(color = "grey90"))
   sample_df_sf <- sf::st_as_sf(sample_df, coords = c("x", "y"), crs = 32619,
     agr = "constant")
-  mapview::mapview(hydro_dist_crop) +
+  #mapview::mapview(hydro_dist_crop) +
   mapview::mapview(prob_raster_reclass) +
   mapview::mapview(sample_df_sf) +
   mapview::mapview(start_df_sf, col.regions = "green")

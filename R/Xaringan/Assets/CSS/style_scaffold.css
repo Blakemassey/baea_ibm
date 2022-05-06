@@ -1,0 +1,26 @@
+.split-main1 > .row:first-of-type {
+  height: 10%; width: 100%; position: absolute; top: 0; left: 0;
+  background-color: var(--color-main); color: var(--color-alt);
+}
+.split-main1 > .row:nth-of-type(2) {
+  height: 90%; width: 100%; position: absolute; left: 0; bottom: 0%;
+}
+
+.split-main2 > .row:first-of-type {
+  height: 10%; width: 100%; position: absolute; top: 0; left: 0;
+  background-color: var(--color-main); color: var(--color-alt);
+}
+.split-main2 > .row:nth-of-type(2) {
+  height: 45%; width: 100%; position: absolute; left: 0; top: 10%;
+}
+.split-main2 > .row:nth-of-type(3) {
+  height: 45%; width: 100%; position: absolute; left: 0; bottom: 0%;
+}
+
+/* This changes the size of the symbols and fonts in leaflet */
+.leaflet .legend {
+  line-height: 10px; font-size: 10px;
+}
+.leaflet .legend i{
+  width: 10px; height: 10px;
+}

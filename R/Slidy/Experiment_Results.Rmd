@@ -10,7 +10,7 @@ output:
     theme: flatly
     font_adjustment: 0
     keep_md: false
-    css: "Assets/CSS/style-1.css"    
+    css: "Assets/CSS/style_1.css"    
 params:
 title: "Experiment Results"  
 ---
@@ -382,7 +382,7 @@ map_breaks <- c(1, 10, 100, 1000, 10000, 100000)
 map_c <- mapview(exp_lines_raster_c, at = map_breaks, alpha = .6, 
   layer.name = "Control Path Density") +
   turbines_n_absent + turbines_s_absent + nest_mapview
-map_ns <- mapview(exp_lines_raster_n, at = map_breaks, alpha = .6, 
+map_ns <- mapview(exp_lines_raster_ns, at = map_breaks, alpha = .6, 
   layer.name = "North and South Path Density") +
   turbines_n_present + turbines_s_present + nest_mapview
 map_n <- mapview(exp_lines_raster_n, at = map_breaks, alpha = .6, 

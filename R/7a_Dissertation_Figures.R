@@ -6,8 +6,8 @@
 # Setup ------------------------------------------------------------------------
 
 # Load packages, helpers, and functions
-pacman::p_load(CircStats, gplots, ggplot2, gridExtra, magick, latex2exp,
-  patchwork, reshape2, tidyverse, viridis)
+pacman::p_load(CircStats, gplots, ggplot2, ggpubr, gridExtra, magick, latex2exp,
+  patchwork, reshape2, rstatix, tidyverse, viridis)
 suppressMessages(extrafont::loadfonts(device="win"))
 pacman::p_load(baear, gisr, ibmr)
 
@@ -29,10 +29,25 @@ theme_blank <- theme(legend.position = "none",
   panel.background = element_rect(fill = "transparent", colour = NA),
   plot.background = element_rect(fill = "transparent", colour = NA))
 
+# For Wind Area/Turbine Transits
+theme_transits <- theme(
+    axis.title.y = element_text(margin = margin(t = 0, r = 15, b = 0, l = 0)),
+    axis.title.x = element_text(margin = margin(t = 15, r = 0, b = 0, l = 0)),
+    panel.background = element_rect(fill = "white", colour = NA),
+    axis.ticks = element_line(colour = NA),
+    panel.grid.major.y = element_line(colour = "grey90"),
+    panel.grid.minor = element_line(size = rel(0.5)))
+
+theme_transits_stats <- theme(
+    axis.line = element_line(colour = NA),
+    panel.grid.major.y = element_line(colour = "grey90"),
+    panel.grid.minor.y = element_line(colour = NA))
+
 # Behavior colors
 behavior_colors <- CreateColorsByMetadata(file = file.path("Data/Assets",
   "behavior_colors.csv"), metadata_id = "behavior")
 cruise_flight_colors <- behavior_colors %>% .[1:2]
+flight_color <- behavior_colors %>% .[2]
 sex_colors <- tibble(Female = col2hex("yellow"), Male = col2hex("tomato"))
 
 # ---------------------------- CHAPTER 2 ---------------------------------------
@@ -1070,69 +1085,260 @@ ggsave(filename = "greenville_windrose.svg", plot = gg_windrose,
   path = file.path(tex_dir, "Figures/Ch4"), scale = 1, width = 6, height = 4,
   units = "in", dpi = 300)
 
-# Wind Crossing Summaries ------------------------------------------------------
+# Wind Transits Summaries ------------------------------------------------------
 
-wind_crossings_sum <- readRDS("Output/Experiment/wind_crossings_sum.rds")
+wind_transits_sum <- readRDS("Output/Experiment/wind_transits_sum.rds")
 
-theme_crossings <- theme(
-    axis.title.y = element_text(margin = margin(t = 0, r = 15, b = 0, l = 0)),
-    axis.title.x = element_text(margin = margin(t = 15, r = 0, b = 0, l = 0)),
-    panel.background = element_rect(fill = "white", colour = NA),
-    axis.ticks = element_line(colour = NA),
-    panel.grid.major.y = element_line(colour = "grey90"),
-    panel.grid.minor = element_line(size = rel(0.5)))
-
-gg_north_area <- ggplot(wind_crossings_sum) +
-  geom_boxplot(aes(scenario, y = n_area_prop, fill = behavior_line),
+# North Area (Cruise and Flight)
+gg_north_area_cruiseflight <- ggplot(wind_transits_sum) +
+  geom_boxplot(aes(scenario, y = n_area_steps_n, fill = behavior_line),
     position = "dodge") +
+  ylim(0, NA) +
   labs(x = "Wind Farm Scenario",
-    y ="Steps Crossing North Wind Area\n(Proportion of Total Steps)")+
+    y ="Transits North Wind Area") +
   scale_fill_manual(values = cruise_flight_colors, name = "Behavior") +
   theme_latex +
-  theme_crossings
+  theme_transits
 
-gg_south_area <- ggplot(wind_crossings_sum) +
-  geom_boxplot(aes(scenario, y = s_area_prop, fill = behavior_line),
+# South Area (Cruise and Flight)
+gg_south_area_cruiseflight <- ggplot(wind_transits_sum) +
+  geom_boxplot(aes(scenario, y = n_area_steps_n, fill = behavior_line),
     position = "dodge") +
+  ylim(0, NA) +
   labs(x = "Wind Farm Scenario",
-    y ="Steps Crossing South Wind Area\n(Proportion of Total Steps)")+
+    y = "Transits South Wind Area") +
   scale_fill_manual(values = cruise_flight_colors, name = "Behavior") +
   theme_latex +
-  theme_crossings
+  theme_transits
 
-gg_north_turbines <- ggplot(wind_crossings_sum) +
-  geom_boxplot(aes(scenario, y = n_turbines_prop, fill = behavior_line),
+# North Turbines (Cruise and Flight)
+gg_north_turbines_cruiseflight <- ggplot(wind_transits_sum) +
+  geom_boxplot(aes(scenario, y = n_turbines_steps_n, fill = behavior_line),
     position = "dodge") +
   labs(x = "Wind Farm Scenario",
-    y = "Steps Crossing North Turbines\n(Proportion of Total Steps)")+
+    y = "Transits North Turbines") +
   scale_fill_manual(values = cruise_flight_colors, name = "Behavior") +
   theme_latex +
-  theme_crossings
+  theme_transits
 
-gg_south_turbines <- ggplot(wind_crossings_sum) +
-  geom_boxplot(aes(scenario, y = s_turbines_prop, fill = behavior_line),
+# South Turbines (Cruise and Flight)
+gg_south_turbines_cruiseflight <- ggplot(wind_transits_sum) +
+  geom_boxplot(aes(scenario, y = s_turbines_steps_n, fill = behavior_line),
     position = "dodge") +
   labs(x = "Wind Farm Scenario",
-    y = "Steps Crossing South Turbines\n(Proportion of Total Steps)")+
+    y = "Transits South Turbines") +
   scale_fill_manual(values = cruise_flight_colors, name = "Behavior") +
   theme_latex +
-  theme_crossings
+  theme_transits
 
-ggsave(filename = "North_Area.svg", plot = gg_north_area,
-  path = file.path(tex_dir, "Figures/Ch4/Crossings"), scale = 1, width = 6,
+ggsave(filename = "North_Area_CruiseFlight.svg",
+  plot = gg_north_area_cruiseflight,
+  path = file.path(tex_dir, "Figures/Ch4/Transits"), scale = 1, width = 6,
   height = 5, units = "in", dpi = 300)
 
-ggsave(filename = "South_Area.svg", plot = gg_south_area,
-  path = file.path(tex_dir, "Figures/Ch4/Crossings"), scale = 1, width = 6,
+ggsave(filename = "South_Area_CruiseFlight.svg",
+  plot = gg_south_area_cruiseflight,
+  path = file.path(tex_dir, "Figures/Ch4/Transits"), scale = 1, width = 6,
   height = 5, units = "in", dpi = 300)
 
-ggsave(filename = "North_Turbines.svg", plot = gg_north_turbines,
-  path = file.path(tex_dir, "Figures/Ch4/Crossings"), scale = 1, width = 6,
+ggsave(filename = "North_Turbines_CruiseFlight.svg",
+  plot = gg_north_turbines_cruiseflight,
+  path = file.path(tex_dir, "Figures/Ch4/Transits"), scale = 1, width = 6,
   height = 5, units = "in", dpi = 300)
 
-ggsave(filename = "South_Turbines.svg", plot = gg_south_turbines,
-  path = file.path(tex_dir, "Figures/Ch4/Crossings"), scale = 1, width = 6,
+ggsave(filename = "South_Turbines_CruiseFlight.svg",
+  plot = gg_south_turbines_cruiseflight,
+  path = file.path(tex_dir, "Figures/Ch4/Transits"), scale = 1, width = 6,
   height = 5, units = "in", dpi = 300)
+
+# North Turbines (Flight)
+gg_north_turbines_flight <- wind_transits_sum %>%
+    filter(behavior_line == "Flight") %>%
+  ggplot(.) +
+  geom_boxplot(aes(scenario, y = n_turbines_steps_n, fill = behavior_line),
+    position = "dodge") +
+  ylim(0, NA) +
+  labs(x = "Wind Farm Scenario",
+    y = "Transits North Turbines") +
+  scale_fill_manual(values = flight_color, name = "Behavior") +
+  theme_latex +
+  theme_transits
+
+# South Turbines (Flight)
+gg_south_turbines_flight <- wind_transits_sum %>%
+    filter(behavior_line == "Flight") %>%
+  ggplot(.) +
+  geom_boxplot(aes(scenario, y = s_turbines_steps_n, fill = behavior_line),
+    position = "dodge") +
+  ylim(0, NA) +
+  labs(x = "Wind Farm Scenario",
+    y = "Flight Transits South Turbines") +
+  scale_fill_manual(values = flight_color, name = "Behavior") +
+  theme_latex +
+  theme_transits
+
+ggsave(filename = "North_Turbines_Flight.svg", plot = gg_north_turbines_flight,
+  path = file.path(tex_dir, "Figures/Ch4/Transits"), scale = 1, width = 6,
+  height = 5, units = "in", dpi = 300)
+
+ggsave(filename = "South_Turbines_Flight.svg", plot = gg_south_turbines_flight,
+  path = file.path(tex_dir, "Figures/Ch4/Transits"), scale = 1, width = 6,
+  height = 5, units = "in", dpi = 300)
+
+# Wind Transits Flight Stats ---------------------------------------------------
+
+# Filter data
+wc_flight <- wind_transits_sum %>%
+  filter(behavior_line == "Flight")
+
+wc_flight_north_turbines_stats <- wc_flight %>%
+  t_test(n_turbines_steps_n ~ scenario, ref.group = "Control") %>%
+  adjust_pvalue() %>%
+  add_significance("p.adj")
+
+wc_flight_south_turbines_stats <- wc_flight %>%
+  t_test(s_turbines_steps_n ~ scenario, ref.group = "Control") %>%
+  adjust_pvalue() %>%
+  add_significance("p.adj")
+
+gg_north_turbines_flight_stats <-
+  ggboxplot(wc_flight,
+    x = "scenario", y = "n_turbines_steps_n",
+    xlab = "Wind Farm Scenario",
+    ylab = "Flight Transits of North Turbines",
+    fill = "scenario", palette = "jco") +
+  stat_pvalue_manual(wc_flight_north_turbines_stats, label.size = 5,
+    label = "p = {p.adj}{p.adj.signif}",
+    y.position = c(14, 16, 18)) +
+  scale_y_continuous(expand = c(0, NA), limits = c(0, 19)) +
+  theme_blank +
+  theme_transits +
+  theme_transits_stats +
+  theme(legend.position = "none")
+gg_north_turbines_flight_stats
+
+gg_south_turbines_flight_stats <-
+  ggboxplot(wc_flight,
+    x = "scenario", y = "s_turbines_steps_n",
+    xlab = "Wind Farm Scenario",
+    ylab = "Flight Transits of South Turbines",
+    fill = "scenario", palette = "jco") +
+  stat_pvalue_manual(wc_flight_south_turbines_stats, label.size = 5,
+    label = "p = {p.adj}{p.adj.signif}",
+    y.position = c(39, 43, 47)) +
+  scale_y_continuous(expand = expansion(mult = c(0, 0)), limits = c(0, 49.9)) +
+  theme_latex +
+  theme_transits +
+  theme_transits_stats +
+  theme(legend.position = "none")
+gg_south_turbines_flight_stats
+
+ggsave(filename = "North_Turbines_Flight_Stats.svg",
+  plot = gg_north_turbines_flight_stats,
+  path = file.path(tex_dir, "Figures/Ch4/Transits"), scale = 1, width = 6,
+  height = 5, units = "in", dpi = 300)
+
+ggsave(filename = "South_Turbines_Flight_Stats.svg",
+  plot = gg_south_turbines_flight_stats,
+  path = file.path(tex_dir, "Figures/Ch4/Transits"), scale = 1, width = 6,
+  height = 5, units = "in", dpi = 300)
+
+# Predicted Collision Risk -----------------------------------------------------
+
+collision_risk <- readRDS("Output/Experiment/flight_collision_risk.rds")
+
+# Collisions with North turbines (only relevant for North and North/South
+gg_n_turbines_collison_risk <- collision_risk %>%
+  filter(scenario == "North" | scenario == "North and South") %>%
+  ggplot(.) +
+  geom_boxplot(aes(scenario, y = n_turbines_collision_risk),
+    fill = flight_color) +
+  labs(x = "Wind Farm Scenario", y = paste0("Predicted Collisions with North",
+    " Turbines\nPer Eagle Per Breeding Season\n(Zero Avoidance)")) +
+  theme_latex +
+  theme_transits +
+  theme_transits_stats +
+  theme(legend.position = "none")
+gg_n_turbines_collison_risk
+
+gg_n_turbines_collison_risk_95avoid <- collision_risk %>%
+  filter(scenario == "North" | scenario == "North and South") %>%
+  ggplot(.) +
+  geom_boxplot(aes(scenario, y = n_turbines_collision_risk_95avoid),
+    fill = flight_color) +
+  labs(x = "Wind Farm Scenario", y = paste0("Predicted Collisions with North",
+    " Turbines\nPer Eagle Per Breeding Season\n(95% Avoidance)")) +
+  theme_latex +
+  theme_transits +
+  theme_transits_stats +
+  theme(legend.position = "none")
+gg_n_turbines_collison_risk_95avoid
+
+ggsave(filename = "North_Turbines_Zero_Avoidance.svg",
+  plot = gg_n_turbines_collison_risk,
+  path = file.path(tex_dir, "Figures/Ch4/Collision_Risk"), scale = 1, width = 6,
+  height = 5, units = "in", dpi = 300)
+
+ggsave(filename = "North_Turbines_95_Avoidance.svg",
+  plot = gg_n_turbines_collison_risk_95avoid,
+  path = file.path(tex_dir, "Figures/Ch4/Collision_Risk"), scale = 1, width = 6,
+  height = 5, units = "in", dpi = 300)
+
+# Collisions with North turbines (only relevant for North and North/South
+gg_s_turbines_collison_risk <- collision_risk %>%
+  filter(scenario == "South" | scenario == "North and South") %>%
+  ggplot(.) +
+  geom_boxplot(aes(scenario, y = s_turbines_collision_risk),
+    fill = flight_color) +
+  labs(x = "Wind Farm Scenario", y = paste0("Predicted Collisions with South ",
+    "Turbines\nPer Eagle Per Breeding Season\n(Zero Avoidance)")) +
+  theme_latex +
+  theme_transits +
+  theme_transits_stats +
+  theme(legend.position = "none")
+gg_s_turbines_collison_risk
+
+gg_s_turbines_collison_risk_95avoid <- collision_risk %>%
+  filter(scenario == "South" | scenario == "North and South") %>%
+  ggplot(.) +
+  geom_boxplot(aes(scenario, y = s_turbines_collision_risk_95avoid),
+    fill = flight_color) +
+  labs(x = "Wind Farm Scenario", y = paste0("Predicted Collisions with South ",
+    "Turbines\nPer Eagle Per Breeding Season\n(95% Avoidance)")) +
+  theme_latex +
+  theme_transits +
+  theme_transits_stats +
+  theme(legend.position = "none")
+gg_s_turbines_collison_risk_95avoid
+
+ggsave(filename = "South_Turbines_Zero_Avoidance.svg",
+  plot = gg_s_turbines_collison_risk,
+  path = file.path(tex_dir, "Figures/Ch4/Collision_Risk"), scale = 1, width = 6,
+  height = 5, units = "in", dpi = 300)
+
+ggsave(filename = "South_Turbines_95_Avoidance.svg",
+  plot = gg_s_turbines_collison_risk_95avoid,
+  path = file.path(tex_dir, "Figures/Ch4/Collision_Risk"), scale = 1, width = 6,
+  height = 5, units = "in", dpi = 300)
+
+# Collisions under different scenarios
+gg_scenario_collison_risk_95avoid <- collision_risk %>%
+  ggplot(.) +
+  geom_boxplot(aes(scenario, y = turbines_collision_risk_95avoid),
+    fill = flight_color) +
+  labs(x = "Wind Farm Scenario", y = paste0("Predicted Collisions with ",
+    "Turbines\nPer Eagle Per Breeding Season\n(95% Avoidance)")) +
+  theme_latex +
+  theme_transits +
+  theme_transits_stats +
+  theme(legend.position = "none")
+gg_scenario_collison_risk_95avoid
+
+ggsave(filename = "All_Scenarios_Turbines_95_Avoidance.svg",
+  plot = gg_scenario_collison_risk_95avoid,
+  path = file.path(tex_dir, "Figures/Ch4/Collision_Risk"), scale = 1, width = 6,
+  height = 5, units = "in", dpi = 300)
+
 
 # ---------------------------------------------------------------------------- #
 ################################ OLD CODE ######################################
@@ -1175,3 +1381,39 @@ ggsave(filename = "South_Turbines.svg", plot = gg_south_turbines,
 # SexLabeller <- function(variable, value){
 #   return(sex_names[value])
 # }
+
+# gg_north_area <- ggplot(wind_transits_sum) +
+#   geom_boxplot(aes(scenario, y = n_area_prop, fill = behavior_line),
+#     position = "dodge") +
+#   labs(x = "Wind Farm Scenario",
+#     y ="Steps Transits North Wind Area\n(Proportion of Total Steps)")+
+#   scale_fill_manual(values = cruise_flight_colors, name = "Behavior") +
+#   theme_latex +
+#   theme_transits
+#
+# gg_south_area <- ggplot(wind_transits_sum) +
+#   geom_boxplot(aes(scenario, y = s_area_prop, fill = behavior_line),
+#     position = "dodge") +
+#   labs(x = "Wind Farm Scenario",
+#     y ="Steps Transits South Wind Area\n(Proportion of Total Steps)")+
+#   scale_fill_manual(values = cruise_flight_colors, name = "Behavior") +
+#   theme_latex +
+#   theme_transits
+#
+# gg_north_turbines <- ggplot(wind_transits_sum) +
+#   geom_boxplot(aes(scenario, y = n_turbines_prop, fill = behavior_line),
+#     position = "dodge") +
+#   labs(x = "Wind Farm Scenario",
+#     y = "Steps Transits North Turbines\n(Proportion of Total Steps)")+
+#   scale_fill_manual(values = cruise_flight_colors, name = "Behavior") +
+#   theme_latex +
+#   theme_transits
+#
+# gg_south_turbines <- ggplot(wind_transits_sum) +
+#   geom_boxplot(aes(scenario, y = s_turbines_prop, fill = behavior_line),
+#     position = "dodge") +
+#   labs(x = "Wind Farm Scenario",
+#     y = "Steps Transits South Turbines\n(Proportion of Total Steps)")+
+#   scale_fill_manual(values = cruise_flight_colors, name = "Behavior") +
+#   theme_latex +
+#   theme_transits

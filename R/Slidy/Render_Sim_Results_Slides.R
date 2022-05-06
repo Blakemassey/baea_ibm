@@ -8,17 +8,17 @@ sim_max <- sim_log %>% pull(sim) %>% unique(.) %>% str_remove(., ".*-") %>%
 sims_all <- c(1:5, 7:sim_max)
 sims_subset_1 <- c(70:99)
 sims_subset_2 <- c(88:sim_max)
-sims_subset_3 <- c(103,104,108,109,110,111,112,77,78,105,100,107,101,106)
+sims_subset_3 <- c(89:103,104,108,109,110,111,112,77,78,105,100,107,101,106)
 sims_subset_4 <- c(76, 77, 78)
 
 sims_group_1 <- c(78, 81:84)
 sims_group_2 <- c(77, 85:88)
 
-sims_vec <- sims_subset_4
+sims_vec <- c(sims_subset_3)
 sims_group <- sims_group_1
 
 nest_vec <- c("Ellis", "Hebron", "Musquash", "Sandy")
-points_vec <- c("all", "air", "stationary")
+points_vec <- "air" #c("all", "air", "stationary")
 
 # Directories
 slide_dir <- "C:/Users/blake/Desktop/Slidy_Presentations"

@@ -14,14 +14,15 @@ suppressMessages(extrafont::loadfonts(device = "win"))
 #devtools::reload("C:/Users/blake/OneDrive/Work/R/Packages/ibmr")
 
 # Variables
+site <- "Grand_Lake"
 agg_factor <- 10
-exp_ids <- 1:15 %>%
+exp_ids <- 1:10 %>%
   str_pad(., width = 2, side = "left", pad = "0")
 mapping <- FALSE
 
 # Experiment simulation files in TEMP directory
 exp_vec <- list.dirs("C:/TEMP", recursive = FALSE, full.names = TRUE) %>%
-  str_subset(., paste0("Wilson_[:alpha:]{1,}-")) %>%
+  str_subset(., paste0(site, "_[:alpha:]{1,}-")) %>%
   str_subset(., exp_ids %>% paste0("-", .) %>% paste0(., collapse = "|"))
 
 # Directories
@@ -115,7 +116,7 @@ for (i in c("Cruise", "Flight")){
 
     # Save RDS
     saveRDS(step_lines_j_rasterize, file.path(exp_output_dir, agg_factor_dir,
-      paste0("Exp_Lines_", i, "_", j,".rds")))
+      paste0("Exp_Lines_", site, "_", i, "_", j,".rds")))
 
     # Clean up objects
     rm(step_lines_j_sp, step_lines_j_rasterize)

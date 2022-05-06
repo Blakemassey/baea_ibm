@@ -35,26 +35,26 @@ wc_sum_stats <- wc_sum %>%
   filter(variable %in% c("n_area_steps_n", "s_area_steps_n",
     "n_turbines_steps_n", "s_turbines_steps_n"))
 
-ggplot(wc_sum) +
-  geom_boxplot(aes(x = scenario, y = n_area_steps_n, fill = behavior_line),
-    position = "dodge") +
-  labs(x = "Wind Farm Scenario",
-    y ="Steps Crossing North Wind Area")+
-  scale_fill_manual(values = cruise_flight_colors, name = "Behavior")
-
-ggplot(wc_sum) +
-  geom_boxplot(aes(x = scenario, y = s_area_steps_n, fill = behavior_line),
-    position = "dodge") +
-  labs(x = "Wind Farm Scenario",
-    y ="Steps Crossing South Wind Area")+
-  scale_fill_manual(values = cruise_flight_colors, name = "Behavior")
-
-ggplot(wc_sum) +
-  geom_boxplot(aes(x = scenario, y = n_turbines_steps_n, fill = behavior_line),
-    position = "dodge") +
-  labs(x = "Wind Farm Scenario",
-    y ="Steps Crossing South Wind Area")+
-  scale_fill_manual(values = cruise_flight_colors, name = "Behavior")
+# ggplot(wc_sum) +
+#   geom_boxplot(aes(x = scenario, y = n_area_steps_n, fill = behavior_line),
+#     position = "dodge") +
+#   labs(x = "Wind Farm Scenario",
+#     y ="Steps Crossing North Wind Area")+
+#   scale_fill_manual(values = cruise_flight_colors, name = "Behavior")
+#
+# ggplot(wc_sum) +
+#   geom_boxplot(aes(x = scenario, y = s_area_steps_n, fill = behavior_line),
+#     position = "dodge") +
+#   labs(x = "Wind Farm Scenario",
+#     y ="Steps Crossing South Wind Area")+
+#   scale_fill_manual(values = cruise_flight_colors, name = "Behavior")
+#
+# ggplot(wc_sum) +
+#   geom_boxplot(aes(x = scenario, y = n_turbines_steps_n, fill = behavior_line),
+#     position = "dodge") +
+#   labs(x = "Wind Farm Scenario",
+#     y ="Steps Crossing South Wind Area")+
+#   scale_fill_manual(values = cruise_flight_colors, name = "Behavior")
 
 
 # Filter data
@@ -162,7 +162,7 @@ wc_cruise_north_turbines_plot <-
     x = "scenario", y = "n_turbines_prop",
     xlab = "Wind Farm Scenario",
     ylab = "North Turbines Crossings - Cruise\n(Proportion of Total Steps)",
-    color = "scenario", palette = "jco") +
+    fill = "scenario", palette = "jco") +
   stat_pvalue_manual(wc_cruise_north_turbines, label.size = 5,
     label = "p = {p.adj}{p.adj.signif}",
     y.position = c(.05, .0575, .065)) +
@@ -175,7 +175,7 @@ wc_cruise_south_turbines_plot <-
     x = "scenario", y = "s_turbines_prop",
     xlab = "Wind Farm Scenario",
     ylab = "South Turbines Crossings - Cruise\n(Proportion of Total Steps)",
-    color = "scenario", palette = "jco") +
+    fill = "scenario", palette = "jco") +
   stat_pvalue_manual(wc_cruise_south_turbines, label.size = 5,
     label = "p = {p.adj}{p.adj.signif}",
     y.position = c(.055, .06, .065)) +
@@ -191,7 +191,7 @@ wc_flight_north_turbines_plot <-
     color = "scenario", palette = "jco") +
   stat_pvalue_manual(wc_flight_north_turbines, label.size = 5,
     label = "p = {p.adj}{p.adj.signif}",
-    y.position = c(.023, .025, .027)) +
+    y.position = c(.0075, .0085, .0095)) +
   theme_latex +
   theme_crossings
 wc_flight_north_turbines_plot

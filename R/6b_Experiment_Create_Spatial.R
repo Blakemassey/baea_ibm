@@ -12,36 +12,20 @@ rasterOptions(maxmem = Inf, progress = "text", timer = TRUE,
 wbt_version() # check WhiteboxTools version
 arc.check_product()
 
-# Set run parameters (IMPORTANT) dist_turbine file and ssf_raster_dir
-dist_turbine_raster_file <- "dist_turbines_wilson_c.tif"
-ssf_raster_dir <- "C:/ArcGIS/Data/R_Input/EXP/SSF_Rasters_C"
-model_id <- "Wilson_C"
-
-# Model directories
+# Directories
 mod_dir <- "Output/Analysis/SSF/Models"
 mod_best_dir <- file.path(mod_dir, "model_fits_best")
-
-# Model files
-fits_best_file <- file.path(mod_best_dir, "model_fits_best.rds")
-preds_tbl_file <- file.path(mod_best_dir, "preds_tbl.rds")
-
-# Input directory
-input_dir <- "C:/ArcGIS/Data/R_Input/EXP"
 baea_covars_crop <- "C:/ArcGIS/Data/R_Input/BAEA/SSF_Rasters/Covars_Crop"
-
-# SSF directories
-covars_crop_dir <- file.path(ssf_raster_dir, "Covars_Crop")
-ssf_value_dir <- file.path(ssf_raster_dir, "Step_Types")
-ssf_prob_dir <- file.path(ssf_raster_dir, "Step_Types_Prob")
+wilson_input_dir <- "C:/ArcGIS/Data/R_Input/EXP/Wilson"
+grand_lake_input_dir <- "C:/ArcGIS/Data/R_Input/EXP/Grand_Lake"
 map_temp_dir <- "C:/TEMP/SSF_Maps"
 
-# Maine files
-wilson_base_file <- file.path(input_dir, "wilson_base_50km.tif")
-wilson_raster_trim_file <- wilson_base_file
-
-# Nests
-nests_study_file <- file.path("C:/Users/blake/OneDrive/Work/R/Projects/",
-  "baea_ibm/Data/Nests/Nests_rds/nests_study.rds")
+# Files
+fits_best_file <- file.path(mod_best_dir, "model_fits_best.rds")
+preds_tbl_file <- file.path(mod_best_dir, "preds_tbl.rds")
+wilson_base_file <- file.path(wilson_input_dir, "wilson_base_50km.tif")
+grand_lake_base_file <- file.path(wilson_input_dir, "grand_lake_base_50km.tif")
+nests_study_file <- "Data/Nests/Nests_rds/nests_study.rds"
 
 # Theme (for LaTeX font)
 theme_latex <- theme(text = element_text(family = "Latin Modern Roman")) +
@@ -58,12 +42,30 @@ om_nat_geo <- paste0(esri_url, "NatGeo_World_Map", esri_tile)
 wgs84 <- CRS("+init=epsg:4326") # WGS84 Lat/Long
 wgs84n19 <- CRS("+init=epsg:32619") # WGS84 UTM 19N
 
-# Move and Crop Covar Files ----------------------------------------------------
+# Import Files -----------------------------------------------------------------
 
 ssf_fits_best <- readRDS(fits_best_file)
-ssf_fits_best %>% pluck("model_full") %>% unlist()
+wilson_raster_trim <- raster(wilson_base_file)
+grand_lake_raster_trim <- raster(grand_lake_base_file)
 
-wilson_raster_trim <- raster(wilson_raster_trim_file)
+# WILSON -----------------------------------------------------------------------
+
+# Set scenario (IMPORTANT!)
+model_scenario <- "N"
+
+# Set run parameters based on scenario
+model_id <- paste0("Wilson_", model_scenario)
+dist_turbine_raster_file <- paste0("dist_turbines_wilson_",
+  str_to_lower(model_scenario), ".tif")
+ssf_raster_dir <- file.path(wilson_input_dir, paste0("SSF_Rasters_",
+  model_scenario))
+
+# Set directories
+covars_crop_dir <- file.path(ssf_raster_dir, "Covars_Crop")
+#ssf_value_dir <- file.path(ssf_raster_dir, "Step_Types") # Not needed?
+ssf_prob_dir <- file.path(ssf_raster_dir, "Step_Types_Prob")
+
+# Move and Crop Covar Files ----------------------------------------------------
 
 # For each step_type fit covar, get BAEA covar_crop, crop to Wilson, add to
 # Covars_Crop
@@ -76,12 +78,14 @@ for (i in 1:nrow(ssf_fits_best)){
     covars_i_j <- covars_i[j]
     writeLines(paste0("covariates: ", covars_i_j))
     out_file <- file.path(covars_crop_dir, paste0(covars_i_j, ".tif"))
+    if(!dir.exists(ssf_raster_dir)) dir.create(ssf_raster_dir)
+    if(!dir.exists(covars_crop_dir)) dir.create(covars_crop_dir)
     if(!file.exists(out_file)){
       raster_file <- file.path(baea_covars_crop, paste0(covars_i_j, ".tif"))
       covar_raster <- raster(raster_file)
       covar_raster_crop <- crop(covar_raster, wilson_raster_trim)
       covar_raster_mask <- mask(covar_raster_crop, wilson_raster_trim)
-        writeRaster(covar_raster_mask, out_file, format = "GTiff",
+      writeRaster(covar_raster_mask, out_file, format = "GTiff",
         overwrite = TRUE)
     }
   }
@@ -89,7 +93,8 @@ for (i in 1:nrow(ssf_fits_best)){
 
 # Swap Out 'dist_turbine0' File ------------------------------------------------
 
-dist_turbine_raster <- raster(file.path(input_dir, dist_turbine_raster_file))
+dist_turbine_raster <- raster(file.path(wilson_input_dir,
+  dist_turbine_raster_file))
 out_file <- file.path(covars_crop_dir, paste0("dist_turbine0.tif"))
 writeRaster(dist_turbine_raster, out_file, format = "GTiff", overwrite = TRUE)
 
@@ -169,6 +174,7 @@ if(nrow(ssf_fits_best_updates) > 0){
     # Write Rasters to output dir
     step_type_i_numeric <- step_type_i %>% str_replace_all(c("cruise" = "1",
       "flight" = "2", "nest" = "3", "perch" = "4", "roost" = "5"))
+    if(!dir.exists(ssf_prob_dir)) dir.create(ssf_prob_dir)
     writeRaster(ssf_prob_raster, file.path(ssf_prob_dir, step_type_i_numeric),
       format = "GTiff", overwrite = TRUE)
     rm(coefs_i, covars_brick, raster_file, ssf_formula, ssf_value_raster,
@@ -176,6 +182,144 @@ if(nrow(ssf_fits_best_updates) > 0){
     gc()
   }
 }
+
+# GRAND LAKE -------------------------------------------------------------------
+
+# Set scenario (IMPORTANT!)
+model_scenario <- "NS"
+
+# Set run parameters based on scenario
+model_id <- paste0("Grand_Lake_", model_scenario)
+dist_turbine_raster_file <- paste0("dist_turbines_grand_lake_",
+  str_to_lower(model_scenario), ".tif")
+ssf_raster_dir <- file.path(grand_lake_input_dir, paste0("SSF_Rasters_",
+  model_scenario))
+
+# Set directories
+covars_crop_dir <- file.path(ssf_raster_dir, "Covars_Crop")
+ssf_value_dir <- file.path(ssf_raster_dir, "Step_Types")
+ssf_prob_dir <- file.path(ssf_raster_dir, "Step_Types_Prob")
+
+# Move and Crop Covar Files ----------------------------------------------------
+
+# For each step_type fit covar, get BAEA covar_crop, crop to Grand Lake, add to
+# Covars_Crop
+for (i in 1:nrow(ssf_fits_best)){
+  step_type_i <- ssf_fits_best %>% slice(i) %>% pull(step_type)
+  writeLines(paste0("Creating SSF Layer for: ", step_type_i))
+  covars_i <- ssf_fits_best %>% slice(i) %>% pluck("covar_fitted",
+    1) %>% pull("covar_clean") %>% str_remove_all("\\^2") %>% unique()
+  for (j in seq_along(covars_i)){
+    covars_i_j <- covars_i[j]
+    writeLines(paste0("covariates: ", covars_i_j))
+    out_file <- file.path(covars_crop_dir, paste0(covars_i_j, ".tif"))
+    if(!dir.exists(ssf_raster_dir)) dir.create(ssf_raster_dir)
+    if(!dir.exists(covars_crop_dir)) dir.create(covars_crop_dir)
+    if(!file.exists(out_file)){
+      raster_file <- file.path(baea_covars_crop, paste0(covars_i_j, ".tif"))
+      covar_raster <- raster(raster_file)
+      covar_raster_crop <- crop(covar_raster, grand_lake_raster_trim)
+      covar_raster_mask <- mask(covar_raster_crop, grand_lake_raster_trim)
+      writeRaster(covar_raster_mask, out_file, format = "GTiff",
+        overwrite = TRUE)
+    }
+  }
+}
+
+# Swap Out 'dist_turbine0' File ------------------------------------------------
+
+dist_turbine_raster <- raster(file.path(grand_lake_input_dir,
+  dist_turbine_raster_file))
+plot(dist_turbine_raster)
+out_file <- file.path(covars_crop_dir, paste0("dist_turbine0.tif"))
+writeRaster(dist_turbine_raster, out_file, format = "GTiff", overwrite = TRUE)
+
+# Create SSF Layers ------------------------------------------------------------
+
+# Groups to update SSF_Raster/Covars_Crop layers (e.g. 1_1.tif)
+step_type_updates <- tribble(
+   ~step_type,  ~step_type_group,
+  "cruise_cruise", "ac",
+  "cruise_flight", "af",
+  "cruise_perch",  "ap",
+  "flight_cruise", "ac",
+  "flight_flight", "af",
+  "flight_perch",  "ap",
+  "flight_roost",  "ar",
+  "nest_cruise",   "sc",
+  "nest_flight",   "sf",
+  "nest_perch",    "sp",
+  "nest_roost",    "sr",
+  "perch_cruise",  "sc",
+  "perch_flight",  "sf",
+  "perch_perch",   "sp",
+  "perch_roost",   "sr",
+  "roost_flight",  "sf",
+  "roost_perch",   "sp") %>%
+  pull(step_type)
+
+ssf_fits_best_updates <- ssf_fits_best %>%
+  filter(step_type %in% step_type_updates)
+
+if(nrow(ssf_fits_best_updates) > 0){
+  for (i in 1:nrow(ssf_fits_best_updates)){
+    step_type_i <- ssf_fits_best_updates %>% slice(i) %>% pull(step_type)
+    writeLines(paste0("Creating SSF Layer for: ", step_type_i))
+
+    covars_i <- ssf_fits_best_updates %>% slice(i) %>% pluck("covar_fitted",
+      1) %>% pull("covar_clean") %>% str_remove_all("\\^2") %>% unique()
+
+    # Create Raster_Brick
+    covars_list <- vector(mode = "list", length = length(covars_i))
+    for (j in seq_along(covars_i)){
+      covars_i_j <- covars_i[j]
+      writeLines(paste0("covariates: ", covars_i_j))
+      raster_file <- file.path(covars_crop_dir, paste0(covars_i_j, ".tif"))
+      covars_list[[j]] <- raster(raster_file)
+      writeLines(paste0(extent(covars_list[[j]])))
+    }
+    covars_brick <- raster::brick(covars_list)
+    rm(covars_list)
+
+    # Generate formula
+    covars_clean_i <- ssf_fits_best_updates %>% slice(i) %>%
+      pluck("covar_fitted", 1) %>%
+      pull("covar_clean")
+
+    covars_i <- ifelse(str_detect(covars_clean_i, "\\^2"),
+      paste0("covars_brick[['", str_remove_all(covars_clean_i, "\\^2"),"']]^2"),
+      paste0("covars_brick[['", covars_clean_i, "']]"))
+
+    coefs_i <- ssf_fits_best_updates %>% slice(i) %>% pluck("covar_fitted",
+      1) %>% pull("coef_signif")
+
+    # Generate formulas
+    ssf_formula <- paste0("(", paste0(paste0(coefs_i, "*", covars_i),
+      collapse = ") + ("), ")")
+    writeLines(ssf_formula)
+
+    # Create value raster, then crop and mask
+    ssf_value_raster <- eval(parse(text = ssf_formula))
+    #plot(ssf_value_raster, main = step_type_i)
+
+    # Calculate probability
+    ssf_prob_raster <- raster::calc(ssf_value_raster, fun = boot::inv.logit)
+    #plot(ssf_prob_raster, main = step_type_i)
+    #hist(ssf_prob_raster)
+
+    # Write Rasters to output dir
+    step_type_i_numeric <- step_type_i %>% str_replace_all(c("cruise" = "1",
+      "flight" = "2", "nest" = "3", "perch" = "4", "roost" = "5"))
+    if(!dir.exists(ssf_prob_dir)) dir.create(ssf_prob_dir)
+    writeRaster(ssf_prob_raster, file.path(ssf_prob_dir, step_type_i_numeric),
+      format = "GTiff", overwrite = TRUE)
+    rm(coefs_i, covars_brick, raster_file, ssf_formula, ssf_value_raster,
+      ssf_prob_raster, step_type_i_numeric)
+    gc()
+  }
+}
+
+# MAPPING ----------------------------------------------------------------------
 
 # Generate Maps for Nest by Step Type ------------------------------------------
 

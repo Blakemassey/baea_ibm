@@ -1,10 +1,10 @@
 pacman::p_load(tidyverse, ggthemes)
 sample_n <- 10000
-sample_vec <- sample(10, size = sample_n, replace = T, 1:10/10)
-sample_vec <- sample(10, size = sample_n, replace = T, c(1:10)^2/100)
-sample_vec <- sample(10, size = sample_n, replace = T, c(2^(1:10)/100))
+sample_vec1 <- sample(1:10, size = sample_n, replace = T, 1:10/10)
+sample_vec2 <- sample(1:10, size = sample_n, replace = T, c(1:10)^2/100)
+sample_vec3 <- sample(1:10, size = sample_n, replace = T, c(2^(1:10)/100))
 
-prob_sample = as_tibble_col(sample_vec,
+prob_sample = as_tibble_col(sample_vec1,
   column_name = "x") %>%
   mutate(x = as.factor(x))
 ggplot(prob_sample) +

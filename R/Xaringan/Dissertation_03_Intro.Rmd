@@ -1,0 +1,83 @@
+
+---
+class: split-20 
+
+.row.bg-main1[.content.center[
+### Acknowledgments - Advisors
+]]
+.row[.content.center[
+.split-four[
+.column[.content.fig90[
+    #### Kevin McGarigal
+    ![](Assets/Images/People/Kevin_McGarigal.jpg)
+]]
+.column[.content.fig90[
+    #### Curt Griffin  
+    ![](Assets/Images/People/Curt_Griffin.jpg)  
+]]
+.column[.content.fig90[
+    #### Matt Lackner
+    ![](Assets/Images/People/Matt_Lackner.jpg)        
+]]
+.column[.content.fig90[
+    #### Erynn Call
+    ![](Assets/Images/People/Erynn_Call.jpg)             
+]]
+]]]
+.white[NOTE: For some reason there needs to be text after the last bracket.]
+
+---
+class: split-20 
+
+.row.bg-main1[.content.center[
+### Acknowledgments - Lab Mates
+]]
+.row[.content.center[
+.split-three[
+.column[.content.fig90[
+    #### Javan Bauder
+    ![](Assets/Images/People/Kevin_McGarigal.jpg)
+]]
+.column[.content.fig90[
+    #### Kathy Zeller  
+    ![](Assets/Images/People/Curt_Griffin.jpg)  
+]]
+.column[.content.fig90[
+    #### Kristopher Winiarski
+    ![](Assets/Images/People/Kris_Winiarski.jpg)        
+]]
+]]]
+.white[NOTE: For some reason there needs to be text after the last bracket.]
+
+---
+class: split-20 
+
+.row.bg-main1[.content.center[
+### Acknowledgments - Field Crew
+]]
+.row[.content.center[
+.split-five[
+.column[.content.fig90[
+    #### Chris Desorbo
+    ![](Assets/Images/People/Kevin_McGarigal.jpg)
+]]
+.column[.content.fig90[
+    #### Lauren Gilpatrick  
+    ![](Assets/Images/People/Curt_Griffin.jpg)  
+]]
+.column[.content.fig90[
+    #### Chris Persico
+    ![](Assets/Images/People/Chris_Persico.jpg)        
+]]
+.column[.content.fig90[
+    #### Bill Hanson
+    ![](Assets/Images/People/Matt_Lackner.jpg)             
+]]
+.column[.content.fig90[
+    #### Rick Gray
+    ![](Assets/Images/People/Matt_Lackner.jpg)             
+]]
+]]]
+.white[NOTE: For some reason there needs to be text after the last bracket.]
+
+

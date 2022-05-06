@@ -1011,9 +1011,9 @@ wilson_natgeo_osm <- maptiles::get_tiles(x = wilson_bb_sfc,
   verbose = TRUE, zoom = 12, forceDownload = TRUE)
 
 # Colors
-nest_color <- "yellow"
+nest_color <- "red"
 wind_area_color <- "darkorange"
-turbine_color <- "purple"
+turbine_color <- "white"
 
 # Wilson Turbines --------------------------------------------------------------
 
@@ -1105,7 +1105,8 @@ tmap_wilson_c <-
 
 tmap_wilson_n <- tmap_wilson_c +
   tm_shape(wilson_wt_n_buff, title = "Wind Turbines") +
-    tm_polygons(col = turbine_color, border.col = "black",  lwd = 1)
+    tm_polygons(col = turbine_color,
+      border.col = "black",  lwd = 1)
 
 tmap_wilson_s <- tmap_wilson_c +
   tm_shape(wilson_wt_s_buff, title = "Wind Turbines") +
@@ -1120,19 +1121,19 @@ tmap_wilson_ns <- tmap_wilson_n +
 tmap_save(tm = tmap_wilson_c, filename = file.path(tex_dir, "Figures/Ch4",
   "Wilson_Scenarios", "Wilson_C.svg"), insets_tm = wilson_overview,
   insets_vp =  viewport(x = 0.853, y = .141, width = 0.25, height = 0.25),
-  unit = "in", dpi = 300, height = 6, width = 6.1)
+  unit = "in", dpi = 300, height = 6, width = 6)
 tmap_save(tm = tmap_wilson_n, filename = file.path(tex_dir, "Figures/Ch4",
   "Wilson_Scenarios", "Wilson_N.svg"), insets_tm = wilson_overview,
   insets_vp =  viewport(x = 0.853, y = .141, width = 0.25, height = 0.25),
-  unit = "in", dpi = 300, height = 6, width = 6.1)
+  unit = "in", dpi = 300, height = 6, width = 6)
 tmap_save(tm = tmap_wilson_s, filename = file.path(tex_dir, "Figures/Ch4",
   "Wilson_Scenarios", "Wilson_S.svg"), insets_tm = wilson_overview,
   insets_vp =  viewport(x = 0.853, y = .141, width = 0.25, height = 0.25),
-  unit = "in", dpi = 300, height = 6, width = 6.1)
+  unit = "in", dpi = 300, height = 6, width = 6)
 tmap_save(tm = tmap_wilson_ns, filename = file.path(tex_dir, "Figures/Ch4",
   "Wilson_Scenarios", "Wilson_NS.svg"), insets_tm = wilson_overview,
   insets_vp =  viewport(x = 0.853, y = .141, width = 0.25, height = 0.25),
-  unit = "in", dpi = 300, height = 6, width = 6.1)
+  unit = "in", dpi = 300, height = 6, width = 6)
 
 # Wilson SSF Maps --------------------------------------------------------------
 
@@ -1259,9 +1260,9 @@ for (j in seq_len(length(exp_scenarios))){
 
 # Variables
 mapping <- FALSE
-nest_color <- "yellow"
+nest_color <- "red"
 wind_area_color <- "darkorange"
-turbine_color <- "purple"
+turbine_color <- "white"
 turbine_color_present <- "white"
 turbine_color_absent <- "black"
 
@@ -1336,8 +1337,8 @@ for (j in c("Cruise", "Flight")){
         legend.reverse = TRUE, style = "log10_pretty",
         title = "Path Density") +
       tm_shape(nest_wilson) +
-      tm_symbols(shape = 20, #border.col = "black", border.lwd = .5,
-        col = "red", size = .075) +
+      tm_symbols(shape = 21, border.col = "black", border.lwd = 1,
+        col = nest_color, size = .5) +
       tm_compass(type = "4star",  show.labels = 1, size = 2.5,
         position = c(.85, .87)) +
       tm_scale_bar(text.size = .75, breaks = c(0, 10, 20),
@@ -1369,7 +1370,8 @@ for (j in c("Cruise", "Flight")){
 
     turbines_n_present <-  tm_shape(wilson_wt_n_buff, title = "Wind Turbines") +
       tm_polygons(col = turbine_color_present,
-        border.col = turbine_color_present, lwd = 1)
+        border.col = turbine_color_present,
+        lwd = 1)
 
     turbines_n_absent <-  tm_shape(wilson_wt_n_buff, title = "Wind Turbines") +
       tm_polygons(col = turbine_color_absent,
