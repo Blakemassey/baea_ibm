@@ -8,17 +8,25 @@ pacman::p_load(baear, gisr, ibmr)
 pacman::p_load(gpindex, mapview, rgdal, sf, tictoc, tidyverse, lubridate,
   rstatix)
 
+# Variables
+site <-  "Grand_Lake" #"Wilson"
+
 # Directories
 exp_dir <- "C:/TEMP"
-exp_turbines_dir <- "C:/ArcGIS/Data/R_Input/EXP"
+exp_turbines_dir <- file.path("C:/ArcGIS/Data/R_Input/EXP", site)
 wind_output_dir <- "Output/Analysis/Wind"
 exp_output_dir <- "Output/Experiment"
 
 # Files
 baea_behavior_file <- "Data/Baea/baea_behavior.rds"
-wind_transits_sum_file <- file.path(exp_output_dir, "wind_transits_sum.rds")
-wilson_n_turbines_file <- file.path(wind_output_dir, "wilson_n_turbines.rds")
-wilson_s_turbines_file <- file.path(wind_output_dir, "wilson_s_turbines.rds")
+wind_transits_sum_file <- file.path(exp_output_dir, paste0("wind_transits_sum_",
+  str_to_lower(site), ".rds"))
+site_n_turbines_file <- file.path(wind_output_dir, paste0(str_to_lower(site),
+  "_n_turbines.rds"))
+site_s_turbines_file <- file.path(wind_output_dir, paste0(str_to_lower(site),
+  "_s_turbines.rds"))
+flight_collision_risk_file <- file.path(wind_output_dir,
+  paste0("flight_collision_risk_", str_to_lower(site), ".rds"))
 
 # Behavior colors
 behavior_colors <- CreateColorsByMetadata(file = file.path("Data/Assets",
@@ -29,10 +37,10 @@ flight_color <- behavior_colors[which(names(behavior_colors) == "Flight")]
 
 baea_behavior_org <- readRDS(file = baea_behavior_file)
 wind_transits_sum_org <- readRDS(wind_transits_sum_file)
-wilson_wt_n <- readRDS(wilson_n_turbines_file)
-wilson_wt_s <- readRDS(wilson_s_turbines_file)
-wilson_wt_n_buff <- wilson_wt_n %>% st_buffer(56)
-wilson_wt_s_buff <- wilson_wt_s %>% st_buffer(56)
+site_wt_n <- readRDS(site_n_turbines_file)
+site_wt_s <- readRDS(site_s_turbines_file)
+site_wt_n_buff <- site_wt_n %>% st_buffer(56)
+site_wt_s_buff <- site_wt_s %>% st_buffer(56)
 
 # Flight Statistics ------------------------------------------------------------
 
@@ -46,7 +54,7 @@ baea_speed <- mean(baea_flights$speed) * 0.514444
 
 # Wind Farm Crossing Statistics ------------------------------------------------
 
-wind_transits_sum <- readRDS("Output/Experiment/wind_transits_sum.rds") %>%
+wind_transits_sum <- readRDS(wind_transits_sum_file) %>%
   mutate(behavior_line = as.factor(behavior_line)) %>%
   mutate(scenario = as.factor(scenario))
 
@@ -157,8 +165,7 @@ exp_flight_collision_risk <- wind_transits_sum %>%
     n_turbines_collision_risk_95avoid + s_turbines_collision_risk_95avoid,
     turbines_collision_risk_95avoid))
 
-saveRDS(exp_flight_collision_risk, file.path(exp_output_dir,
-  "flight_collision_risk.rds"))
+saveRDS(exp_flight_collision_risk, flight_collision_risk_file)
 
 # Maps -------------------------------------------------------------------------
 
@@ -176,7 +183,7 @@ n_turbines_scenario_north <- exp_flight_collision_risk %>%
   mutate(id = paste0("N-", str_pad(1:n(), width = 2, side = "left",
     pad = "0"))) %>%
   select(scenario, id, intersects_n, intersects_prop) %>%
-  left_join(wilson_wt_n_buff, .)
+  left_join(site_wt_n_buff, .)
 mapview(n_turbines_scenario_north, zcol = "intersects_prop")
 
 s_turbines_scenario_south <- exp_flight_collision_risk %>%
@@ -191,7 +198,7 @@ s_turbines_scenario_south <- exp_flight_collision_risk %>%
   mutate(id = paste0("S-", str_pad(1:n(), width = 2, side = "left",
     pad = "0"))) %>%
   select(scenario, id, intersects_n, intersects_prop) %>%
-  left_join(wilson_wt_s_buff, .)
+  left_join(site_wt_s_buff, .)
 mapview(s_turbines_scenario_south, zcol = "intersects_prop")
 
 n_turbines_scenario_northsouth <- exp_flight_collision_risk %>%
@@ -206,7 +213,7 @@ n_turbines_scenario_northsouth <- exp_flight_collision_risk %>%
   mutate(id = paste0("N-", str_pad(1:n(), width = 2, side = "left",
     pad = "0"))) %>%
   select(scenario, id, intersects_n, intersects_prop) %>%
-  left_join(wilson_wt_n_buff, .)
+  left_join(site_wt_n_buff, .)
 
 s_turbines_scenario_northsouth <- exp_flight_collision_risk %>%
   filter(scenario == "North and South") %>%
@@ -220,14 +227,12 @@ s_turbines_scenario_northsouth <- exp_flight_collision_risk %>%
   mutate(id = paste0("S-", str_pad(1:n(), width = 2, side = "left",
     pad = "0"))) %>%
   select(scenario, id, intersects_n, intersects_prop) %>%
-  left_join(wilson_wt_s_buff, .)
+  left_join(site_wt_s_buff, .)
 
 mapview(n_turbines_scenario_northsouth, zcol = "intersects_prop") +
 mapview(s_turbines_scenario_northsouth, zcol = "intersects_prop")
 
 # Map of turbine collisions
-
-
 
 
 
@@ -240,7 +245,8 @@ mapview(s_turbines_scenario_northsouth, zcol = "intersects_prop")
 #   group_by(behavior_line, scenario) %>%
 #   get_summary_stats(.) %>%
 #   filter(behavior_line == "Flight") %>%
-#   filter(variable == "n_turbines_steps_n" | variable == "s_turbines_steps_n")# %>%
+#   filter(variable == "n_turbines_steps_n" | variable == "s_turbines_steps_n")
+# %>%
 # #  select(scenario, behavior_line, variable, mean)
 #
 #

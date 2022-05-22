@@ -19,8 +19,8 @@ rasterOptions(maxmem = Inf, progress = "text", timer = TRUE, chunksize = 1e9,
   memfrac = .9)
 
 # Experiment id
-site <- "Grand_Lake"
-exp_ids <- 1:10 %>%
+site <- "Wilson" #"Grand_Lake"
+exp_ids <- 1:20 %>%
   str_pad(., width = 2, side = "left", pad = "0")
 
 # Experiment simulation files in TEMP directory
@@ -83,7 +83,6 @@ wind_transits_sum <-
 # Save wind_transits_sum file to Project file
 saveRDS(wind_transits_sum, file.path(exp_output_dir,
   paste0("wind_transits_sum_", str_to_lower(site), ".rds")))
-
 
 #------------------------------------------------------------------------------#
 ################################ OLD CODE ######################################

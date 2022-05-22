@@ -9,9 +9,9 @@ pacman::p_load(gpindex, rgdal, tictoc, tidyverse, lubridate)
 
 source('R/5b_SIM_MovementSubmodel_RunSim.R')
 
-site <- "Wilson"
+site <- "Grand_Lake"
 
-for (j in c(16)) {
+for (j in c(19:20)) {
 
   exp_id <- as.character(j)
 

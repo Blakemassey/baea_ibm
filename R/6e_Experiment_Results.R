@@ -22,13 +22,13 @@ set_thin_PROJ6_warnings(TRUE)
 
 # Set options
 rasterOptions(maxmem = Inf, progress = "text", timer = TRUE, chunksize = 1e9,
-  memfrac = .9)
+  memfrac = .8)
 
 # Experiment id
-exp_ids <- 1:10
+exp_ids <- 1:20
 
 # Variable
-site <- "Grand_Lake" #"Wilson" #
+site <- "Wilson" #"Grand_Lake"
 mapping <- TRUE
 
 # Directories

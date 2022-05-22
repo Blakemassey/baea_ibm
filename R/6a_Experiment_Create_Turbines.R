@@ -350,21 +350,23 @@ rm(wilson_n_area, wilson_n_area_buffer_150m, wilson_n_turbines_sf,
   wilson_n_turbines_topo_sf, wilson_n_dist_matrix, maine_turbine_dist_mean,
   maine_turbine_dist_min)
 
-## Create Wilson South Area Turbines  -------------------------------------------------
+## Create Wilson South Area Turbines  ------------------------------------------
 
 # Create buffered Wilson wind areas (to ensure sufficient space for turbines)
 wilson_s_area <- readRDS(file.path(wind_output_dir, "wilson_s_area.rds"))
 wilson_s_area_buffer_150m <- wilson_s_area %>% st_buffer(., dist = 150)
 
-# Check grid and run genetric algorithm for Wilson North
+# Check grid and run genetric algorithm for Wilson South
 wilson_s_grid <- grid_area_fixed(shape = wilson_s_area_buffer_150m,
   size = (rotor_radius*grid_spacing), prop = area_proportion, plotGrid = TRUE)
+
 # Running optimization without topographic effects
 wilson_s_result <- genetic_algorithm_fixed(Polygon1 = wilson_s_area_buffer_150m,
   n = turbines_n, Rotor = rotor_radius, fcrR = grid_spacing,
   referenceHeight = 10, RotorHeight = hub_height, iteration = 50,
   Proportionality = area_proportion, Projection = "EPSG:32619",
   vdirspe = greenville_wind_formatted)
+
 # Running optimization with topographic effects
 wilson_s_result_topo <- genetic_algorithm_fixed(
   Polygon1 = wilson_s_area_buffer_150m,
@@ -837,11 +839,11 @@ grand_lake_s_result_topo <- genetic_algorithm_fixed(
 
 # Extract "best" turbine arrangement based on "EnergyOverall"
 grand_lake_s_turbines_sf <- ConvertBestResultsToSF(grand_lake_s_result) %>%
-  mutate(id = paste0("N-", str_pad(1:n(), width = 2, side = "left", pad = "0")))
+  mutate(id = paste0("S-", str_pad(1:n(), width = 2, side = "left", pad = "0")))
 
 grand_lake_s_turbines_topo_sf <- grand_lake_s_result_topo %>%
   ConvertBestResultsToSF(.) %>%
-  mutate(id = paste0("N-", str_pad(1:n(), width = 2, side = "left", pad = "0")))
+  mutate(id = paste0("S-", str_pad(1:n(), width = 2, side = "left", pad = "0")))
 
 # Clean up objects
 rm(grand_lake_s_grid, grand_lake_s_result, grand_lake_s_result_topo)

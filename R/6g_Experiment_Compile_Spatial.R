@@ -14,9 +14,9 @@ suppressMessages(extrafont::loadfonts(device = "win"))
 #devtools::reload("C:/Users/blake/OneDrive/Work/R/Packages/ibmr")
 
 # Variables
-site <- "Grand_Lake"
+site <- "Wilson" # "Grand_Lake"
 agg_factor <- 10
-exp_ids <- 1:10 %>%
+exp_ids <- 1:20 %>%
   str_pad(., width = 2, side = "left", pad = "0")
 mapping <- FALSE
 
