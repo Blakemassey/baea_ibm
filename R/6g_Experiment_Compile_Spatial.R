@@ -31,7 +31,6 @@ exp_dir <- "C:/TEMP"
 exp_step_data_dir <- "Step_Data"
 exp_output_dir <- "Output/Experiment"
 ridge_file_dir <- "C:/ArcGIS/Data/R_Input/BAEA/Ridgelines"
-wind_output_dir <- "Output/Analysis/Wind"
 line_density_dir <- "Line_Density_Rasters"
 
 # Files

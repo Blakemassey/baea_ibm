@@ -9,7 +9,7 @@ pacman::p_load(gpindex, mapview, rgdal, sf, tictoc, tidyverse, lubridate,
   rstatix)
 
 # Variables
-site <-  "Grand_Lake" #"Wilson"
+site <- "Grand_Lake" # "Wilson" #
 
 # Directories
 exp_dir <- "C:/TEMP"
@@ -25,7 +25,7 @@ site_n_turbines_file <- file.path(wind_output_dir, paste0(str_to_lower(site),
   "_n_turbines.rds"))
 site_s_turbines_file <- file.path(wind_output_dir, paste0(str_to_lower(site),
   "_s_turbines.rds"))
-flight_collision_risk_file <- file.path(wind_output_dir,
+flight_collision_risk_file <- file.path(exp_output_dir,
   paste0("flight_collision_risk_", str_to_lower(site), ".rds"))
 
 # Behavior colors
@@ -147,7 +147,7 @@ print(paste("Collision risk in absence of avoidance is",
 exp_flight_collision_risk <- wind_transits_sum %>%
   filter(scenario != "Control") %>%
   filter(behavior_line == "Flight") %>%
-  select(exp_id, scenario, n_turbines_steps_n, s_turbines_steps_n,
+  dplyr::select(exp_id, scenario, n_turbines_steps_n, s_turbines_steps_n,
     n_turbine_tally, s_turbine_tally) %>%
   mutate(
     n_turbines_collision_risk = n_turbines_steps_n * collision_risk_avg,
@@ -173,7 +173,7 @@ glimpse(exp_flight_collision_risk)
 
 n_turbines_scenario_north <- exp_flight_collision_risk %>%
   filter(scenario == "North") %>%
-  select(exp_id, scenario, n_turbine_tally) %>%
+  dplyr::select(exp_id, scenario, n_turbine_tally) %>%
   unnest(n_turbine_tally) %>%
   group_by(turbine) %>%
   summarize(scenario = unique(scenario),
@@ -182,13 +182,13 @@ n_turbines_scenario_north <- exp_flight_collision_risk %>%
   mutate(intersects_prop = intersects_n/sum(intersects_n)) %>%
   mutate(id = paste0("N-", str_pad(1:n(), width = 2, side = "left",
     pad = "0"))) %>%
-  select(scenario, id, intersects_n, intersects_prop) %>%
+  dplyr::select(scenario, id, intersects_n, intersects_prop) %>%
   left_join(site_wt_n_buff, .)
 mapview(n_turbines_scenario_north, zcol = "intersects_prop")
 
 s_turbines_scenario_south <- exp_flight_collision_risk %>%
   filter(scenario == "South") %>%
-  select(exp_id, scenario, s_turbine_tally) %>%
+  dplyr::select(exp_id, scenario, s_turbine_tally) %>%
   unnest(s_turbine_tally) %>%
   group_by(turbine) %>%
   summarize(scenario = unique(scenario),
@@ -203,7 +203,7 @@ mapview(s_turbines_scenario_south, zcol = "intersects_prop")
 
 n_turbines_scenario_northsouth <- exp_flight_collision_risk %>%
   filter(scenario == "North and South") %>%
-  select(exp_id, scenario, n_turbine_tally) %>%
+  dplyr::select(exp_id, scenario, n_turbine_tally) %>%
   unnest(n_turbine_tally) %>%
   group_by(turbine) %>%
   summarize(scenario = unique(scenario),
@@ -212,12 +212,12 @@ n_turbines_scenario_northsouth <- exp_flight_collision_risk %>%
   mutate(intersects_prop = intersects_n/sum(intersects_n)) %>%
   mutate(id = paste0("N-", str_pad(1:n(), width = 2, side = "left",
     pad = "0"))) %>%
-  select(scenario, id, intersects_n, intersects_prop) %>%
+  dplyr::select(scenario, id, intersects_n, intersects_prop) %>%
   left_join(site_wt_n_buff, .)
 
 s_turbines_scenario_northsouth <- exp_flight_collision_risk %>%
   filter(scenario == "North and South") %>%
-  select(exp_id, scenario, s_turbine_tally) %>%
+  dplyr::select(exp_id, scenario, s_turbine_tally) %>%
   unnest(s_turbine_tally) %>%
   group_by(turbine) %>%
   summarize(scenario = unique(scenario),
@@ -226,7 +226,7 @@ s_turbines_scenario_northsouth <- exp_flight_collision_risk %>%
   mutate(intersects_prop = intersects_n/sum(intersects_n)) %>%
   mutate(id = paste0("S-", str_pad(1:n(), width = 2, side = "left",
     pad = "0"))) %>%
-  select(scenario, id, intersects_n, intersects_prop) %>%
+  dplyr::select(scenario, id, intersects_n, intersects_prop) %>%
   left_join(site_wt_s_buff, .)
 
 mapview(n_turbines_scenario_northsouth, zcol = "intersects_prop") +
