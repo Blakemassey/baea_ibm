@@ -1078,10 +1078,10 @@ gg_windrose <- ggplot(data = wind_df_binned,
   theme(plot.background = element_rect(color = "white"))
 gg_windrose
 
-ggsave(filename = "greenville_windrose.png", plot = gg_windrose,
+ggsave(filename = "Greenville_Windrose.png", plot = gg_windrose,
   path = file.path(tex_dir, "Figures/Ch4/Windroses"), scale = 1, width = 6,
   height = 4, units = "in", dpi = 300)
-ggsave(filename = "greenville_windrose.svg", plot = gg_windrose,
+ggsave(filename = "Greenville_Windrose.svg", plot = gg_windrose,
   path = file.path(tex_dir, "Figures/Ch4/Windroses"), scale = 1, width = 6,
   height = 4, units = "in", dpi = 300)
 
@@ -1189,6 +1189,8 @@ ggsave(filename = "South_Turbines_Flight.svg", plot = gg_south_turbines_flight,
 
 # Filter data
 transit_flights <- wind_transits_sum %>%
+  #filter(exp_id %in% c(1:15)) %>%
+  #filter(exp_id %in% c(16:20)) %>%
   filter(behavior_line == "Flight")
 
 transit_flights_north_turbines_stats <- transit_flights %>%
@@ -1209,8 +1211,8 @@ gg_north_turbines_flight_stats <-
     fill = "scenario", palette = "jco") +
   stat_pvalue_manual(transit_flights_north_turbines_stats, label.size = 5,
     label = "p = {p.adj}{p.adj.signif}",
-    y.position = c(14, 16, 18)) +
-  scale_y_continuous(expand = c(0, NA), limits = c(0, 19)) +
+    y.position = c(15, 17, 19)) +
+  scale_y_continuous(expand = c(0, NA), limits = c(0, 25)) +
   theme_blank +
   theme_transits +
   theme_transits_stats +
@@ -1267,19 +1269,19 @@ gg_n_turbines_collison_risk_95avoid <- collision_risk %>%
   geom_boxplot(aes(scenario, y = n_turbines_collision_risk_95avoid),
     fill = flight_color) +
   labs(x = "Wind Farm Scenario", y = paste0("Predicted Collisions with North",
-    " Turbines\nPer Eagle Per Breeding Season\n(95% Avoidance)")) +
+    " Turbines\nPer Eagle Per Breeding Season\n(95\\% Avoidance)")) +
   theme_latex +
   theme_transits +
   theme_transits_stats +
   theme(legend.position = "none")
 gg_n_turbines_collison_risk_95avoid
 
-ggsave(filename = "North_Turbines_Zero_Avoidance.svg",
+ggsave(filename = "CRM_NorthTurbines_0Avoidance.svg",
   plot = gg_n_turbines_collison_risk,
   path = file.path(tex_dir, "Figures/Ch4/Collision_Risk/Wilson"), scale = 1,
   width = 6, height = 5, units = "in", dpi = 300)
 
-ggsave(filename = "North_Turbines_95_Avoidance.svg",
+ggsave(filename = "CRM_NorthTurbines_95Avoidance.svg",
   plot = gg_n_turbines_collison_risk_95avoid,
   path = file.path(tex_dir, "Figures/Ch4/Collision_Risk/Wilson"), scale = 1,
   width = 6, height = 5, units = "in", dpi = 300)
@@ -1304,25 +1306,37 @@ gg_s_turbines_collison_risk_95avoid <- collision_risk %>%
   geom_boxplot(aes(scenario, y = s_turbines_collision_risk_95avoid),
     fill = flight_color) +
   labs(x = "Wind Farm Scenario", y = paste0("Predicted Collisions with South ",
-    "Turbines\nPer Eagle Per Breeding Season\n(95% Avoidance)")) +
+    "Turbines\nPer Eagle Per Breeding Season\n(95\\% Avoidance)")) +
   theme_latex +
   theme_transits +
   theme_transits_stats +
   theme(legend.position = "none")
 gg_s_turbines_collison_risk_95avoid
 
-ggsave(filename = "South_Turbines_Zero_Avoidance.svg",
+ggsave(filename = "CRM_SouthTurbines_0Avoidance.svg",
   plot = gg_s_turbines_collison_risk,
   path = file.path(tex_dir, "Figures/Ch4/Collision_Risk/Wilson"), scale = 1,
   width = 6, height = 5, units = "in", dpi = 300)
 
-ggsave(filename = "South_Turbines_95_Avoidance.svg",
+ggsave(filename = "CRM_SouthTurbines_95Avoidance.svg",
   plot = gg_s_turbines_collison_risk_95avoid,
   path = file.path(tex_dir, "Figures/Ch4/Collision_Risk/Wilson"), scale = 1,
   width = 6, height = 5, units = "in", dpi = 300)
 
 # Collisions under different scenarios
-gg_scenario_collison_risk_95avoid <- collision_risk %>%
+gg_scenario_collison_risk_95avoid_svg <- collision_risk %>%
+  ggplot(.) +
+  geom_boxplot(aes(scenario, y = turbines_collision_risk_95avoid),
+    fill = flight_color) +
+  labs(x = "Wind Farm Scenario", y = paste0("Predicted Collisions with ",
+    "Turbines\nPer Eagle Per Breeding Season\n(95\\% Avoidance)")) +
+  theme_latex +
+  theme_transits +
+  theme_transits_stats +
+  theme(legend.position = "none")
+gg_scenario_collison_risk_95avoid_svg
+
+gg_scenario_collison_risk_95avoid_png <- collision_risk %>%
   ggplot(.) +
   geom_boxplot(aes(scenario, y = turbines_collision_risk_95avoid),
     fill = flight_color) +
@@ -1332,10 +1346,15 @@ gg_scenario_collison_risk_95avoid <- collision_risk %>%
   theme_transits +
   theme_transits_stats +
   theme(legend.position = "none")
-gg_scenario_collison_risk_95avoid
+gg_scenario_collison_risk_95avoid_png
 
-ggsave(filename = "All_Scenarios_Turbines_95_Avoidance.svg",
-  plot = gg_scenario_collison_risk_95avoid,
+ggsave(filename = "CRM_All_95Avoidance.svg",
+  plot = gg_scenario_collison_risk_95avoid_svg,
+  path = file.path(tex_dir, "Figures/Ch4/Collision_Risk/Wilson"), scale = 1,
+  width = 6, height = 5, units = "in", dpi = 300)
+
+ggsave(filename = "CRM_All_95Avoidance.png",
+  plot = gg_scenario_collison_risk_95avoid_png,
   path = file.path(tex_dir, "Figures/Ch4/Collision_Risk/Wilson"), scale = 1,
   width = 6, height = 5, units = "in", dpi = 300)
 
@@ -1407,10 +1426,10 @@ gg_windrose <- ggplot(data = wind_df_binned,
   theme(plot.background = element_rect(color = "white"))
 gg_windrose
 
-ggsave(filename = "millinocket_windrose.png", plot = gg_windrose,
+ggsave(filename = "Millinocket_Windrose.png", plot = gg_windrose,
   path = file.path(tex_dir, "Figures/Ch4/Windroses"), scale = 1, width = 6,
   height = 4, units = "in", dpi = 300)
-ggsave(filename = "millinocket_windrose.svg", plot = gg_windrose,
+ggsave(filename = "Millinocket_Windrose.svg", plot = gg_windrose,
   path = file.path(tex_dir, "Figures/Ch4/Windroses"), scale = 1, width = 6,
   height = 4, units = "in", dpi = 300)
 
@@ -1598,19 +1617,19 @@ gg_n_turbines_collison_risk_95avoid <- collision_risk %>%
   geom_boxplot(aes(scenario, y = n_turbines_collision_risk_95avoid),
     fill = flight_color) +
   labs(x = "Wind Farm Scenario", y = paste0("Predicted Collisions with North",
-    " Turbines\nPer Eagle Per Breeding Season\n(95% Avoidance)")) +
+    " Turbines\nPer Eagle Per Breeding Season\n(95\\% Avoidance)")) +
   theme_latex +
   theme_transits +
   theme_transits_stats +
   theme(legend.position = "none")
 gg_n_turbines_collison_risk_95avoid
 
-ggsave(filename = "North_Turbines_Zero_Avoidance.svg",
+ggsave(filename = "CRM_NorthTurbines_0Avoidance.svg",
   plot = gg_n_turbines_collison_risk,
   path = file.path(tex_dir, "Figures/Ch4/Collision_Risk/Grand_Lake"), scale = 1,
   width = 6, height = 5, units = "in", dpi = 300)
 
-ggsave(filename = "North_Turbines_95_Avoidance.svg",
+ggsave(filename = "CRM_NorthTurbines_95Avoidance.svg",
   plot = gg_n_turbines_collison_risk_95avoid,
   path = file.path(tex_dir, "Figures/Ch4/Collision_Risk/Grand_Lake"), scale = 1,
   width = 6, height = 5, units = "in", dpi = 300)
@@ -1635,38 +1654,54 @@ gg_s_turbines_collison_risk_95avoid <- collision_risk %>%
   geom_boxplot(aes(scenario, y = s_turbines_collision_risk_95avoid),
     fill = flight_color) +
   labs(x = "Wind Farm Scenario", y = paste0("Predicted Collisions with South ",
-    "Turbines\nPer Eagle Per Breeding Season\n(95% Avoidance)")) +
+    "Turbines\nPer Eagle Per Breeding Season\n(95\\% Avoidance)")) +
   theme_latex +
   theme_transits +
   theme_transits_stats +
   theme(legend.position = "none")
 gg_s_turbines_collison_risk_95avoid
 
-ggsave(filename = "South_Turbines_Zero_Avoidance.svg",
+ggsave(filename = "CRM_SouthTurbines_0Avoidance.svg",
   plot = gg_s_turbines_collison_risk,
   path = file.path(tex_dir, "Figures/Ch4/Collision_Risk/Grand_Lake"), scale = 1,
   width = 6, height = 5, units = "in", dpi = 300)
 
-ggsave(filename = "South_Turbines_95_Avoidance.svg",
+ggsave(filename = "CRM_SouthTurbines_95Avoidance.svg",
   plot = gg_s_turbines_collison_risk_95avoid,
   path = file.path(tex_dir, "Figures/Ch4/Collision_Risk/Grand_Lake"), scale = 1,
   width = 6, height = 5, units = "in", dpi = 300)
 
 # Collisions under different scenarios
-gg_scenario_collison_risk_95avoid <- collision_risk %>%
+gg_scenario_collison_risk_95avoid_svg <- collision_risk %>%
   ggplot(.) +
   geom_boxplot(aes(scenario, y = turbines_collision_risk_95avoid),
     fill = flight_color) +
   labs(x = "Wind Farm Scenario", y = paste0("Predicted Collisions with ",
-    "Turbines\nPer Eagle Per Breeding Season\n(95% Avoidance)")) +
+    "Turbines\nPer Eagle Per Breeding Season\n(95\\% Avoidance)")) +
   theme_latex +
   theme_transits +
   theme_transits_stats +
   theme(legend.position = "none")
-gg_scenario_collison_risk_95avoid
+gg_scenario_collison_risk_95avoid_svg
 
-ggsave(filename = "All_Scenarios_Turbines_95_Avoidance.svg",
-  plot = gg_scenario_collison_risk_95avoid,
+gg_scenario_collison_risk_95avoid_png <- collision_risk %>%
+  ggplot(.) +
+  geom_boxplot(aes(scenario, y = turbines_collision_risk_95avoid),
+    fill = flight_color) +
+  labs(x = "Wind Farm Scenario", y = paste0("Predicted Collisions with ",
+    "Turbines\nPer Eagle Per Breeding Season\n(95\\% Avoidance)")) +
+  theme_latex +
+  theme_transits +
+  theme_transits_stats +
+  theme(legend.position = "none")
+gg_scenario_collison_risk_95avoid_png
+
+ggsave(filename = "CRM_All_95Avoidance.svg",
+  plot = gg_scenario_collison_risk_95avoid_svg,
+  path = file.path(tex_dir, "Figures/Ch4/Collision_Risk/Grand_Lake"), scale = 1,
+  width = 6, height = 5, units = "in", dpi = 300)
+ggsave(filename = "CRM_All_95Avoidance.png",
+  plot = gg_scenario_collison_risk_95avoid_png,
   path = file.path(tex_dir, "Figures/Ch4/Collision_Risk/Grand_Lake"), scale = 1,
   width = 6, height = 5, units = "in", dpi = 300)
 

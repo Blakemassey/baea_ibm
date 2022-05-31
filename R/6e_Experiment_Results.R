@@ -28,7 +28,7 @@ rasterOptions(maxmem = Inf, progress = "text", timer = TRUE, chunksize = 1e9,
 exp_ids <- 1:20
 
 # Variable
-site <- "Wilson" #"Grand_Lake"
+site <- "Grand_Lake"
 mapping <- TRUE
 
 # Directories
@@ -206,7 +206,6 @@ for (i in exp_ids){
     }
 
     exp_lines_sf %>%
-      filter(row_id %in% 283:284) %>%
       mapview(.) +
       mapview(site_n_wt) + mapview(site_s_wt)
 

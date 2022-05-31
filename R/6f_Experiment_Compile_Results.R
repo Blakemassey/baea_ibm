@@ -87,8 +87,7 @@ saveRDS(wind_transits_sum, file.path(exp_output_dir,
 ################################ OLD CODE ######################################
 #------------------------------------------------------------------------------#
 #
-# # Graphs -----------------------------------------------------------------------
-#
+# # Graphs --
 # # North Wind Area
 # ggplot(wind_transits_sum) +
 #   geom_boxplot(aes(scenario, y = n_area_prop, fill = behavior_line),
@@ -139,7 +138,7 @@ saveRDS(wind_transits_sum, file.path(exp_output_dir,
 #     panel.grid.major.y = element_line(colour = "grey90"),
 #     panel.grid.minor = element_line(size = rel(0.5)))
 #
-# # Statistics -------------------------------------------------------------------
+# # Statistics --
 #
 # wind_transits_sum <- readRDS("Output/Experiment/wind_transits_sum.rds") %>%
 #   mutate(behavior_line = as.factor(behavior_line)) %>%

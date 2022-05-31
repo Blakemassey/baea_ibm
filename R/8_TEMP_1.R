@@ -1,394 +1,3 @@
-#--------------------------- DISSERTATION MAPS --------------------------------#
-# This script is for importing GIS datalayers and converting them to the proper
-#  coordinate reference system (NAD83 UTM N19), extent, and resolution.
-#------------------------------------------------------------------------------#
-
-# Load packages, scripts, and input parameters ---------------------------------
-pacman::p_load(gisr, baear, cartography, dplyr, fasterize, ggplot2, ggthemes,
-  grid, leaflet, lubridate, magick, maptiles, mapview)
-pacman::p_load(OpenStreetMap, plotly, prettymapr, purrr, raster, rosm, rsvg)
-pacman::p_load(sf, stars, stringr, tmap, tmaptools, viridis, units, webshot, zoo)
-suppressMessages(extrafont::loadfonts(device="win"))
-pacman::p_load(baear, gisr, ibmr)
-theme_update(plot.title = element_text(hjust = 0.5))
-
-# Sim file and code Boolean parameters
-sim_rds <- "sim_20210725-03.rds"
-
-# Coordinate systems
-wgs84 <- CRS("+init=epsg:4326") # WGS84 Lat/Long
-wgs84n19 <- CRS("+init=epsg:32619") # WGS84 UTM 19N
-
-# ESRI Baselayers
-esri_url <- "https://server.arcgisonline.com/ArcGIS/rest/services/"
-esri_tile <- "/MapServer/tile/{z}/{y}/{x}"
-om_nat_geo <- paste0(esri_url, "NatGeo_World_Map", esri_tile)
-
-# Rasters
-base <- raster(file.path("C:/ArcGIS/Data/BlankRaster/maine_30mc.tif"))
-
-# Directories
-exp_output_dir <- "Output/Experiment"
-line_density_dir <- "Line_Density_Rasters"
-line_density_agg_dir <- "Agg_10"
-ridgeline_dir <- "C:/ArcGIS/Data/R_Input/BAEA/Ridgelines"
-sim_dir <- "C:/TEMP"
-akde_dir <- file.path(sim_dir, sim_id, "AKDEs")
-baea_dir <- "C:/Users/blake/OneDrive/Work/R/Projects/baea_ibm/Data/BAEA"
-nests_dir <- file.path("C:/Users/blake/OneDrive/Work/R/Projects/baea_ibm",
-  "Data/Nests/Nests_rds")
-places_fl_dir <- file.path("C:/ArcGIS/Data/Reference/cb_2018_12_place_500k")
-places_me_dir <- file.path("C:/ArcGIS/Data/Reference/cb_2018_23_place_500k")
-ssf_raster_dir = "C:/ArcGIS/Data/R_Input/BAEA/SSF_Rasters"
-states_dir <- file.path("C:/ArcGIS/Data/Reference/cb_2018_us_state_5m")
-roads_dir <- file.path("C:/ArcGIS/Data/Reference/tl_2016_us_primaryroads")
-tex_dir <- "C:/Users/Blake/OneDrive/Work/LaTeX/BMassey_Dissertation"
-turbine_dir <- file.path("C:/ArcGIS/Data/R_Input/BAEA")
-wind_dir <- file.path("C:/Users/blake/OneDrive/Work/R/Projects/baea_ibm",
-  "Data/Wind")
-wind_input_dir <- "Output/Analysis/Wind"
-exp_turbines_dir <- "C:/ArcGIS/Data/R_Input/EXP"
-maps_dir <- "C:/Users/blake/OneDrive/Work/R/Projects/baea_ibm/Products/Maps"
-report_maps_dir <- file.path("C:/Users/blake/Documents/PhD Program/Reports",
-  "BAEA Project - 2018/Maps")
-mod_dir <- "Output/Analysis/SSF/Models"
-mod_fit_dir <- file.path(mod_dir, "model_fits")
-mod_best_dir <- file.path(mod_dir, "model_fits_best")
-
-# Model files
-fits_best_file <- file.path(mod_best_dir, "model_fits_best.rds")
-preds_tbl_file <- file.path(mod_best_dir, "preds_tbl.rds")
-
-# Nests
-nests_study_org <- readRDS(file.path(nests_dir, "nests_study.rds"))
-nests_study <- st_as_sf(x = nests_study_org, coords = c("long", "lat"),
-  crs = "+proj=longlat +datum=WGS84") %>% filter(!name %in% c("Davis", "Upper"))
-
-# Bald Eagle Data
-baea_org <- readRDS(file.path(baea_dir, "baea.rds"))
-baea <- st_as_sf(x = baea_org, coords = c("long_utm", "lat_utm"),
-  crs = 32619) #  crs = "+proj=longlat +datum=WGS84")
-
-# Maine Outline
-maine <- read_sf(file.path("C:/ArcGIS/Data/BlankPolygon/MaineOutline.shp")) %>%
-  st_transform(., crs = 4326) %>%
-  mutate(state = "Maine")  %>%
-  dplyr::select(state)
-
-# Florida Places
-places_fl <- read_sf(file.path(places_fl_dir, "cb_2018_12_place_500k.shp")) %>%
-  st_transform(crs = 4326)
-places_me <- read_sf(file.path(places_me_dir, "cb_2018_23_place_500k.shp")) %>%
-  st_transform(crs = 4326)
-
-# States
-states <- read_sf(file.path(states_dir, "cb_2018_us_state_5m.shp")) %>%
-  st_transform(crs = 4326)
-
-# Ridgelines
-ridge_poly_file <- file.path(ridgeline_dir, "ridge_poly.shp")
-
-# Roads
-roads <- read_sf(file.path(roads_dir, "tl_2016_us_primaryroads.shp")) %>%
-  st_transform(crs = 4326)
-
-# Wind
-wind_class <- read_sf(file.path(wind_dir, "Maine_Wind_High_Resolution",
-  "maine_50mwind.shp")) %>%
-  st_transform(crs = 32619)
-
-# Turbines
-turbines <- read_sf(file.path(turbine_dir, "wind_turbines.shp")) %>%
-  st_transform(crs = 32619)
-
-# Mapbox Baselayers
-mapbox_url <- "https://api.mapbox.com/styles/v1/mapbox/"
-mapbox_tile <- "/tiles/256/{z}/{x}/{y}"
-mapbox_key <- paste0("?access_token=pk.eyJ1IjoiYmxha2VtYXNzZXkiLCJhIjoi",
-  "Y2pseTYxYW56MDE4eDNwcXZxdmNtNmJ1eiJ9.cguQx1N8bIpciBnc2h3v_w")
-om_type <- paste0(mapbox_url, "streets-v10", mapbox_tile, mapbox_key)
-om_type <- paste0(mapbox_url, "outdoors-v10", mapbox_tile, mapbox_key)
-om_type <- paste0(mapbox_url, "light-v9", mapbox_tile, mapbox_key)
-
-# ESRI Baselayers
-esri_url <- "https://server.arcgisonline.com/ArcGIS/rest/services/"
-esri_tile <- "/MapServer/tile/{z}/{y}/{x}"
-om_nat_geo <- paste0(esri_url, "NatGeo_World_Map", esri_tile)
-
-# ESRI Basemaps
-esri_natgeo_url <- paste0("https://server.arcgisonline.com/ArcGIS/rest/",
-  "services/NatGeo_World_Map/MapServer/tile/{z}/{y}/{x}.jpg")
-esri_natgeo_info <- list(src = "NatGeo World Map", q = esri_natgeo_url,
-  sub = NA, cit = "")
-
-tmap_mode("plot")
-
-
-# CHAPTER 4 --------------------------------------------------------------------
-
-# Wilson Nest Area -------------------------------------------------------------
-
-# Filter nest data
-nest_wilson <- readRDS(file.path(wind_input_dir, "wilson_nest.rds"))
-
-wilson_map_center <- readRDS(file.path(wind_input_dir,
-  "wilson_map_center.rds"))
-
-wilson_bb_sfc <- st_buffer(wilson_map_center, 8000) %>% bb(.) %>% st_as_sfc(.)
-mapview(wilson_bb_sfc)
-
-# Basemaps
-wilson_natgeo_osm <- maptiles::get_tiles(x = wilson_bb_sfc,
-  cachedir = "C:/Temp/Maptiles", provider = esri_natgeo_info, crop = TRUE,
-  verbose = TRUE, zoom = 12, forceDownload = TRUE)
-
-# Colors
-nest_color <- "red"
-wind_area_color <- "darkorange"
-turbine_color <- "white"
-
-# Wilson Turbines --------------------------------------------------------------
-
-wilson_wt_n = st_read(file.path(exp_turbines_dir, "Wilson",
-  "wilson_n_turbines.shp"))
-wilson_wt_s = st_read(file.path(exp_turbines_dir, "Wilson",
-  "wilson_s_turbines.shp"))
-
-wilson_wt_n_buff <- wilson_wt_n %>% st_buffer(56)
-wilson_wt_s_buff <- wilson_wt_s %>% st_buffer(56)
-
-mapview(wilson_wt_n_buff) + mapview(wilson_wt_s_buff)
-
-# Wilson Overview Map ----------------------------------------------------------
-
-wilson_overview_center <- nest_wilson
-sfc <- st_sfc(st_point(c(st_coordinates(nest_wilson)[1] + 10000,
-  st_coordinates(nest_wilson)[2] - 75000)))
-st_geometry(wilson_overview_center) <- sfc
-st_crs(wilson_overview_center) <- 32619
-
-wilson_overview_buff <- st_buffer(wilson_overview_center, 110000) %>% bb(.)
-mapview(wilson_overview_buff)
-wilson_overview_bb <- bb_poly(bb(wilson_overview_buff, ext = 1))
-
-wilson_overview_bb_osm <- maptiles::get_tiles(x = wilson_overview_bb,
-  cachedir = "C:/Temp/Maptiles", provider = esri_natgeo_info, crop = TRUE,
-  verbose = TRUE, zoom = 6, forceDownload = TRUE)
-
-wilson_n_area <- readRDS(file.path(wind_input_dir, "wilson_n_area.rds"))
-wilson_s_area <- readRDS(file.path(wind_input_dir, "wilson_s_area.rds"))
-
-wilson_overview <-
-  tm_layout(asp = 1, inner.margins = -.02) +
-  tm_shape(wilson_overview_bb_osm, is.master = TRUE) +
-    tm_rgb() +
-  tm_shape(wilson_bb_sfc) +
-    tm_borders(col = "red", lwd = 3) +
-  tm_scale_bar(text.size = .75, breaks = c(0, 50, 100),
-    position = c(.3, -.03))
-wilson_overview
-
-# Wilson Wind Area Scenario Maps -----------------------------------------------
-
-tmap_wilson_wind_areas <-
-  tm_layout(asp = 1) +
-  tm_shape(wilson_bb_sfc, is.master = TRUE, ext = .935) +
-    tm_borders(col = "red") +
-  tm_shape(wilson_natgeo_osm, raster.downsample = FALSE) +
-    tm_rgb() +
-  tm_shape(nest_wilson, title = "Wilson Nest") +
-    tm_bubbles(col = nest_color, border.lwd = 1,  size = .4,
-    border.col = "black") +
-  tm_shape(wilson_n_area, title = "Wilson Nest") +
-    tm_polygons(col = wind_area_color, border.col = "black",  lwd = 1) +
-  tm_shape(wilson_s_area, title = "Wilson Nest") +
-    tm_polygons(col = wind_area_color, border.col = "black",  lwd = 1) +
-  tm_compass(type = "4star",  show.labels = 1, size = 2.5,
-    position = c(.85, .87)) +
-  tm_scale_bar(text.size = .75, breaks = c(0, 1, 2), position = c(.05, .01))
-tmap_wilson_wind_areas
-
-tmap_save(tm = tmap_wilson_wind_areas, filename = file.path(tex_dir,
-  "Figures/Ch4", "Maps_Scenarios", "Wilson", "Wind_Areas.svg"),
-  insets_tm = wilson_overview, insets_vp =  viewport(x = 0.853, y = .141,
-  width = 0.25, height = 0.25), unit = "in", dpi = 300, height = 6, width = 6.1)
-
-# Wilson Turbine Scenario Maps -------------------------------------------------
-
-maine_bb_sf <- st_as_sfc(bb(maine, relative = TRUE, height = 1, width = 2))
-maine_bb <- bb_poly(bb(maine_bb_sf, ext = 1.15))
-maine_om = read_osm(maine_bb, zoom = 5, minNumTiles = 9, type = om_nat_geo)
-
-# Basemaps
-wilson_natgeo_osm <- maptiles::get_tiles(x = wilson_bb_sfc,
-  cachedir = "C:/Temp/Maptiles", provider = esri_natgeo_info, crop = TRUE,
-  verbose = TRUE, zoom = 12, forceDownload = TRUE)
-
-tmap_wilson_c <-
-  tm_layout(asp = 1) +
-  tm_shape(wilson_bb_sfc, is.master = TRUE, ext = .935) +
-    tm_borders(col = "red") +
-  tm_shape(wilson_natgeo_osm, raster.downsample = FALSE) +
-    tm_rgb() +
-  tm_shape(nest_wilson, title = "Wilson Nest") +
-    tm_bubbles(col = nest_color, border.lwd = 1,  size = .4,
-    border.col = "black") +
-  tm_compass(type = "4star",  show.labels = 1, size = 2.5,
-    position = c(.85, .87)) +
-  tm_scale_bar(text.size = .75, breaks = c(0, 1, 2), position = c(.05, .01))
-
-tmap_wilson_n <- tmap_wilson_c +
-  tm_shape(wilson_wt_n_buff, title = "Wind Turbines") +
-    tm_polygons(col = turbine_color,
-      border.col = "black",  lwd = 1)
-
-tmap_wilson_s <- tmap_wilson_c +
-  tm_shape(wilson_wt_s_buff, title = "Wind Turbines") +
-    tm_polygons(col = turbine_color, border.col = "black",  lwd = 1)
-
-tmap_wilson_ns <- tmap_wilson_n +
-  tm_shape(wilson_wt_n_buff, title = "Wind Turbines") +
-    tm_polygons(col = turbine_color, border.col = "black",  lwd = 1) +
-  tm_shape(wilson_wt_s_buff, title = "Wind Turbines") +
-    tm_polygons(col = turbine_color, border.col = "black",  lwd = 1)
-
-tmap_save(tm = tmap_wilson_c, filename = file.path(tex_dir, "Figures/Ch4",
-  "Maps_Scenarios", "Wilson", "Control.svg"), insets_tm = wilson_overview,
-  insets_vp =  viewport(x = 0.853, y = .141, width = 0.25, height = 0.25),
-  unit = "in", dpi = 300, height = 6, width = 6)
-tmap_save(tm = tmap_wilson_n, filename = file.path(tex_dir, "Figures/Ch4",
-  "Maps_Scenarios", "Wilson", "North.svg"), insets_tm = wilson_overview,
-  insets_vp =  viewport(x = 0.853, y = .141, width = 0.25, height = 0.25),
-  unit = "in", dpi = 300, height = 6, width = 6)
-tmap_save(tm = tmap_wilson_s, filename = file.path(tex_dir, "Figures/Ch4",
-  "Maps_Scenarios", "Wilson", "South.svg"), insets_tm = wilson_overview,
-  insets_vp =  viewport(x = 0.853, y = .141, width = 0.25, height = 0.25),
-  unit = "in", dpi = 300, height = 6, width = 6)
-tmap_save(tm = tmap_wilson_ns, filename = file.path(tex_dir, "Figures/Ch4",
-  "Maps_Scenarios", "Wilson", "NorthSouth.svg"), insets_tm = wilson_overview,
-  insets_vp =  viewport(x = 0.853, y = .141, width = 0.25, height = 0.25),
-  unit = "in", dpi = 300, height = 6, width = 6)
-
-# Wilson SSF Maps --------------------------------------------------------------
-
-# SSF Fits
-ssf_fits_best_org <- readRDS(fits_best_file) #%>% slice(c(step_type_index))
-ssf_fits_best <- ssf_fits_best_org
-
-exp_dir <- "C:/ArcGIS/Data/R_Input/EXP/Wilson"
-exp_scenarios <- list.dirs(exp_dir, recursive = FALSE)
-
-# Get nest
-nest_wilson <- readRDS(file.path(wind_input_dir, "wilson_nest.rds"))
-
-# For Individual Scenario Maps
-for (j in seq_len(length(exp_scenarios))){
-  exp_scenario_j <- exp_scenarios[j]
-  exp_scenario_j_name <- basename(exp_scenarios[j])
-  ssf_tmap_list <- vector(mode = "list", length = 20)
-  for (i in seq_len(nrow(ssf_fits_best))){
-    step_type_i_numeric <- ssf_fits_best %>% slice(i) %>% pull(step_type) %>%
-      str_replace_all(c("cruise" = "1", "flight" = "2", "nest" = "3",
-        "perch" = "4", "roost" = "5"))
-    ssf_prob_dir <- file.path(exp_scenario_j, "Step_Types_Prob")
-    ssf_prob_file <- list.files(ssf_prob_dir, pattern =
-      paste0(step_type_i_numeric, "\\.tif$"), full.names = TRUE)
-    if (i ==  1){
-      # Use "Tmap_baselayers.R" script to get other baselayers
-      nest_bbox <- st_as_sfc(st_bbox(st_buffer(nest_wilson, dist = 10000)))
-      nest_buffer <- st_buffer(nest_wilson, dist = 10000)
-      nest_bb_sf <- st_as_sfc(bb(nest_buffer, relative = TRUE, height = 1.35,
-        width = 1.35))
-      Sys.sleep(1)
-      nest_om = read_osm(nest_bb_sf, type = om_nat_geo, zoom = 11)
-        #type = "osm", minNumTiles=9,
-      nest_om_bb <- bb_poly(nest_om)
-    }
-    ssf_prob_i <- raster(ssf_prob_file) #%>% slice(1)
-    ssf_prob_i_crop <- crop(ssf_prob_i, nest_buffer)
-    ssf_prob_i_mask <- mask(ssf_prob_i_crop, nest_buffer)
-    step_type_i_text <- step_type_i_numeric %>%
-      str_replace_all("1", "Cruise") %>%
-      str_replace_all("2", "Flight") %>%
-      str_replace_all("3", "Nest") %>%
-      str_replace_all("4", "Perch") %>%
-      str_replace_all("5", "Roost")
-    writeLines(paste0("Mapping: ", step_type_i_text))
-    step_type_i_arrow <- step_type_i_text %>%
-      str_replace_all("_", "$\\\\rightarrow$ ") %>%
-      latex2exp::TeX(.)
-    ssf_prob_i_nest_map <-
-      tm_shape(nest_om) +
-        tm_rgb() +
-     tm_shape(ssf_prob_i_mask, raster.downsample = FALSE) +
-     tm_raster(palette = viridis(20, direction = 1), alpha = .6,
-       legend.reverse = TRUE, style = "cont", title = "Probability") +
-      tm_scale_bar(breaks = c(0, 5, 10), text.size = .4, lwd = .25,
-        position = c(.03, .0)) +
-      tm_compass(type = "4star", text.size = 0.55, show.labels = 1, size = 1.75,
-        position = c(.8, .775), lwd = .25) +
-      tm_shape(nest_wilson) +
-      tm_symbols(shape = 20, #border.col = "black", border.lwd = .5,
-        col = "black", size = .075) +
-      tm_layout(asp = .8,
-        frame = NA, #"black",
-        title.color = "black",
-        title.bg.color = NA, #"ivory3",
-        title.bg.alpha = .85,
-        title.position = c(.275,.95),
-        title.fontfamily = "Latin Modern Roman",
-        title = step_type_i_arrow,
-        title.size = .6,
-        title.snap.to.legend = FALSE,
-        legend.bg.color = "ivory1",
-        legend.frame = "grey",
-        legend.frame.lwd = 1,
-        legend.height = .4,
-        legend.title.size = .4,
-        legend.text.size = .35,
-        legend.position = c(.785,.007),
-        legend.outside = FALSE,
-        legend.title.fontfamily = "Latin Modern Roman",
-        legend.text.fontfamily = "Latin Modern Roman")
-        #+ tm_credits(step_type_arrow, position=c("right","top"))
-    #ssf_prob_i_nest_map
-    tmap_position <- switch(step_type_i_numeric,
-      "1_1" = 1,  "1_2" = 2,  "1_4" = 3,
-      "2_1" = 5,  "2_2" = 6,  "2_4" = 7,  "2_5" = 8,
-      "3_1" = 9,  "3_2" = 10, "3_4" = 11, "3_5" = 12,
-      "4_1" = 13, "4_2" = 14, "4_4" = 15, "4_5" = 16,
-                  "5_2" = 18, "5_4" = 19)
-    writeLines(as.character(tmap_position))
-    ssf_tmap_list[[tmap_position]] <- ssf_prob_i_nest_map
-  }
-
-  tmap_blank <-
-    tm_shape(nest_om_bb, is.master = TRUE) +
-      tm_fill(col = "white") +
-    tm_shape(nest_buffer, is.master = TRUE) +
-      tm_polygons(col = "white", border.col = "white") +
-    tm_layout(asp = .8, legend.show = FALSE, frame = FALSE)
-
-  for (i in seq_len(length(ssf_tmap_list))){
-    if(is.null(ssf_tmap_list[[i]])) ssf_tmap_list[[i]] <- tmap_blank
-  }
-
-  # Arrange map of probability surfaces for testing
-  ssf_tmap_nest_arrange <- tmap_arrange(
-    ssf_tmap_list[[1]], ssf_tmap_list[[2]], ssf_tmap_list[[3]],
-    ssf_tmap_list[[4]], ssf_tmap_list[[5]], ssf_tmap_list[[6]],
-    ssf_tmap_list[[7]], ssf_tmap_list[[8]], ssf_tmap_list[[9]],
-    ssf_tmap_list[[10]], ssf_tmap_list[[11]], ssf_tmap_list[[12]],
-    ssf_tmap_list[[13]], ssf_tmap_list[[14]], ssf_tmap_list[[15]],
-    ssf_tmap_list[[16]], ssf_tmap_list[[17]], ssf_tmap_list[[18]],
-    ssf_tmap_list[[19]], ssf_tmap_list[[20]], ncol = 4)
-
-  tmap_save(tm = ssf_tmap_nest_arrange, filename = file.path(tex_dir,
-    "Figures/Ch4/Maps_SSF_Probability", "Wilson", paste0("SSF_",
-    exp_scenario_j_name, ".png")), unit = "in", dpi = 300,
-    height = 8, width = 8*.8)
-}
-
 # Wilson Path Density Maps -----------------------------------------------------
 
 # Variables
@@ -398,6 +7,7 @@ wind_area_color <- "darkorange"
 turbine_color <- "white"
 turbine_color_present <- "white"
 turbine_color_absent <- "black"
+credits_size = 1
 
 wilson_wt_n = st_read(file.path(exp_turbines_dir, "Wilson",
   "wilson_n_turbines.shp"))
@@ -410,144 +20,176 @@ wilson_wt_s_buff <- wilson_wt_s %>% st_buffer(56)
 if(mapping) mapview(wilson_wt_n_buff) + mapview(wilson_wt_s_buff)
 
 # Get nest
-nest_wilson <- nests_study %>% slice(c(5)) %>% st_transform(wgs84n19)
+nest_wilson <- readRDS(file.path(wind_input_dir, "wilson_nest.rds"))
 
 for (j in c("Cruise", "Flight")){
-  exp_lines_raster_c <- readRDS(file.path(exp_output_dir, line_density_dir,
+  exp_paths_raster_c <- readRDS(file.path(exp_output_dir, line_density_dir,
     line_density_agg_dir, paste0("Exp_Lines_Wilson_", j, "_C.rds")))
-  exp_lines_raster_n <- readRDS(file.path(exp_output_dir, line_density_dir,
+  exp_paths_raster_n <- readRDS(file.path(exp_output_dir, line_density_dir,
     line_density_agg_dir, paste0("Exp_Lines_Wilson_", j, "_N.rds")))
-  exp_lines_raster_ns <- readRDS(file.path(exp_output_dir, line_density_dir,
+  exp_paths_raster_ns <- readRDS(file.path(exp_output_dir, line_density_dir,
     line_density_agg_dir, paste0("Exp_Lines_Wilson_", j, "_NS.rds")))
-  exp_lines_raster_s <- readRDS(file.path(exp_output_dir, line_density_dir,
+  exp_paths_raster_s <- readRDS(file.path(exp_output_dir, line_density_dir,
     line_density_agg_dir, paste0("Exp_Lines_Wilson_", j, "_S.rds")))
 
   # Get bb (for final map extent)
-  lines_c_bb1_sfc <- st_as_sfc(bb(exp_lines_raster_c, relative = TRUE,
+  paths_c_bb1_sfc <- st_as_sfc(bb(exp_paths_raster_c, relative = TRUE,
       height = 1, width = 1)) %>%
     st_transform(., crs = as.character(OpenStreetMap::osm()))
-  lines_n_bb1_sfc <- st_as_sfc(bb(exp_lines_raster_n, relative = TRUE,
+  paths_n_bb1_sfc <- st_as_sfc(bb(exp_paths_raster_n, relative = TRUE,
       height = 1, width = 1)) %>%
     st_transform(., crs = as.character(OpenStreetMap::osm()))
-  lines_ns_bb1_sfc <- st_as_sfc(bb(exp_lines_raster_ns, relative = TRUE,
+  paths_ns_bb1_sfc <- st_as_sfc(bb(exp_paths_raster_ns, relative = TRUE,
       height = 1, width = 1)) %>%
     st_transform(., crs = as.character(OpenStreetMap::osm()))
-  lines_s_bb1_sfc <- st_as_sfc(bb(exp_lines_raster_s, relative = TRUE,
+  paths_s_bb1_sfc <- st_as_sfc(bb(exp_paths_raster_s, relative = TRUE,
       height = 1, width = 1)) %>%
     st_transform(., crs = as.character(OpenStreetMap::osm()))
 
   # Get combined bb
-  combined_bb_sfc <- st_union(lines_c_bb1_sfc, lines_n_bb1_sfc,
-      lines_ns_bb1_sfc, lines_s_bb1_sfc) %>%
-    bb(., relative = TRUE, height = 1, width = 1, asp.limit = 1) %>%
-    st_as_sfc(.) %>%
-    st_transform(., crs = crs(base))
-  combined_bb_om = read_osm(combined_bb_sfc, type = om_nat_geo, zoom = 11)
-  if(mapping) mapview(combined_bb_sfc)
+  combined_bb <- st_union(paths_c_bb1_sfc, paths_n_bb1_sfc,
+      paths_ns_bb1_sfc, paths_s_bb1_sfc) %>%
+    st_transform(., crs = crs(base)) %>%
+    bb(., relative = TRUE, height = 1, width = 1, asp.limit = 1)
+  combined_bb_sfc <- combined_bb %>%
+    st_as_sfc(.)
+
+  combined_bb_om = maptiles::get_tiles(x = combined_bb,
+    cachedir = "C:/Temp/Maptiles", provider = esri_natgeo_info, crop = TRUE,
+    verbose = TRUE, zoom = 10, forceDownload = TRUE)
+  if(mapping) mapview(combined_bb)
 
   # Get line density rasters
-  for (i in c("C", "N", "NS", "S")){
-    if(i == "C"){
-      exp_lines_raster_i <- exp_lines_raster_c
-      credits_text <- "Control"
-    }
-    if(i == "N"){
-      exp_lines_raster_i <- exp_lines_raster_n
-      credits_text <- "North"
-    }
-    if(i == "NS"){
-      exp_lines_raster_i <- exp_lines_raster_ns
-      credits_text <- "North and South"
-    }
-    if(i == "S"){
-      exp_lines_raster_i <- exp_lines_raster_s
-      credits_text <- "South"
-    }
 
-    lines_density_i_map <-
-      tm_shape(combined_bb_om) +
-        tm_rgb() +
-      tm_shape(exp_lines_raster_i, raster.downsample = FALSE) +
-      tm_raster(palette = plasma(20, direction = 1), alpha = .7,
-        legend.reverse = TRUE, style = "log10_pretty",
-        title = "Path Density") +
-      tm_shape(nest_wilson) +
-      tm_symbols(shape = 21, border.col = "black", border.lwd = 1,
-        col = nest_color, size = .5) +
-      tm_compass(type = "4star",  show.labels = 1, size = 2.5,
-        position = c(.85, .87)) +
-      tm_scale_bar(text.size = .75, breaks = c(0, 10, 20),
-        position = c(.05, .01)) +
-      tm_credits(credits_text, #fontfamily = "Latin Modern Roman",
-        size = 1.5, position = c(.0175, .91)) +
-      tm_layout(asp = 1,
-        outer.margins = 0,
-        inner.margins = 0,
-        frame = NA, #"black",
-        title.color = "black",
-        title.bg.color = NA, #"ivory3",
-        title.bg.alpha = .85,
-        title.position = c(.275,.95),
-        title.fontfamily = "Latin Modern Roman",
-        title.size = .75,
-        title.snap.to.legend = FALSE,
-        legend.bg.color = "white",
-        legend.frame = "grey",
-        legend.frame.lwd = 1,
-        legend.height = .2, # negative number = exact legend height
-        legend.width = .23, # negative number = exact legend width
-        legend.title.size = .95,
-        legend.text.size = .75,
-        legend.position = c(.775,.015),
-        legend.outside = FALSE,
-        legend.title.fontfamily = "Latin Modern Roman",
-        legend.text.fontfamily = "Latin Modern Roman")
+  # Control
+  exp_paths_raster_c <- exp_paths_raster_c
+  credits_text <- "Control"
 
-    turbines_n_present <-  tm_shape(wilson_wt_n_buff, title = "Wind Turbines") +
-      tm_polygons(col = turbine_color_present,
-        border.col = turbine_color_present,
-        lwd = 1)
+  paths_density_map_base <-
+    tm_layout(asp = 1) +
+    tm_shape(combined_bb_sfc, is.master = TRUE, ext = .935) +
+      tm_borders(col = "red") +
+    tm_shape(combined_bb_om, raster.downsample = FALSE) +
+      tm_rgb() +
+    tm_compass(type = "4star",  show.labels = 1, size = 2,
+      position = c(.83, .825)) +
+    tm_scale_bar(text.size = .75, breaks = c(0, 10, 20),
+      position = c(.05, .01)) +
+    tm_layout(asp = 1,
+      outer.margins = 0,
+      inner.margins = 0,
+      frame = "black",
+      title.color = "black",
+      title.bg.color = NA, #"ivory3",
+      title.bg.alpha = .85,
+      title.position = c(.275,.95),
+      title.fontfamily = "Latin Modern Roman",
+      title.size = .75,
+      title.snap.to.legend = FALSE,
+      legend.show = FALSE)
+  paths_density_map_base
 
-    turbines_n_absent <-  tm_shape(wilson_wt_n_buff, title = "Wind Turbines") +
-      tm_polygons(col = turbine_color_absent,
-        border.col = turbine_color_absent, lwd = 1)
+  turbines_n_present <-  tm_shape(wilson_wt_n_buff, title = "Wind Turbines") +
+    tm_polygons(col = turbine_color_present,
+      border.col = turbine_color_present,
+      lwd = 1)
 
-    turbines_s_present <-  tm_shape(wilson_wt_s_buff, title = "Wind Turbines") +
-      tm_polygons(col = turbine_color_present,
-        border.col = turbine_color_present, lwd = 1)
+  turbines_n_absent <-  tm_shape(wilson_wt_n_buff, title = "Wind Turbines") +
+    tm_polygons(col = turbine_color_absent,
+      border.col = turbine_color_absent, lwd = 1)
 
-    turbines_s_absent <-  tm_shape(wilson_wt_s_buff, title = "Wind Turbines") +
-      tm_polygons(col = turbine_color_absent,
-        border.col = turbine_color_absent, lwd = 1)
+  turbines_s_present <-  tm_shape(wilson_wt_s_buff, title = "Wind Turbines") +
+    tm_polygons(col = turbine_color_present,
+      border.col = turbine_color_present, lwd = 1)
 
-    if(i == "C"){
-      lines_density_i_map <- lines_density_i_map +
-        turbines_n_absent +
-        turbines_s_absent
-    }
-    if(i == "N"){
-      lines_density_i_map <- lines_density_i_map +
-        turbines_n_present +
-        turbines_s_absent
-    }
-    if(i == "NS"){
-      lines_density_i_map <- lines_density_i_map +
-        turbines_n_present +
-        turbines_s_present
-    }
-    if(i == "S"){
-      lines_density_i_map <- lines_density_i_map +
-        turbines_n_absent +
-        turbines_s_present
-    }
+  turbines_s_absent <-  tm_shape(wilson_wt_s_buff, title = "Wind Turbines") +
+    tm_polygons(col = turbine_color_absent,
+      border.col = turbine_color_absent, lwd = 1)
 
-    tmap_save(tm = lines_density_i_map, filename = file.path(tex_dir,
-      "Figures/Ch4/Maps_Path_Density", "Wilson",
-      paste0("Path_Density_", j, "_", i,".svg")),
-      unit = "in", dpi = 300, height = 6, width = 6)
-    tmap_save(tm = lines_density_i_map, filename = file.path(tex_dir,
-      "Figures/Ch4/Maps_Path_Density", "Wilson",
-      paste0("Path_Density_", j, "_", i,".png")),
-      unit = "in", dpi = 300, height = 6, width = 6)
-  }
+  tm_nest <- tm_shape(nest_wilson) +
+    tm_symbols(shape = 21, border.col = "black", border.lwd = 1,
+      col = nest_color, size = .35)
+
+  paths_density_map_c <- paths_density_map_base +
+    tm_shape(exp_paths_raster_c, raster.downsample = FALSE) +
+    tm_raster(palette = plasma(20, direction = 1), alpha = .7,
+      legend.reverse = TRUE, style = "log10_pretty",
+      title = "Path Density") +
+    turbines_n_absent +
+    turbines_s_absent +
+    tm_nest +
+    tm_credits("Control",
+      size = credits_size, position = c(.0175, .91))
+
+  paths_density_map_n <- paths_density_map_base +
+    tm_shape(exp_paths_raster_n, raster.downsample = FALSE) +
+    tm_raster(palette = plasma(20, direction = 1), alpha = .7,
+      legend.reverse = TRUE, style = "log10_pretty",
+      title = "Path Density") +
+    turbines_n_absent +
+    turbines_s_present +
+    tm_nest +
+    tm_credits("North",
+      size = credits_size, position = c(.0175, .91))
+
+  paths_density_map_s <- paths_density_map_base +
+    tm_shape(exp_paths_raster_s, raster.downsample = FALSE) +
+    tm_raster(palette = plasma(20, direction = 1), alpha = .7,
+      legend.reverse = TRUE, style = "log10_pretty",
+      title = "Path Density") +
+    turbines_n_absent +
+    turbines_s_present +
+    tm_nest +
+    tm_credits("South",
+      size = credits_size, position = c(.0175, .91))
+
+  paths_density_map_ns <- paths_density_map_base +
+    tm_shape(exp_paths_raster_ns, raster.downsample = FALSE) +
+    tm_raster(palette = plasma(20, direction = 1), alpha = .7,
+      legend.reverse = TRUE, style = "log10_pretty",
+      title = "Path Density") +
+    turbines_n_present +
+    turbines_s_present +
+    tm_nest +
+    tm_credits("North and South", #fontfamily = "Latin Modern Roman",
+      size = credits_size, position = c(.0175, .91))
+
+  # Arrange map of probability surfaces for testing
+  tmap_paths_density_arrange <- tmap_arrange(paths_density_map_c,
+    paths_density_map_n, paths_density_map_s, paths_density_map_ns, ncol = 2)
+
+  tmap_save(tm = tmap_paths_density_arrange, filename = file.path(
+    "C:/TEMP/TEMP_Images", paste0("Path_Density_", j, ".png")),
+    unit = "in", dpi = 300, height = 6, width = 8*.8)
+
+  paths_density_map_img <- file.path(
+    "C:/TEMP/TEMP_Images", paste0("Path_Density_", j, ".png")) %>%
+  image_read(.) %>%
+  image_trim(.)
+
+  legend_only <- tm_shape(exp_paths_raster_c, raster.downsample = FALSE) +
+    tm_raster(palette = plasma(20, direction = 1), alpha = .7,
+      legend.reverse = TRUE, style = "log10_pretty",
+      title = "Path Density") +
+    tm_layout(legend.only= T, fontfamily = "Latin Modern Roman")
+  tmap_save(tm = legend_only, filename = file.path(
+    "C:/TEMP/TEMP_Images",paste0("Path_Density_", j, "_Legend.png")),
+    unit = "in", dpi = 300, height = 3, width = 3)
+
+  legend_img <- file.path(
+      "C:/TEMP/TEMP_Images", paste0("Path_Density_", j, "_Legend.png")) %>%
+    image_read(.) %>%
+    image_trim(.)
+
+  backgrd <- image_blank(2280, 1764, color = "white")
+
+  covar_sigma_fig <- backgrd %>%
+    image_composite(., paths_density_map_img, offset = "+0+0") %>%
+    image_composite(., legend_img, offset = "+1950+750")
+
+  # Export
+  maps_fig_file = file.path(tex_dir, "Figures/Ch4/Maps_Path_Density",
+    "Wilson", paste0("Path_Density_", j, ".png"))
+  image_write(covar_sigma_fig, path = maps_fig_file, format = ".png")
+
 }
