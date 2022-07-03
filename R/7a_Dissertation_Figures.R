@@ -59,7 +59,8 @@ theme_blank <- theme(legend.position = "none",
 
 # For Wind Area/Turbine Transits
 theme_transits <- theme(
-  axis.text.x = element_text(color = "black", size = 9),
+  axis.text.x = element_text(color = "black", size = 11),
+  axis.text.y = element_text(color = "black", size = 12),
   axis.ticks = element_line(colour = NA),
   axis.title.y = element_text(margin = margin(t = 0, r = 15, b = 0, l = 0)),
   axis.title.x = element_text(margin = margin(t = 15, r = 0, b = 0, l = 0)),
@@ -70,7 +71,9 @@ theme_transits <- theme(
   panel.grid.minor = element_line(size = rel(0.5)),
   plot.background = element_rect(color = "white"),
   strip.background = element_blank(),
-  strip.text.x = element_text(size = 12))
+  strip.text.x = element_text(size = 12),
+  legend.title = element_text(size = 12),
+  legend.text = element_text(size = 11))
 
 # For Wind Area/Turbine Transits Stats
 theme_transits_stats <- theme(
@@ -1617,575 +1620,318 @@ ggsave(filename = "Calibration_Ridge_Crossings.png", plot = gg_combine_ridge,
 
 # ---------------------------- CHAPTER 4 ---------------------------------------
 
-# Greenville Windrose ----------------------------------------------------------
-
-greenville_wind <- readRDS("Output/Analysis/Wind/greenville_wind.rds")
-
-wind_df <- greenville_wind %>%
-  filter(ws != 0) %>%
-  mutate(ws_bin = ws) %>%
-  mutate(ws_bin = str_replace_all(ws,
-    c("0" = "Calm",
-      "3.5" = "2.0 - 4.9",
-      "6" = "5.0 - 6.9",
-      "8.5" = "7.0 - 9.9",
-      "12.5" = "10.0 - 14.9",
-      "17.5" = "15.0 - 19.9",
-      "21" = "20.0+"))) %>%
-  mutate(ws_bin = as_factor(ws_bin))
-
-# Colors for speed (fill in ggplot)
-spd_colors <- rev(viridis(n_distinct(wind_df$ws_bin, na.rm = FALSE)))
-
-# Figure out the wind direction bins
-dirres = 22.5
-dir_breaks <- c(-dirres/2, seq(dirres/2, 360 - dirres/2, by = dirres),
-  360 + dirres/2)
-dir_labels <- c(paste(360-dirres/2,"-",dirres/2),
-  paste(seq(dirres/2, 360-3*dirres/2, by = dirres), "-",
-    seq(3*dirres/2, 360-dirres/2, by = dirres)),
-  paste(360-dirres/2,"-",dirres/2))
-
-# Assign each wind direction to a bin
-wind_df_binned <- wind_df %>%
-  mutate(dir_binned = cut(wind_df$wd, breaks = dir_breaks,
-    ordered_result = TRUE))
-levels(wind_df_binned$dir_binned) <- dir_labels
-
-# Labels on y-axis
-y_labels <- data.frame(x = pi, y = c(5, 10, 15), labels = c("5%", "10%", "15%"))
-
-# Create windrose plot
-gg_windrose <- ggplot(data = wind_df_binned,
-  aes(x = dir_binned, fill = fct_rev(ws_bin), y = probab)) +
-  geom_col() +
-  geom_text(data = y_labels, inherit.aes = FALSE, aes(x = x, y = y,
-    label = labels), family = "Latin Modern Roman", size = 3.5) +
-  scale_x_discrete(drop = FALSE,
-    labels = c("N","NNE","NE","ENE", "E", "ESE", "SE","SSE",
-      "S","SSW", "SW","WSW", "W", "WNW","NW","NNW")) +
-  scale_y_continuous(breaks = c(0, 5, 10, 15)) +
-  coord_polar(start = -((dirres/2)/360) * 2*pi) +
-  scale_fill_manual(name = "Wind Speed\n    (mph)", values = spd_colors,
-    drop = FALSE) +
-  theme_minimal() +
-  theme_latex +
-  theme(plot.background = element_rect(color = "white")) +
-  theme(plot.title = element_text(size = 10, vjust = -2, hjust = 0.5)) +
-  theme(plot.margin = margin(0, 6, 3, 6, "pt")) +
-  theme(axis.title = element_text(size = 14)) +
-  theme(axis.text.x = element_text(size = 10, face = "bold", angle = 0,
-    vjust = .5, hjust = 0.5)) +
-  theme(axis.ticks.y = element_blank(), # Disables default y-axis
-    axis.text.y = element_blank()) +
-  theme(panel.grid.major = element_line(colour = "grey90"))  +
-  theme(panel.grid.minor = element_line(colour = "grey90"))  +
-  theme(legend.title = element_text(size = 12)) +
-  theme(legend.text = element_text(size = 11)) +
-  labs(x = "Direction", y = "Wind Percent")
-gg_windrose
-
-ggsave(filename = "Greenville_Windrose.svg", plot = gg_windrose,
-  path = file.path(tex_dir, "Figures/Ch4/Windroses"), scale = 1, width = 6,
-  height = 4, units = "in", dpi = 300)
-
-# Wilson Wind Area Transits ----------------------------------------------------
-
-# Read in RDS
-wind_transits_sum <- readRDS(file.path(exp_dir,
-    "wind_transits_sum_wilson.rds")) %>%
-  mutate(scenario = str_replace_all(scenario, "^North and South$",
-    "North\nand\nSouth"))
-
-wind_transits_sum_ns <- bind_rows(
-  wind_transits_sum %>%
-    dplyr::select(scenario, area_steps_n = n_area_steps_n, behavior_line) %>%
-    mutate(area = "Wilson\nNorth Wind Area"),
-  wind_transits_sum %>%
-    dplyr::select(scenario, area_steps_n = s_area_steps_n, behavior_line) %>%
-    mutate(area = "Wilson\nSouth Wind Area"))
-
-# Transit Areas (Cruise and Flight)
-gg_transits_areas <- ggplot(wind_transits_sum_ns) +
-  geom_boxplot(aes(scenario, y = area_steps_n, fill = behavior_line),
-    position = "dodge") +
-  facet_grid(cols = vars(area)) +
-  ylim(0, NA) +
-  labs(x = "Wind Farm Scenario",
-    y ="Path Transits") +
-  scale_fill_manual(values = cruise_flight_colors, name = "Behavior") +
-  theme_latex +
-  theme_transits  +
-  theme(legend.key = element_blank(),
-        legend.title = element_text(size = 11))
-gg_transits_areas
-
-ggsave(filename = "Wind_Areas_WP.svg",
-  plot = gg_transits_areas,
-  path = file.path(tex_dir, "Figures/Ch4/Transits"), scale = 1,
-  width = 6, height = 5, units = "in", dpi = 300)
-
-# Clean up objects
-rm(wind_transits_sum, wind_transits_sum_ns, gg_transits_areas)
-
-# Wilson Wind Turbine Transits -------------------------------------------------
-
-# Read in RDS
-wind_transits_sum <- readRDS(file.path(exp_dir,
-    "wind_transits_sum_wilson.rds")) %>%
-  mutate(scenario = str_replace_all(scenario, "^North and South$",
-    "North\nand\nSouth"))
-
-wind_transits_sum_ns <- bind_rows(
-  wind_transits_sum %>%
-    dplyr::select(scenario, turbines_steps_n = n_turbines_steps_n, behavior_line) %>%
-    mutate(area = "Wilson\nNorth Wind Turbines"),
-  wind_transits_sum %>%
-    dplyr::select(scenario, turbines_steps_n = s_turbines_steps_n, behavior_line) %>%
-    mutate(area = "Wilson\nSouth Wind Turbines"))
-
-# Turbines (Flight)
-gg_transits_turbines <- ggplot(wind_transits_sum_ns) +
-  geom_boxplot(aes(scenario, y = turbines_steps_n, fill = behavior_line),
-    position = "dodge") +
-  facet_grid(cols = vars(area)) +
-  ylim(0, NA) +
-  labs(x = "Wind Farm Scenario",
-    y ="Path Transits") +
-  scale_fill_manual(values = cruise_flight_colors, name = "Behavior") +
-  theme_latex +
-  theme_transits  +
-  theme(legend.key = element_blank())
-gg_transits_turbines
-
-# Save SVG file
-ggsave(filename = "Wind_Turbines_WP.svg",
-  plot = gg_transits_turbines,
-  path = file.path(tex_dir, "Figures/Ch4/Transits"), scale = 1,
-  width = 6, height = 5, units = "in", dpi = 300)
-
-# Clean up objects
-rm(wind_transits_sum, wind_transits_sum_ns, gg_transits_turbines)
-
-# Wilson Turbine Transits Stats ------------------------------------------------
-
-# Filter data
-transit_flights <- readRDS(file.path(exp_dir,
-    "wind_transits_sum_wilson.rds")) %>%
-  filter(behavior_line == "Flight") %>%
-  filter(exp_id %in% c(1:15)) %>%
-  mutate(scenario = str_replace_all(scenario, "^North and South$",
-    "North\nand\nSouth"))
-
-transit_flights_ns <- bind_rows(
-  transit_flights %>%
-    dplyr::select(scenario, turbines_steps_n = n_turbines_steps_n,
-      behavior_line) %>%
-    mutate(area = "Wilson\nNorth Wind Turbines"),
-  transit_flights %>%
-    dplyr::select(scenario, turbines_steps_n = s_turbines_steps_n,
-      behavior_line) %>%
-    mutate(area = "Wilson\nSouth Wind Turbines"))
-
-transit_flights_stats <- transit_flights_ns %>%
-  group_by(area) %>%
-  t_test(turbines_steps_n ~ scenario, ref.group = "Control") %>%
-  adjust_pvalue(.) %>%
-  add_significance("p.adj") %>%
-  add_y_position(.)
-
-gg_flights_stats <- transit_flights_ns %>%
-  ggboxplot(.,
-    x = "scenario", y = "turbines_steps_n",
-    xlab = "Wind Farm Scenario",
-    ylab = "Turbine Transits",
-    label.rectangle = TRUE,
-    fill = "scenario", facet.by = "area") +
-  stat_pvalue_manual(transit_flights_stats, label.size = 4,
-    label = "p = {p.adj}{p.adj.signif}",
-    y.position = c(16, 18.5, 21, 23, 25.5, 28),
-    family = "Latin Modern Roman"
-    ) +
-  scale_fill_manual(values = scenarios_colors, name = "Scenarios") +
-  scale_y_continuous(expand = c(0, NA), limits = c(0, 29.9)) +
-  theme_latex +
-  theme_transits +
-  theme_transits_stats +
-  theme(legend.position = "none")
-gg_flights_stats
-
-# Save SVG
-ggsave(filename = "Flights_Stats_WP.svg",
-  plot = gg_flights_stats,
-  path = file.path(tex_dir, "Figures/Ch4/Transits"), scale = 1,
-  width = 6, height = 5, units = "in", dpi = 300)
-
-# Clean up objects
-rm(transit_flights, transit_flights_ns, transit_flights_stats, gg_flights_stats)
-
-# Wilson Predicted Collision Risk North/South ----------------------------------
-
-collision_risk_sum <- readRDS(file.path(exp_dir,
-    "flight_collision_risk_wilson.rds")) %>%
-  mutate(scenario = str_replace_all(scenario, "^North and South$",
-    "North\nand\nSouth")) %>%
-  dplyr::select(exp_id, scenario, n_turbines_collision_risk_95avoid,
-    s_turbines_collision_risk_95avoid, turbines_collision_risk_95avoid)
-
-collision_risk_sum_ns <- bind_rows(
-  collision_risk_sum %>%
-    filter(scenario %in% c("North", "North\nand\nSouth")) %>%
-    rename(collision_risk = n_turbines_collision_risk_95avoid) %>%
-    mutate(turbines = "Wilson\nNorth Turbines"),
-  collision_risk_sum %>%
-    filter(scenario %in% c("South", "North\nand\nSouth")) %>%
-    rename(collision_risk = s_turbines_collision_risk_95avoid) %>%
-    mutate(turbines = "Wilson\nSouth Turbines")) %>%
-  dplyr::select(exp_id, scenario, turbines, collision_risk) %>%
-  mutate(scenario = ordered(scenario, levels = c("North","South",
-    "North\nand\nSouth")))
-
-# Collisions with North turbines (only relevant for North and North/South)
-gg_turbines_ns_crm <- collision_risk_sum_ns %>%
-  ggplot(.) +
-  geom_boxplot(aes(x = scenario, y = collision_risk, fill = scenario)) +
-  facet_grid(cols = vars(turbines), scale = "free") +
-  scale_fill_manual(values = scenarios_colors, name = "Scenarios") +
-  labs(x = "Wind Farm Scenario",
-    y = "Collision Risk Per Eagle\nPer Breeding Season") +
-  theme_latex +
-  theme_transits +
-  theme_transits_stats +
-  theme(legend.position = "none")
-gg_turbines_ns_crm
-
-# Save SVG
-ggsave(filename = "Turbines_NS_CRM_WP.svg",
-  plot = gg_turbines_ns_crm,
-  path = file.path(tex_dir, "Figures/Ch4/Collision_Risk"), scale = 1,
-  width = 6, height = 5, units = "in", dpi = 300)
-
-# Clean up objects
-rm(collision_risk_sum, collision_risk_sum_ns, gg_turbines_ns_crm)
-
-# Wilson Predicted Collision Risk All Turbines ---------------------------------
-
-collision_risk_sum_all <- readRDS(file.path(exp_dir,
-    "flight_collision_risk_wilson.rds")) %>%
-  mutate(scenario = str_replace_all(scenario, "^North and South$",
-    "North\nand\nSouth")) %>%
-  dplyr::select(exp_id, scenario,
-    collision_risk = turbines_collision_risk_95avoid)
-
-gg_turbines_all_crm <- collision_risk_sum_all %>%
-  ggplot(.) +
-  geom_boxplot(aes(scenario, y = collision_risk,
-    fill = scenario)) +
-  scale_x_discrete(limits = c("North","South", "North\nand\nSouth")) +
-  scale_fill_manual(values = scenarios_colors, name = "Scenarios") +
-  labs(x = "Wind Farm Scenario") +
-  labs(y = paste0("Total Predicted Collisions with Turbines\nPer Eagle ",
-    "Per Breeding Season\n(95% Avoidance)")) +
-  ggtitle("Wilson Pond Collision Risk") +
-  theme_latex +
-  theme_transits +
-  theme_transits_stats +
-  theme(legend.position = "none")
-gg_turbines_all_crm
-
-ggsave(filename = "Turbines_All_CRM_WP.svg",
-  plot = gg_turbines_all_crm,
-  path = file.path(tex_dir, "Figures/Ch4/Collision_Risk"), scale = 1,
-  width = 6, height = 5, units = "in", dpi = 300)
-
-# Clean up objects
-rm(collision_risk_sum_all, gg_turbines_all_crm)
-
-# Millinocket Windrose ---------------------------------------------------------
-
-millinocket_wind <- readRDS("Output/Analysis/Wind/millinocket_wind.rds")
-
-wind_df <- millinocket_wind %>%
-  filter(ws != 0) %>%
-  mutate(ws_bin = ws) %>%
-  mutate(ws_bin = str_replace_all(ws,
-    c("0" = "Calm",
-      "3.5" = "2.0 - 4.9",
-      "6" = "5.0 - 6.9",
-      "8.5" = "7.0 - 9.9",
-      "12.5" = "10.0 - 14.9",
-      "17.5" = "15.0 - 19.9",
-      "21" = "20.0+"))) %>%
-  mutate(ws_bin = as_factor(ws_bin))
-
-# Colors for speed (fill in ggplot)
-spd_colors <- rev(viridis(n_distinct(wind_df$ws_bin, na.rm = FALSE)))
-
-# Figure out the wind direction bins
-dirres = 22.5
-dir_breaks <- c(-dirres/2, seq(dirres/2, 360 - dirres/2, by = dirres),
-  360 + dirres/2)
-dir_labels <- c(paste(360-dirres/2,"-",dirres/2),
-  paste(seq(dirres/2, 360-3*dirres/2, by = dirres), "-",
-    seq(3*dirres/2, 360-dirres/2, by = dirres)),
-  paste(360-dirres/2,"-",dirres/2))
-
-# Assign each wind direction to a bin
-wind_df_binned <- wind_df %>%
-  mutate(dir_binned = cut(wind_df$wd, breaks = dir_breaks,
-    ordered_result = TRUE))
-levels(wind_df_binned$dir_binned) <- dir_labels
-
-# Labels on y-axis
-y_labels <- data.frame(x = pi, y = c(5, 10, 15), labels = c("5%", "10%", "15%"))
-
-# Create windrose plot
-gg_windrose <- ggplot(data = wind_df_binned,
-  aes(x = dir_binned, fill = fct_rev(ws_bin), y = probab)) +
-  geom_col() +
-  geom_text(data = y_labels, inherit.aes = FALSE, aes(x = x, y = y,
-    label = labels), family = "Latin Modern Roman", size = 3.5) +
-  scale_x_discrete(drop = FALSE,
-    labels = c("N","NNE","NE","ENE", "E", "ESE", "SE","SSE",
-      "S","SSW", "SW","WSW", "W", "WNW","NW","NNW")) +
-  scale_y_continuous(breaks = c(0, 5, 10, 15)) +
-  coord_polar(start = -((dirres/2)/360) * 2*pi) +
-  scale_fill_manual(name = "Wind Speed\n    (mph)", values = spd_colors,
-    drop = FALSE) +
-  theme_minimal() +
-  theme_latex +
-  theme(plot.background = element_rect(color = "white")) +
-  theme(plot.title = element_text(size = 10, vjust = -2, hjust = 0.5)) +
-  theme(plot.margin = margin(0, 6, 3, 6, "pt")) +
-  theme(axis.title = element_text(size = 14)) +
-  theme(axis.text.x = element_text(size = 10, face = "bold", angle = 0,
-    vjust = .5, hjust = 0.5)) +
-  theme(axis.ticks.y = element_blank(), # Disables default y-axis
-    axis.text.y = element_blank()) +
-  theme(panel.grid.major = element_line(colour = "grey90"))  +
-  theme(panel.grid.minor = element_line(colour = "grey90"))  +
-  theme(legend.title = element_text(size = 12)) +
-  theme(legend.text = element_text(size = 11)) +
-  labs(x = "Direction", y = "Wind Percent")
-gg_windrose
-
-ggsave(filename = "Millinocket_Windrose.svg", plot = gg_windrose,
-  path = file.path(tex_dir, "Figures/Ch4/Windroses"), scale = 1, width = 6,
-  height = 4, units = "in", dpi = 300)
-
-# Grand Lake Wind Area Transits ------------------------------------------------
-
-# Read in RDS
-wind_transits_sum <- readRDS(file.path(exp_dir,
-    "wind_transits_sum_grand_lake.rds")) %>%
-  mutate(scenario = str_replace_all(scenario, "^North and South$",
-    "North\nand\nSouth"))
-
-wind_transits_sum_ns <- bind_rows(
-  wind_transits_sum %>%
-    dplyr::select(scenario, area_steps_n = n_area_steps_n, behavior_line) %>%
-    mutate(area = "Grand Lake\nNorth Wind Area"),
-  wind_transits_sum %>%
-    dplyr::select(scenario, area_steps_n = s_area_steps_n, behavior_line) %>%
-    mutate(area = "Grand Lake\nSouth Wind Area"))
-
-# Transit Areas (Cruise and Flight)
-gg_transits_areas <- ggplot(wind_transits_sum_ns) +
-  geom_boxplot(aes(scenario, y = area_steps_n, fill = behavior_line),
-    position = "dodge") +
-  facet_grid(cols = vars(area)) +
-  ylim(0, NA) +
-  labs(x = "Wind Farm Scenario",
-    y ="Path Transits") +
-  scale_fill_manual(values = cruise_flight_colors, name = "Behavior") +
-  theme_latex +
-  theme_transits  +
-  theme(legend.key = element_blank(),
-        legend.title = element_text(size = 11))
-gg_transits_areas
-
-ggsave(filename = "Wind_Areas_GL.svg",
-  plot = gg_transits_areas,
-  path = file.path(tex_dir, "Figures/Ch4/Transits"), scale = 1,
-  width = 6, height = 5, units = "in", dpi = 300)
-
-# Clean up objects
-rm(wind_transits_sum, wind_transits_sum_ns, gg_transits_areas)
-
-# Grand Lake Wind Turbine Transits ---------------------------------------------
-
-# Read in RDS
-wind_transits_sum <- readRDS(file.path(exp_dir,
-    "wind_transits_sum_grand_lake.rds")) %>%
-  mutate(scenario = str_replace_all(scenario, "^North and South$",
-    "North\nand\nSouth"))
-
-wind_transits_sum_ns <- bind_rows(
-  wind_transits_sum %>%
-    dplyr::select(scenario, turbines_steps_n = n_turbines_steps_n,
-      behavior_line) %>%
-    mutate(area = "Grand Lake\nNorth Wind Turbines"),
-  wind_transits_sum %>%
-    dplyr::select(scenario, turbines_steps_n = s_turbines_steps_n,
-      behavior_line) %>%
-    mutate(area = "Grand Lake\nSouth Wind Turbines"))
-
-# Turbines (Flight)
-gg_transits_turbines <- ggplot(wind_transits_sum_ns) +
-  geom_boxplot(aes(scenario, y = turbines_steps_n, fill = behavior_line),
-    position = "dodge") +
-  facet_grid(cols = vars(area)) +
-  ylim(0, NA) +
-  labs(x = "Wind Farm Scenario",
-    y ="Path Transits") +
-  scale_fill_manual(values = cruise_flight_colors, name = "Behavior") +
-  theme_latex +
-  theme_transits  +
-  theme(legend.key = element_blank())
-gg_transits_turbines
-
-# Save SVG file
-ggsave(filename = "Wind_Turbines_GL.svg",
-  plot = gg_transits_turbines,
-  path = file.path(tex_dir, "Figures/Ch4/Transits"), scale = 1,
-  width = 6, height = 5, units = "in", dpi = 300)
-
-# Clean up objects
-rm(wind_transits_sum, wind_transits_sum_ns, gg_transits_turbines)
-
-# Grand Lake Turbine Transits Stats --------------------------------------------
-
-# Filter data
-transit_flights <- readRDS(file.path(exp_dir,
-    "wind_transits_sum_grand_lake.rds")) %>%
-  filter(behavior_line == "Flight") %>%
-  filter(exp_id %in% c(1:15)) %>%
-  mutate(scenario = str_replace_all(scenario, "^North and South$",
-    "North\nand\nSouth"))
-
-transit_flights_ns <- bind_rows(
-  transit_flights %>%
-    dplyr::select(scenario, turbines_steps_n = n_turbines_steps_n,
-      behavior_line) %>%
-    mutate(area = "Grand Lake\nNorth Wind Turbines"),
-  transit_flights %>%
-    dplyr::select(scenario, turbines_steps_n = s_turbines_steps_n,
-      behavior_line) %>%
-    mutate(area = "Grand Lake\nSouth Wind Turbines"))
-
-transit_flights_stats <- transit_flights_ns %>%
-  group_by(area) %>%
-  t_test(turbines_steps_n ~ scenario, ref.group = "Control") %>%
-  adjust_pvalue(.) %>%
-  add_significance("p.adj") %>%
-  add_y_position(.)
-
-gg_flights_stats <- transit_flights_ns %>%
-  ggboxplot(.,
-    x = "scenario", y = "turbines_steps_n",
-    xlab = "Wind Farm Scenario",
-    ylab = "Turbine Transits",
-    label.rectangle = TRUE,
-    fill = "scenario", facet.by = "area") +
-  stat_pvalue_manual(transit_flights_stats, label.size = 4,
-    label = "p = {p.adj}{p.adj.signif}",
-    y.position = c(16, 18.5, 21, 23, 25.5, 28),
-    family = "Latin Modern Roman"
-    ) +
-  scale_fill_manual(values = scenarios_colors, name = "Scenarios") +
-  scale_y_continuous(expand = c(0, NA), limits = c(0, 29.9)) +
-  theme_latex +
-  theme_transits +
-  theme_transits_stats +
-  theme(legend.position = "none")
-gg_flights_stats
-
-# Save SVG
-ggsave(filename = "Flights_Stats_GL.svg",
-  plot = gg_flights_stats,
-  path = file.path(tex_dir, "Figures/Ch4/Transits"), scale = 1,
-  width = 6, height = 5, units = "in", dpi = 300)
-
-# Clean up objects
-rm(transit_flights, transit_flights_ns, transit_flights_stats, gg_flights_stats)
-
-# Grand Lake Predicted Collision Risk North/South ------------------------------
-
-collision_risk_sum <- readRDS(file.path(exp_dir,
-    "flight_collision_risk_grand_lake.rds")) %>%
-  mutate(scenario = str_replace_all(scenario, "^North and South$",
-    "North\nand\nSouth")) %>%
-  dplyr::select(exp_id, scenario, n_turbines_collision_risk_95avoid,
-    s_turbines_collision_risk_95avoid, turbines_collision_risk_95avoid)
-
-collision_risk_sum_ns <- bind_rows(
-  collision_risk_sum %>%
-    filter(scenario %in% c("North", "North\nand\nSouth")) %>%
-    rename(collision_risk = n_turbines_collision_risk_95avoid) %>%
-    mutate(turbines = "Grand Lake\nNorth Turbines"),
-  collision_risk_sum %>%
-    filter(scenario %in% c("South", "North\nand\nSouth")) %>%
-    rename(collision_risk = s_turbines_collision_risk_95avoid) %>%
-    mutate(turbines = "Grand Lake\nSouth Turbines")) %>%
-  dplyr::select(exp_id, scenario, turbines, collision_risk) %>%
-  mutate(scenario = ordered(scenario, levels = c("North","South",
-    "North\nand\nSouth")))
-
-# Collisions with North turbines (only relevant for North and North/South)
-gg_turbines_ns_crm <- collision_risk_sum_ns %>%
-  ggplot(.) +
-  geom_boxplot(aes(x = scenario, y = collision_risk, fill = scenario)) +
-  facet_grid(cols = vars(turbines), scale = "free") +
-  scale_fill_manual(values = scenarios_colors, name = "Scenarios") +
-  labs(x = "Wind Farm Scenario",
-    y = "Collision Risk Per Eagle\nPer Breeding Season\n(95% Avoidance)") +
-  theme_latex +
-  theme_transits +
-  theme_transits_stats +
-  theme(legend.position = "none")
-gg_turbines_ns_crm
-
-# Save SVG
-ggsave(filename = "Turbines_NS_CRM_GL.svg",
-  plot = gg_turbines_ns_crm,
-  path = file.path(tex_dir, "Figures/Ch4/Collision_Risk"), scale = 1,
-  width = 6, height = 5, units = "in", dpi = 300)
-
-# Clean up objects
-rm(collision_risk_sum, collision_risk_sum_ns, gg_turbines_ns_crm)
-
-# Grand Lake Predicted Collision Risk All Turbines -----------------------------
-
-collision_risk_sum_all <- readRDS(file.path(exp_dir,
-    "flight_collision_risk_grand_lake.rds")) %>%
-  mutate(scenario = str_replace_all(scenario, "^North and South$",
-    "North\nand\nSouth")) %>%
-  dplyr::select(exp_id, scenario,
-    collision_risk = turbines_collision_risk_95avoid)
-
-gg_turbines_all_crm <- collision_risk_sum_all %>%
-  ggplot(.) +
-  geom_boxplot(aes(scenario, y = collision_risk,
-    fill = scenario)) +
-  scale_x_discrete(limits = c("North","South", "North\nand\nSouth")) +
-  scale_fill_manual(values = scenarios_colors, name = "Scenarios") +
-  labs(x = "Wind Farm Scenario") +
-  labs(y = paste0("Total Predicted Collisions with Turbines\nPer Eagle ",
-    "Per Breeding Season\n(95% Avoidance)")) +
-  ggtitle("West Grand Lake Collision Risk") +
-  theme_latex +
-  theme_transits +
-  theme_transits_stats +
-  theme(legend.position = "none")
-gg_turbines_all_crm
-
-ggsave(filename = "Turbines_All_CRM_GL.svg",
-  plot = gg_turbines_all_crm,
-  path = file.path(tex_dir, "Figures/Ch4/Collision_Risk"), scale = 1,
-  width = 6, height = 5, units = "in", dpi = 300)
-
-# Clean up objects
-rm(collision_risk_sum_all, gg_turbines_all_crm)
+# Start Nest For Loop ----------------------------------------------------------
+
+for (i in c("Grand_Lake", "Wilson")){
+  nest_str <- i
+  nest_lower <- nest_str %>% str_to_lower(.)
+  nest_title <- nest_str %>% str_replace(., "_", " ") %>% str_to_title(.)
+  print(paste0("Starting: ", nest_title))
+
+  # Get Windrose Data ----------------------------------------------------------
+  if(nest_str == "Wilson"){
+    site_wind <- readRDS("Output/Analysis/Wind/greenville_wind.rds")
+    windrose_filename <- "Greenville_Windrose.svg"
+  }
+
+  if(nest_str == "Grand_Lake"){
+    site_wind <- readRDS("Output/Analysis/Wind/millinocket_wind.rds")
+    windrose_filename <- "Millinocket_Windrose.svg"
+  }
+
+  wind_df <- site_wind %>%
+    filter(ws != 0) %>%
+    mutate(ws_bin = ws) %>%
+    mutate(ws_bin = str_replace_all(ws,
+      c("0" = "Calm",
+        "3.5" = "2.0 - 4.9",
+        "6" = "5.0 - 6.9",
+        "8.5" = "7.0 - 9.9",
+        "12.5" = "10.0 - 14.9",
+        "17.5" = "15.0 - 19.9",
+        "21" = "20.0+"))) %>%
+    mutate(ws_bin = as_factor(ws_bin))
+
+  # Colors for speed (fill in ggplot)
+  spd_colors <- rev(viridis(n_distinct(wind_df$ws_bin, na.rm = FALSE)))
+
+  # Figure out the wind direction bins
+  dirres = 22.5
+  dir_breaks <- c(-dirres/2, seq(dirres/2, 360 - dirres/2, by = dirres),
+    360 + dirres/2)
+  dir_labels <- c(paste(360-dirres/2,"-",dirres/2),
+    paste(seq(dirres/2, 360-3*dirres/2, by = dirres), "-",
+      seq(3*dirres/2, 360-dirres/2, by = dirres)),
+    paste(360-dirres/2,"-",dirres/2))
+
+  # Assign each wind direction to a bin
+  wind_df_binned <- wind_df %>%
+    mutate(dir_binned = cut(wind_df$wd, breaks = dir_breaks,
+      ordered_result = TRUE))
+  levels(wind_df_binned$dir_binned) <- dir_labels
+
+  # Labels on y-axis
+  y_labels <- data.frame(x = pi, y = c(5, 10, 15), labels = c("5%", "10%",
+    "15%"))
+
+  # Create windrose plot
+  gg_windrose <- ggplot(data = wind_df_binned,
+    aes(x = dir_binned, fill = fct_rev(ws_bin), y = probab)) +
+    geom_col() +
+    geom_text(data = y_labels, inherit.aes = FALSE, aes(x = x, y = y,
+      label = labels), family = "Latin Modern Roman", size = 3.5) +
+    scale_x_discrete(drop = FALSE,
+      labels = c("N","NNE","NE","ENE", "E", "ESE", "SE","SSE",
+        "S","SSW", "SW","WSW", "W", "WNW","NW","NNW")) +
+    scale_y_continuous(breaks = c(0, 5, 10, 15)) +
+    coord_polar(start = -((dirres/2)/360) * 2*pi) +
+    scale_fill_manual(name = "Wind Speed\n    (mph)", values = spd_colors,
+      drop = FALSE) +
+    theme_minimal() +
+    theme_latex +
+    theme(plot.background = element_rect(color = "white")) +
+    theme(plot.title = element_text(vjust = -2, hjust = 0.5)) +
+    theme(plot.margin = margin(0, 6, 3, 6, "pt")) +
+    theme(axis.title = element_text(size = 14)) +
+    theme(axis.text.x = element_text(size = 10, face = "bold", angle = 0,
+      vjust = .5, hjust = 0.5)) +
+    theme(axis.ticks.y = element_blank(), # Disables default y-axis
+      axis.text.y = element_blank()) +
+    theme(panel.grid.major = element_line(colour = "grey90"))  +
+    theme(panel.grid.minor = element_line(colour = "grey90"))  +
+    theme(legend.title = element_text(size = 12)) +
+    theme(legend.text = element_text(size = 10)) +
+    labs(x = "Direction", y = "Wind Percent")
+  gg_windrose
+
+  ggsave(filename = windrose_filename, plot = gg_windrose,
+    path = file.path(tex_dir, "Figures/Ch4/Windroses"), scale = 1, width = 6,
+    height = 4, units = "in", dpi = 300)
+
+  # Wind Area Transits ---------------------------------------------------------
+
+  # Read in RDS
+  wind_transits_sum <- readRDS(file.path(exp_dir,
+      paste0("wind_transits_sum_", nest_lower, ".rds"))) %>%
+    mutate(scenario = str_replace_all(scenario, "^North and South$",
+      "North\nand\nSouth"))
+
+  wind_transits_sum_ns <- bind_rows(
+    wind_transits_sum %>%
+      dplyr::select(scenario, area_steps_n = n_area_steps_n, behavior_line) %>%
+      mutate(area = paste0(nest_title, "\nNorth Wind Area")),
+    wind_transits_sum %>%
+      dplyr::select(scenario, area_steps_n = s_area_steps_n, behavior_line) %>%
+      mutate(area = paste0(nest_title, "\nSouth Wind Area")))
+
+  # Transit Areas (Cruise and Flight)
+  gg_transits_areas <- ggplot(wind_transits_sum_ns) +
+    geom_boxplot(aes(scenario, y = area_steps_n, fill = behavior_line),
+      position = "dodge") +
+    facet_grid(cols = vars(area)) +
+    ylim(0, NA) +
+    labs(x = "Wind Farm Scenario",
+      y ="Path Transits") +
+    scale_fill_manual(values = cruise_flight_colors, name = "Behavior") +
+    theme_latex +
+    theme_transits  +
+    theme(legend.key = element_blank())
+  gg_transits_areas
+
+  ggsave(filename = paste0("Wind_Areas_", nest_str, ".svg"),
+    plot = gg_transits_areas,
+    path = file.path(tex_dir, "Figures/Ch4/Transits"), scale = 1,
+    width = 6, height = 5, units = "in", dpi = 300)
+
+  # Clean up objects
+  rm(wind_transits_sum, wind_transits_sum_ns, gg_transits_areas)
+
+  # Wind Turbine Transits ------------------------------------------------------
+
+  # Read in RDS
+  wind_transits_sum <- readRDS(file.path(exp_dir,
+      paste0("wind_transits_sum_", nest_lower ,".rds"))) %>%
+    mutate(scenario = str_replace_all(scenario, "^North and South$",
+      "North\nand\nSouth"))
+
+  wind_transits_sum_ns <- bind_rows(
+    wind_transits_sum %>%
+      dplyr::select(scenario, turbines_steps_n = n_turbines_steps_n,
+        behavior_line) %>%
+      mutate(area = paste0(nest_title, "\nNorth Wind Turbines")),
+    wind_transits_sum %>%
+      dplyr::select(scenario, turbines_steps_n = s_turbines_steps_n,
+        behavior_line) %>%
+      mutate(area = paste0(nest_title, "\nSouth Wind Turbines")))
+
+  # Turbines (Flight)
+  gg_transits_turbines <- ggplot(wind_transits_sum_ns) +
+    geom_boxplot(aes(scenario, y = turbines_steps_n, fill = behavior_line),
+      position = "dodge") +
+    facet_grid(cols = vars(area)) +
+    ylim(0, NA) +
+    labs(x = "Wind Farm Scenario",
+      y = "Path Transits") +
+    scale_fill_manual(values = cruise_flight_colors, name = "Behavior") +
+    theme_latex +
+    theme_transits  +
+    theme(legend.key = element_blank())
+  gg_transits_turbines
+
+  # Save SVG file
+  ggsave(filename = paste0("Wind_Turbines_", nest_str, ".svg"),
+    plot = gg_transits_turbines,
+    path = file.path(tex_dir, "Figures/Ch4/Transits"), scale = 1,
+    width = 6, height = 5, units = "in", dpi = 300)
+
+  # Clean up objects
+  rm(wind_transits_sum, wind_transits_sum_ns, gg_transits_turbines)
+
+  # Turbine Transits Stats -----------------------------------------------------
+
+  # Filter data
+  transit_flights <- readRDS(file.path(exp_dir,
+      paste0("wind_transits_sum_", nest_lower, ".rds"))) %>%
+    filter(behavior_line == "Flight") %>%
+    mutate(scenario = str_replace_all(scenario, "^North and South$",
+      "North\nand\nSouth"))
+
+  transit_flights_ns <- bind_rows(
+    transit_flights %>%
+      dplyr::select(scenario, turbines_steps_n = n_turbines_steps_n,
+        behavior_line) %>%
+      mutate(area = paste0(nest_title, "\nNorth Wind Turbines")),
+    transit_flights %>%
+      dplyr::select(scenario, turbines_steps_n = s_turbines_steps_n,
+        behavior_line) %>%
+      mutate(area = paste0(nest_title, "\nSouth Wind Turbines")))
+
+  transit_flights_stats <- transit_flights_ns %>%
+    group_by(area) %>%
+    t_test(turbines_steps_n ~ scenario, ref.group = "Control") %>%
+    adjust_pvalue(.) %>%
+    add_significance("p.adj") %>%
+    add_y_position(.)
+
+  if(nest_str == "Wilson"){
+    y_position <- c(16, 18.5, 21, 23, 25.5, 28)
+    y_max <- 29.9
+  }
+
+  if(nest_str == "Grand_Lake"){
+    y_position = c(11, 13.5, 16, 15.5, 18, 20.5)
+    y_max = 22.5
+  }
+
+  gg_flights_stats <- transit_flights_ns %>%
+    ggboxplot(.,
+      x = "scenario", y = "turbines_steps_n",
+      xlab = "Wind Farm Scenario",
+      ylab = "Turbine Transits",
+      label.rectangle = TRUE,
+      fill = "scenario", facet.by = "area") +
+    stat_pvalue_manual(transit_flights_stats, label.size = 4,
+      label = "p = {p.adj}{p.adj.signif}",
+      y.position = y_position,
+      family = "Latin Modern Roman") +
+    scale_fill_manual(values = scenarios_colors, name = "Scenarios") +
+    scale_y_continuous(expand = c(0, NA), limits = c(0, y_max)) +
+    theme_latex +
+    theme_transits +
+    theme_transits_stats +
+    theme(legend.position = "none") +
+    theme(legend.key = element_blank())
+  gg_flights_stats
+
+  # Save SVG
+  ggsave(filename = paste0("Flights_Stats_", nest_str, ".svg"),
+    plot = gg_flights_stats,
+    path = file.path(tex_dir, "Figures/Ch4/Transits"), scale = 1,
+    width = 6, height = 5, units = "in", dpi = 300)
+
+  # Clean up objects
+  rm(transit_flights, transit_flights_ns, transit_flights_stats,
+    gg_flights_stats)
+
+  # Predicted Collision Risk North/South ---------------------------------------
+
+  collision_risk_sum <- readRDS(file.path(exp_dir,
+      paste0("flight_collision_risk_", nest_str, ".rds"))) %>%
+    mutate(scenario = str_replace_all(scenario, "^North and South$",
+      "North\nand\nSouth")) %>%
+    dplyr::select(exp_id, scenario, n_turbines_collision_risk_95avoid,
+      s_turbines_collision_risk_95avoid, turbines_collision_risk_95avoid)
+
+  collision_risk_sum_ns <- bind_rows(
+    collision_risk_sum %>%
+      filter(scenario %in% c("North", "North\nand\nSouth")) %>%
+      rename(collision_risk = n_turbines_collision_risk_95avoid) %>%
+      mutate(turbines = paste0(nest_title, "\nNorth Turbines")),
+    collision_risk_sum %>%
+      filter(scenario %in% c("South", "North\nand\nSouth")) %>%
+      rename(collision_risk = s_turbines_collision_risk_95avoid) %>%
+      mutate(turbines = paste0(nest_title, "\nSouth Turbines"))) %>%
+    dplyr::select(exp_id, scenario, turbines, collision_risk) %>%
+    mutate(scenario = ordered(scenario, levels = c("North","South",
+      "North\nand\nSouth")))
+
+  # Collisions with North turbines (only relevant for North and North/South)
+  gg_turbines_ns_crm <- collision_risk_sum_ns %>%
+    ggplot(.) +
+    geom_boxplot(aes(x = scenario, y = collision_risk, fill = scenario)) +
+    facet_grid(cols = vars(turbines), scale = "free") +
+    scale_fill_manual(values = scenarios_colors, name = "Scenarios") +
+    labs(x = "Wind Farm Scenario",
+      y = "Collision Risk Per Eagle\nPer Breeding Season") +
+    theme_latex +
+    theme_transits +
+    theme_transits_stats +
+    theme(legend.position = "none")
+  gg_turbines_ns_crm
+
+  # Save SVG
+  ggsave(filename = paste0("Turbines_NS_CRM_", nest_str, ".svg"),
+    plot = gg_turbines_ns_crm,
+    path = file.path(tex_dir, "Figures/Ch4/Collision_Risk"), scale = 1,
+    width = 6, height = 5, units = "in", dpi = 300)
+
+  # Clean up objects
+  rm(collision_risk_sum, collision_risk_sum_ns, gg_turbines_ns_crm)
+
+  # Predicted Collision Risk All Turbines --------------------------------------
+
+  collision_risk_sum_all <- readRDS(file.path(exp_dir,
+      paste0("flight_collision_risk_", nest_lower, ".rds"))) %>%
+    mutate(scenario = str_replace_all(scenario, "^North and South$",
+      "North\nand\nSouth")) %>%
+    dplyr::select(exp_id, scenario,
+      collision_risk = turbines_collision_risk_95avoid)
+
+  gg_turbines_all_crm <- collision_risk_sum_all %>%
+    ggplot(.) +
+    geom_boxplot(aes(scenario, y = collision_risk,
+      fill = scenario)) +
+    scale_x_discrete(limits = c("North","South", "North\nand\nSouth")) +
+    scale_fill_manual(values = scenarios_colors, name = "Scenarios") +
+    labs(x = "Wind Farm Scenario") +
+    labs(y = paste0("Total Predicted Collisions with Turbines\nPer Eagle ",
+      "Per Breeding Season\n(95% Avoidance)")) +
+    ggtitle(paste0(nest_title, " Pond Collision Risk")) +
+    theme_latex +
+    theme_transits +
+    theme_transits_stats +
+    theme(legend.position = "none")
+  gg_turbines_all_crm
+
+  ggsave(filename = paste0("Turbines_All_CRM_", nest_str, ".svg"),
+    plot = gg_turbines_all_crm,
+    path = file.path(tex_dir, "Figures/Ch4/Collision_Risk"), scale = 1,
+    width = 6, height = 5, units = "in", dpi = 300)
+
+  # Clean up objects
+  rm(collision_risk_sum_all, gg_turbines_all_crm)
+
+}
 
 # ---------------------------------------------------------------------------- #
 ################################ OLD CODE ######################################
