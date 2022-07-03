@@ -8,7 +8,8 @@ digraph {
   a02 [label = "Select Behavior", shape = rectangle, fillcolor = Thistle];
   a03 [label = "Behavior", shape = hexagon, fillcolor = Gold, margin =.05];
   a04 [label = "Flight?", shape = diamond, fillcolor = LimeGreen];
-  a05 [label = "Redistribution Kernel", shape = rectangle, fillcolor = Thistle];
+  a05 [label = "Redistribution Kernel", shape = rectangle, fillcolor = Thistle,
+    width = 2];
   a06 [label = "New Location", shape = hexagon, fillcolor = Gold, margin=.05];
   node [style = invis];
   a07 ;

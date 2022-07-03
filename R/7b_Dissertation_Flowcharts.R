@@ -1,14 +1,17 @@
+#---------------------- Dissertation Flowcharts -------------------------------#
+# Tables: Save as .svg
+#------------------------------------------------------------------------------#
+
+# Setup ------------------------------------------------------------------------
 # Load packages
 pacman::p_load(DiagrammeR, DiagrammeRsvg, rsvg, tidyverse)
 
 # Directories
 tex_dir <- "C:/Users/Blake/OneDrive/Work/LaTeX/BMassey_Dissertation"
 
-############################################################################# ##
-#### -------------------------- CHAPTER 1 --------------------------------- ####
-############################################################################# ##
+# -------------------------- CHAPTER 1 -----------------------------------------
 
-## MULTISCALE MODEL-FITTING OVERVIEW -------------------------------------------
+# Multiscale Model-Fitting Overview --------------------------------------------
 logistic_fitting_methods <- readLines("R/Graphviz/Logistic_Fitting_Methods.gv")
 write(export_svg(grViz(logistic_fitting_methods, engine = 'circo')),
   file = "Products/Graphs/Flow_Charts/Logistic_Fitting_Methods.svg")
@@ -18,11 +21,9 @@ file.copy("Products/Graphs/Flow_Charts/Logistic_Fitting_Methods.svg",
   file.path(tex_dir, "Figures/Ch1/Logistic_Fitting_Methods.svg"),
   overwrite = TRUE)
 
-############################################################################# ##
-#### -------------------------- CHAPTER 3 --------------------------------- ####
-############################################################################# ##
+# -------------------------- CHAPTER 3 -----------------------------------------
 
-## IBM BASIC STEPS OVERVIEW ----------------------------------------------------
+# IBM Basic Steps Overview -----------------------------------------------------
 ibm_step_overview <- readLines("R/Graphviz/IBM_Basic_Step_Overview.gv")
 write(export_svg(grViz(ibm_step_overview, engine = 'circo')),
   file = "Products/Graphs/Flow_Charts/IBM_Basic_Step_Overview.svg")
@@ -32,7 +33,7 @@ file.copy("Products/Graphs/Flow_Charts/IBM_Basic_Step_Overview.svg",
   file.path(tex_dir, "Figures/Ch3/IBM_Basic_Step_Overview.svg"),
   overwrite = TRUE)
 
-## STEPTYPE OPTIONS ------------------------------------------------------------
+# Step-type Options ------------------------------------------------------------
 steptype_options <- readLines("R/Graphviz/StepType_Options.gv")
 write(export_svg(grViz(steptype_options, engine = 'circo')),
   file = "Products/Graphs/Flow_Charts/StepType_Options.svg")
@@ -57,7 +58,7 @@ file.copy("Products/Graphs/Flow_Charts/StepType_Options.svg",
   file.path(tex_dir, "Figures/Ch3/StepType_Options.svg"),
   overwrite = TRUE)
 
-## STEPTYPE LEGEND OPTIONS -----------------------------------------------------
+# Step-type Legend Options -----------------------------------------------------
 steptype_options_legend <- readLines("R/Graphviz/StepType_Options_Legend.gv")
 write(export_svg(grViz(steptype_options_legend, engine = 'circo')),
   file = "Products/Graphs/Flow_Charts/StepType_Options_Legend.svg")

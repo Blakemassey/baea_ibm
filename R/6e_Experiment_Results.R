@@ -28,7 +28,7 @@ rasterOptions(maxmem = Inf, progress = "text", timer = TRUE, chunksize = 1e9,
 exp_ids <- 1:20
 
 # Variable
-site <- "Grand_Lake"
+site <- c("Grand_Lake", "Wilson")[2]
 mapping <- TRUE
 
 # Directories

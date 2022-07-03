@@ -9,11 +9,12 @@ pacman::p_load(gpindex, rgdal, tictoc, tidyverse, lubridate)
 
 source('R/5b_SIM_MovementSubmodel_RunSim.R')
 
-site <- "Grand_Lake"
+site <-  c("Grand_Lake", "Wilson")[1]
 
-for (j in c(19:20)) {
+for (j in c(19:20)){
 
-  exp_id <- as.character(j)
+  exp_id <- as.character(j) %>% str_pad(., width = 2,
+      side = "left", pad = "0")
 
   for (i in c("C", "N", "S", "NS")){
     print(i)

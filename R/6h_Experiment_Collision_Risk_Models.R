@@ -9,7 +9,7 @@ pacman::p_load(gpindex, mapview, rgdal, sf, tictoc, tidyverse, lubridate,
   rstatix)
 
 # Variables
-site <- "Grand_Lake" # "Wilson" #
+site <- c("Grand_Lake", "Wilson")[2]
 
 # Directories
 exp_dir <- "C:/TEMP"

@@ -12,7 +12,7 @@ pacman::p_load(baear, gisr, ibmr)
 site <- "Grand_Lake"
 scenario <- "NS"
 
-# Directories (IMPORTANT! The ssf_raster_dir depending on scenario)
+# Directories (IMPORTANT! Change the ssf_raster_dir depending on scenario)
 ssf_raster_dir <- file.path("C:/ArcGIS/Data/R_Input/EXP", site,
   paste0("SSF_Rasters_", scenario))
 ssf_source_dir <- "Step_Types_Prob" # this controls ssf layers input

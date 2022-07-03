@@ -19,7 +19,7 @@ rasterOptions(maxmem = Inf, progress = "text", timer = TRUE, chunksize = 1e9,
   memfrac = .9)
 
 # Experiment id
-site <- "Wilson" #"Grand_Lake"
+site <- c("Grand_Lake", "Wilson")[2]
 exp_ids <- 1:20 %>%
   str_pad(., width = 2, side = "left", pad = "0")
 

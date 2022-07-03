@@ -1,6 +1,6 @@
 behavior,icon_color,color
-Cruise,#0000FF,blue
-Flight,#FF0000,red
-Nest,#FFFF00,yellow
-Perch,#663300,brown
-Roost,#CC0099,purple
+Cruise,#0072B2,blue
+Flight,#F0E442,yellow
+Nest,#E69F00,orange
+Perch,#D55E00,red
+Roost,#009E73,green

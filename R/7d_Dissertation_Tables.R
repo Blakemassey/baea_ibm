@@ -36,7 +36,6 @@ theme_latex <- theme(text = element_text(family = "Latin Modern Roman")) +
   theme(axis.title = element_text(size = 12)) +
   theme(plot.title = element_text(size = 14))
 
-
 # -------------------------- CHAPTER 2 -----------------------------------------
 
 # GPS Deployment and Territoriality --------------------------------------------

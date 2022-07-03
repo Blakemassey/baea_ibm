@@ -203,38 +203,38 @@ MovementSubModelBAEA <- function(sim = sim,
 
     # Calculate probabilty raster - air to cruise
     if (behavior_trans %in% c("1_1", "2_1")){
-      kernel_weights <- c(4, 2, 1)
-      #destination_cells_n <- 25
+      kernel_weights <- c(3, 4, 1)
+      destination_cells_n <- 25
     }
     # Calculate probabilty raster - air to flight
     if (behavior_trans %in% c("1_2", "2_2")){
-      kernel_weights <- c(4, 2, 1)
-      #destination_cells_n <- 25
+      kernel_weights <- c(3, 2, 1)
+      destination_cells_n <- 25
     }
     # Calculate probabilty raster - perch/roost to air
     if (behavior_trans %in% c("4_1", "4_2", "5_2")){
-      kernel_weights <- c(4, 2, 1)
-      #destination_cells_n <- 25
+      kernel_weights <- c(3, 3, 2)
+      destination_cells_n <- 25
     }
     # Calculate probabilty raster - nest to air
     if (behavior_trans %in% c("3_1", "3_2")){
-      kernel_weights <- c(4, 2, 1)
-      #destination_cells_n <- 25
+      kernel_weights <- c(2, 3, 1)
+      destination_cells_n <- 25
     }
     # Calculate probabilty raster - air to stationary
     if (behavior_trans %in% c("1_4", "2_4", "2_5")){
-      kernel_weights <- c(3, 1, 1)
-      #destination_cells_n <- 1000
+      kernel_weights <- c(5, 1, 3)
+      destination_cells_n <- 1000
     }
     # Calculate probabilty raster - nest to stationary
     if (behavior_trans %in% c("3_4", "3_5")){
-      kernel_weights <- c(3, 1, 1)
-      #destination_cells_n <- 1000
+      kernel_weights <- c(5, 1, 3)
+      destination_cells_n <- 1000
     }
     # Calculate probabilty raster - stationary to stationary
     if (behavior_trans %in% c("4_4", "5_4", "4_5")){
-      kernel_weights <- c(3, 1, 1)
-      #destination_cells_n <- 1000
+      kernel_weights <- c(5, 2, 3)
+      destination_cells_n <- 1000
     }
 
     kernel_stack <- raster::stack(list(ssf_kernel, move_kernel,
@@ -298,75 +298,75 @@ MovementSubModelBAEA <- function(sim = sim,
       stop()
     }
 
-    #### NEW SECTION START #####
+    #### TEST SECTION START #####
 
-    prob_min <- raster::cellStats(prob_raster, "min", na.rm=TRUE)
-    prob_max <- raster::cellStats(prob_raster, "max", na.rm=TRUE)
-    prob_breaks <- seq(prob_min, prob_max, length.out = 11)
-    prob_raster_reclass <- raster::cut(prob_raster, breaks = prob_breaks)
-    # cut() removes zeroes because default argument: include.lowest = FALSE
-
-    prob_bin <- sample(10, size = 1, replace = T, c(2^(1:10)/100))
-    prob_raster_sample_bin <- raster::mask(prob_raster, prob_raster_reclass,
-      inverse = TRUE, maskvalue = prob_bin, updatevalue = 0)
-
-    while(raster::cellStats(prob_raster_sample_bin, "sum") == 0) {
-      if (!exists("resample_n")){
-        resample_n <- 1
-      } else {
-        resample_n <- resample_n + 1
-      }
-      writeLines(paste0("Resampling probability bins (n=", resample_n), ")")
-      prob_bin <- sample(10, size = 1, replace = T, c(2^(1:10)/100))
-      prob_raster_sample_bin <- raster::mask(prob_raster, prob_raster_reclass,
-        inverse = TRUE, maskvalue = prob_bin, updatevalue = 0)
-    }
-
-    destination_cell <- sample(raster::ncell(prob_raster_sample_bin),
-      size = 1, replace = TRUE, prob = prob_raster_sample_bin@data@values)
-    prob_raster_value <- prob_raster_sample_bin[destination_cell]
-
+    # prob_min <- raster::cellStats(prob_raster, "min", na.rm=TRUE)
+    # prob_max <- raster::cellStats(prob_raster, "max", na.rm=TRUE)
+    # prob_breaks <- seq(prob_min, prob_max, length.out = 11)
+    # prob_raster_reclass <- raster::cut(prob_raster, breaks = prob_breaks)
+    # # cut() removes zeroes because default argument: include.lowest = FALSE
+    #
+    # prob_bin <- sample(10, size = 1, replace = T, c(2^(1:10)/100))
+    # prob_raster_sample_bin <- raster::mask(prob_raster, prob_raster_reclass,
+    #   inverse = TRUE, maskvalue = prob_bin, updatevalue = 0)
+    #
+    # while(raster::cellStats(prob_raster_sample_bin, "sum") == 0) {
+    #   if (!exists("resample_n")){
+    #     resample_n <- 1
+    #   } else {
+    #     resample_n <- resample_n + 1
+    #   }
+    #   writeLines(paste0("Resampling probability bins (n=", resample_n), ")")
+    #   prob_bin <- sample(10, size = 1, replace = T, c(2^(1:10)/100))
+    #   prob_raster_sample_bin <- raster::mask(prob_raster, prob_raster_reclass,
+    #     inverse = TRUE, maskvalue = prob_bin, updatevalue = 0)
+    # }
+    #
     # destination_cell <- sample(raster::ncell(prob_raster_sample_bin),
     #   size = 1, replace = TRUE, prob = prob_raster_sample_bin@data@values)
     # prob_raster_value <- prob_raster_sample_bin[destination_cell]
-
-    if(verbose) writeLines(paste0("Destination cell: ", destination_cell))
-    if(verbose) writeLines(paste0("Value prob_raster: ", prob_raster_value))
-
-    while(is.na(destination_cell) || prob_raster_value == 0) {
-      destination_cell <- sample(raster::ncell(prob_raster_sample_bin),
-        size = 1, replace = TRUE, prob = prob_raster_sample_bin@data@values)
-      # destination_cell <- sample(raster::ncell(prob_raster_sample_bin),
-      #   size = 1, replace = TRUE, prob = prob_raster_sample_bin@data@values)
-      prob_raster_value <- prob_raster_sample_bin[destination_cell]
-    }
-    #### NEW SECTION END #####
-
-    #### OLD SECTION START #####
-    # Select destination cell
-    # destination_cell <- suppressWarnings(sampling::strata(data = data.frame(
-    #     cell = 1:raster::ncell(prob_raster)), stratanames = NULL,
-    #     size = destination_cells_n, method = "systematic",
-    #     pik = prob_raster@data@values)) %>%
-    #   mutate(prob_rank = rank(-Prob, na.last = NA, ties.method = "random"))%>%
-    #   filter(prob_rank == 1) %>%
-    #   pull(ID_unit)
-    # prob_raster_value <- raster::extract(prob_raster, destination_cell)
+    #
+    # # destination_cell <- sample(raster::ncell(prob_raster_sample_bin),
+    # #   size = 1, replace = TRUE, prob = prob_raster_sample_bin@data@values)
+    # # prob_raster_value <- prob_raster_sample_bin[destination_cell]
     #
     # if(verbose) writeLines(paste0("Destination cell: ", destination_cell))
     # if(verbose) writeLines(paste0("Value prob_raster: ", prob_raster_value))
     #
     # while(is.na(destination_cell) || prob_raster_value == 0) {
-    #   destination_cell <- suppressWarnings(sampling::strata(data = data.frame(
-    #     cell = 1:raster::ncell(prob_raster)), stratanames = NULL,
-    #     size = destination_cells_n, method = "systematic",
-    #     pik = prob_raster@data@values))  %>%
-    #   mutate(prob_rank = rank(-Prob, na.last = NA, ties.method = "random"))%>%
-    #   filter(prob_rank == 1) %>%
-    #   pull(ID_unit)
-    #   prob_raster_value <- raster::extract(prob_raster, destination_cell)
+    #   destination_cell <- sample(raster::ncell(prob_raster_sample_bin),
+    #     size = 1, replace = TRUE, prob = prob_raster_sample_bin@data@values)
+    #   # destination_cell <- sample(raster::ncell(prob_raster_sample_bin),
+    #   #   size = 1, replace = TRUE, prob = prob_raster_sample_bin@data@values)
+    #   prob_raster_value <- prob_raster_sample_bin[destination_cell]
     # }
-    #### OLD SECTION END #####
+    #### TEST SECTION END #####
+
+    #### ORIGINAL SECTION START #####
+    # Select destination cell
+    destination_cell <- suppressWarnings(sampling::strata(data = data.frame(
+        cell = 1:raster::ncell(prob_raster)), stratanames = NULL,
+        size = destination_cells_n, method = "systematic",
+        pik = prob_raster@data@values)) %>%
+      mutate(prob_rank = rank(-Prob, na.last = NA, ties.method = "random"))%>%
+      filter(prob_rank == 1) %>%
+      pull(ID_unit)
+    prob_raster_value <- raster::extract(prob_raster, destination_cell)
+
+    if(verbose) writeLines(paste0("Destination cell: ", destination_cell))
+    if(verbose) writeLines(paste0("Value prob_raster: ", prob_raster_value))
+
+    while(is.na(destination_cell) || prob_raster_value == 0) {
+      destination_cell <- suppressWarnings(sampling::strata(data = data.frame(
+        cell = 1:raster::ncell(prob_raster)), stratanames = NULL,
+        size = destination_cells_n, method = "systematic",
+        pik = prob_raster@data@values))  %>%
+      mutate(prob_rank = rank(-Prob, na.last = NA, ties.method = "random"))%>%
+      filter(prob_rank == 1) %>%
+      pull(ID_unit)
+      prob_raster_value <- raster::extract(prob_raster, destination_cell)
+    }
+    ### ORIGINAL SECTION END #####
 
     destination_xy <- raster::xyFromCell(prob_raster, destination_cell)
     step_data[i+1, "x"] <- destination_xy[1]

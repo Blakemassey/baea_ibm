@@ -250,8 +250,6 @@ ggsave(filename = "gg_combine_ridge.png", plot = gg_combine_ridge,
   path = file.path(temp_calibration_dir), scale = 1,
   width = 6, height = 4, units = "in", dpi = 300, bg = "white")
 
-
-
 cat(paste('::: {.column width=40%}\n'))
 file_name <- paste0(temp_calibration_dir, "/gg_combine_ridge.png")
 image_code <- paste0('![](', file_name, '){width=100%}\n')
