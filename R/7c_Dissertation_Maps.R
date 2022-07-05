@@ -1827,7 +1827,7 @@ for (i in c("Grand_Lake", "Wilson")){
       turbines_n_present +
       turbines_s_present +
       tm_nest +
-      tm_credits("North and South", #fontfamily = "Latin Modern Roman",
+      tm_credits("North and South",
         size = 1, position = c(.0175, .91))
 
     # Arrange map of probability surfaces for testing
@@ -1838,10 +1838,11 @@ for (i in c("Grand_Lake", "Wilson")){
       "C:/TEMP/TEMP_Images", paste0("Path_Density_", j, ".png")),
       unit = "in", dpi = 300, height = 6, width = 8*.8)
 
-    paths_density_map_img <- file.path(
-      "C:/TEMP/TEMP_Images", paste0("Path_Density_", j, ".png")) %>%
-    image_read(.) %>%
-    image_trim(.)
+    paths_density_file <-  file.path(
+      "C:/TEMP/TEMP_Images", paste0("Path_Density_", j, ".png"))
+    paths_density_map_img <- paths_density_file %>%
+      image_read(.) %>%
+      image_trim(.)
 
     legend_only <- tm_shape(exp_paths_raster_c, raster.downsample = FALSE) +
       tm_raster(palette = plasma(20, direction = 1), alpha = .7,
@@ -1851,12 +1852,13 @@ for (i in c("Grand_Lake", "Wilson")){
         fontfamily = "Latin Modern Roman",
         legend.title.size = 1.2, #1
         legend.text.size = .8)
-    tmap_save(tm = legend_only, filename = file.path(
-      "C:/TEMP/TEMP_Images",paste0("Path_Density_", j, "_Legend.png")),
-      unit = "in", dpi = 300, height = 3, width = 3)
+    tmap_save(tm = legend_only, filename = file.path( "C:/TEMP/TEMP_Images",
+      paste0("Path_Density_", j, "_Legend.png")), unit = "in", dpi = 300,
+      height = 3, width = 3)
 
-    legend_img <- file.path(
-        "C:/TEMP/TEMP_Images", paste0("Path_Density_", j, "_Legend.png")) %>%
+    legend_file <- file.path("C:/TEMP/TEMP_Images", paste0("Path_Density_", j,
+      "_Legend.png"))
+    legend_img <- legend_file %>%
       image_read(.) %>%
       image_trim(.)
 
@@ -1870,6 +1872,10 @@ for (i in c("Grand_Lake", "Wilson")){
     maps_fig_file = file.path(tex_dir, "Figures/Ch4/Maps_Path_Density",
       nest_str, paste0("Path_Density_", j, ".png"))
     image_write(covar_sigma_fig, path = maps_fig_file, format = ".png")
+
+    # Remove Objects
+    file.remove(paths_density_file)
+    file.remove(legend_file)
 
   }
 
@@ -1990,8 +1996,7 @@ for (i in c("Grand_Lake", "Wilson")){
     tm_layout(asp = 1,
       inner.margins = -.02,
       fontfamily = "Latin Modern Roman",
-      frame.lwd = 3
-      ) +
+      frame.lwd = 3) +
     tm_shape(nest_overview_bb_osm, is.master = TRUE) +
       tm_rgb() +
     tm_shape(nest_bb_sfc) +
@@ -2000,9 +2005,11 @@ for (i in c("Grand_Lake", "Wilson")){
       position = c(.275, -0))
   nest_overview
 
-  tmap_save(tm = nest_overview, filename = file.path(tex_dir,
-    "Figures/Ch4", "Maps_Turbine_Transits", nest_str,
-    "Transits_Overview.svg"), width = 2.5, height = 2.5, units = "in")
+  overview_transits_file <- file.path("C:/TEMP/TEMP_Images",
+    "Transits_Overview.svg")
+
+  tmap_save(tm = nest_overview, filename = overview_transits_file, width = 2.5,
+    height = 2.5, units = "in")
 
   # Nest Map Template --
 
@@ -2041,9 +2048,11 @@ for (i in c("Grand_Lake", "Wilson")){
     tm_credits("North", size = 2.25, position = c(.015, .885))
   tmap_nest_n_turbines_transits
 
-  tmap_save(tm = tmap_nest_n_turbines_transits, filename = file.path(tex_dir,
-    "Figures/Ch4", "Maps_Turbine_Transits", nest_str, "Transits_North.svg"),
-    height = 6, width = 6)
+  n_turbines_transit_file = file.path("C:/TEMP/Temp_Images",
+    "Transits_North.svg")
+
+  tmap_save(tm = tmap_nest_n_turbines_transits,
+    filename = n_turbines_transit_file, height = 6, width = 6)
 
   # Nest South Turbines Transits Maps ------------------------------------------
 
@@ -2054,11 +2063,12 @@ for (i in c("Grand_Lake", "Wilson")){
         palette = "Purples", legend.col.reverse = TRUE,
         border.col = "black", title.col = "     Transits\n   Proportion") +
     tm_credits("South", size = 2.25, position = c(.015, .885))
-  tmap_nest_s_turbines_transits
 
-  tmap_save(tm = tmap_nest_s_turbines_transits, filename = file.path(tex_dir,
-    "Figures/Ch4", "Maps_Turbine_Transits", nest_str, "Transits_South.svg"),
-    height = 6, width = 6)
+  s_turbines_transit_file = file.path("C:/TEMP/Temp_Images",
+    "Transits_South.svg")
+
+  tmap_save(tm = tmap_nest_s_turbines_transits,
+    filename = s_turbines_transit_file, height = 6, width = 6)
 
   # Nest All Turbines Transits Maps --------------------------------------------
 
@@ -2071,22 +2081,21 @@ for (i in c("Grand_Lake", "Wilson")){
     tm_credits("North and South", size = 2.25, position = c(.015, .885))
   tmap_nest_ns_turbines_transits
 
-  tmap_save(tm = tmap_nest_ns_turbines_transits, filename = file.path(tex_dir,
-    "Figures/Ch4", "Maps_Turbine_Transits", nest_str,
-    "Transits_NorthSouth.svg"), height = 6, width = 6)
+  ns_turbines_transit_file = file.path("C:/TEMP/Temp_Images",
+    "Transits_NorthSouth.svg")
 
-  n_map_img <- file.path(tex_dir, "Figures/Ch4", "Maps_Turbine_Transits",
-      nest_str, "Transits_North.svg") %>%
+  tmap_save(tm = tmap_nest_ns_turbines_transits,
+    filename = ns_turbines_transit_file, height = 6, width = 6)
+
+  n_map_img <- n_turbines_transit_file %>%
     image_read(.) %>%
     image_trim(.)
 
-  s_map_img <- file.path(tex_dir, "Figures/Ch4", "Maps_Turbine_Transits",
-      nest_str, "Transits_South.svg") %>%
+  s_map_img <- s_turbines_transit_file %>%
     image_read(.) %>%
     image_trim(.)
 
-  ns_map_img <- file.path(tex_dir, "Figures/Ch4", "Maps_Turbine_Transits",
-      nest_str, "Transits_NorthSouth.svg") %>%
+  ns_map_img <- ns_turbines_transit_file %>%
     image_read(.) %>%
     image_trim(.)
 
@@ -2115,14 +2124,10 @@ for (i in c("Grand_Lake", "Wilson")){
     flatten = TRUE)
 
   # Clean up files
-  file.remove(file.path(tex_dir, "Figures/Ch4", "Maps_Turbine_Transits",
-      nest_str, "Transits_North.svg"))
-  file.remove(file.path(tex_dir, "Figures/Ch4", "Maps_Turbine_Transits",
-      nest_str, "Transits_South.svg"))
-  file.remove(file.path(tex_dir, "Figures/Ch4", "Maps_Turbine_Transits",
-      nest_str, "Transits_NorthSouth.svg"))
-  file.remove(file.path(tex_dir, "Figures/Ch4", "Maps_Turbine_Transits",
-      nest_str, "Transits_Overview.svg"))
+  file.remove(overview_transits_file)
+  file.remove(n_turbines_transit_file)
+  file.remove(s_turbines_transit_file)
+  file.remove(ns_turbines_transit_file)
 }
 
 # APPENDICES -------------------------------------------------------------------
