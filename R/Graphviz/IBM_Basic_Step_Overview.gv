@@ -25,12 +25,13 @@ digraph {
   c02 [label = "Movement Kernel", width = 2.05];
   c03 [label = "Conspecific and Nest Distance", width = 3.0];
   subgraph cluster_0 {
-    label = "Individual-based Model\nStep Process Overview"
+    label = "Individual-based Model\nStep Process Overview";
+    fontname = "Helvetica-Bold"
     a01, a02, a03, a04, a05, a06
     edge[constraint = false, weight = 1000, fontsize = 14]
-      a04  -> a01[taillabel = "False", labeldistance = 4]
+      a04 -> a01[taillabel = "False", labeldistance = 4]
     edge[constraint = false, weight = .1, fontsize = 14]
-      a06  -> a01
+      a06 -> a01
     edge[style = invis, constraint = true]
       a07 -> a03
       a02 -> b01

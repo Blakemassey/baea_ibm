@@ -43,7 +43,7 @@ RecodeNestIdToName <- function(value){
 # Theme (for LaTeX font)
 theme_latex <- theme(
     text = element_text(family = "Latin Modern Roman", color = "black"),
-    axis.text = element_text(size = 11),
+    axis.text = element_text(color = "black", size = 11),
     axis.title = element_text(size = 12),
     axis.title.y = element_text(margin = margin(0, 10, 0, 0, unit = "pt")),
     axis.title.x = element_text(margin = margin(10, 0, 0, 0, unit = "pt")),
@@ -64,8 +64,10 @@ theme_blank <- theme(legend.position = "none",
 # For Wind Area/Turbine Transits
 theme_transits <- theme(
   axis.ticks = element_line(colour = NA),
-  axis.title.y = element_text(margin = margin(t = 0, r = 15, b = 0, l = 0)),
-  axis.title.x = element_text(margin = margin(t = 15, r = 0, b = 0, l = 0)),
+  axis.title.y = element_text(color = "black",
+    margin = margin(t = 0, r = 15, b = 0, l = 0)),
+  axis.title.x = element_text(color = "black",
+    margin = margin(t = 15, r = 0, b = 0, l = 0)),
   panel.background = element_rect(fill = "white", colour = NA),
   panel.border = element_blank(),
   panel.grid.major.x = element_blank(),
@@ -73,7 +75,7 @@ theme_transits <- theme(
   panel.grid.minor = element_line(size = rel(0.5)),
   plot.background = element_rect(color = "white"),
   strip.background = element_blank(),
-  strip.text.x = element_text(size = 12),
+  strip.text.x = element_text(color = "black", size = 12),
   legend.title = element_text(size = 12),
   legend.text = element_text(size = 11))
 
@@ -132,12 +134,13 @@ gg_terrain_1 <- ggplot(data = hr_metrics_terrain %>%
     filter(variable == "Area_km"), aes(group = ud, x = factor(0), y = value)) +
   geom_boxplot(aes(fill = as.factor(ud))) +
   scale_fill_viridis_d(option = "C", direction = -1) +
-  xlab("Home Range Size") +
+  xlab("Home Range Size\n    ") +
   ylab(latex2exp::TeX("Total Area ($\\km^2$)")) +
   guides(fill = guide_legend(title = "Utilization\nDistribution")) +
   theme_minimal() +
   theme_latex +
-  theme(axis.text.x = element_blank(),
+  theme(plot.margin = margin(0, 20, 20, 0, "pt"),
+    axis.text.x = element_blank(),
     axis.ticks.x = element_blank(),
     panel.grid.major.x = element_blank())
 
@@ -145,12 +148,13 @@ gg_terrain_2 <- ggplot(data = hr_metrics_terrain %>% filter(variable == "TRI"),
     aes(group = ud, x = factor(0), y = value)) +
   geom_boxplot(aes(fill = as.factor(ud))) +
   scale_fill_viridis_d(option = "C", direction = -1) +
-  xlab("Terrain Ruggedness Index") +
+  xlab("Terrain Ruggedness\nIndex") +
   ylab(latex2exp::TeX("Index Value")) +
   guides(fill = guide_legend(title = "Utilization\nDistribution")) +
   theme_minimal() +
   theme_latex +
-  theme(axis.text.x = element_blank(),
+  theme(plot.margin = margin(0, 20, 20, 0, "pt"),
+    axis.text.x = element_blank(),
     axis.ticks.x = element_blank(),
     panel.grid.major.x = element_blank())
 
@@ -158,12 +162,13 @@ gg_terrain_3 <- ggplot(data = hr_metrics_terrain %>% filter(variable == "TPI"),
     aes(group = ud, x = factor(0), y = value)) +
   geom_boxplot(aes(fill = as.factor(ud))) +
   scale_fill_viridis_d(option = "C", direction = -1) +
-  xlab(latex2exp::TeX("Terrain Position Index")) +
+  xlab(latex2exp::TeX("Terrain Position\n       Index")) +
   ylab("Index Value") +
   guides(fill = guide_legend(title = "Utilization\nDistribution")) +
   theme_minimal() +
   theme_latex +
-  theme(axis.text.x = element_blank(),
+  theme(plot.margin = margin(0, 20, 10, 0, "pt"),
+    axis.text.x = element_blank(),
     axis.ticks.x = element_blank(),
     panel.grid.major.x = element_blank())
 
@@ -171,11 +176,12 @@ gg_terrain_4 <- ggplot(data = hr_metrics_terrain %>%
     filter(variable == "Roughness"), aes(group = ud, x = factor(0), y = value))+
   geom_boxplot(aes(fill = as.factor(ud))) +
   scale_fill_viridis_d(option = "C", direction = -1) +
-  xlab(latex2exp::TeX("Roughness")) +
+  xlab(latex2exp::TeX("Roughness\n    ")) +
   ylab("Index Value") +
   theme_minimal() +
   theme_latex +
-  theme(axis.text.x = element_blank(),
+  theme(plot.margin = margin(0, 20, 10, 0, "pt"),
+    axis.text.x = element_blank(),
     axis.ticks.x = element_blank(),
     panel.grid.major.x = element_blank())
 
@@ -307,7 +313,6 @@ gg_baea_dist <- ggplot(baea_dist) +
   theme(plot.background = element_rect(fill = "white",
     color = "white",
     inherit.blank = FALSE))
-gg_baea_dist
 
 ggsave(filename = "Fits_Baea_Dist.png", plot = gg_baea_dist,
   path = file.path(tex_dir, "Figures/Ch2"), scale = 1, width = 6, height = 4,
@@ -358,7 +363,6 @@ gg_behave_prop <- ggplot(baea_behavior_sum, aes(x = bins_mid, y = value,
   theme(axis.ticks.length = unit(5, "pt")) +
   theme(plot.background = element_rect(fill = "white", color = "white",
     inherit.blank = FALSE))
-gg_behave_prop
 
 # Save Plot
 ggsave(filename = "Behavior_Proportion_Bar.png", plot = gg_behave_prop,
@@ -423,7 +427,7 @@ gg_trans_date <- ggplot(
     aes(julian_date, prob)) +
   geom_ribbon(aes(ymin = lci, ymax = uci), fill = 'grey90', color = 'grey50') +
   geom_line() +
-  labs(x = "Date", y = "Probability") +
+  labs(x = "Date (Julian)", y = "Transition Probability") +
   facet_grid(rows = vars(end_st), cols = vars(start_st),
     labeller = as_labeller(state_names)) +
   theme_minimal() + theme_latex +
@@ -455,7 +459,7 @@ gg_trans_time <- ggplot(
     aes(time_proportion, prob))+
   geom_ribbon(aes(ymin = lci, ymax = uci), fill = 'grey90', color = 'grey50') +
   geom_line() +
-  labs(x = "Time (Daily Proportion)", y = "Probability") +
+  labs(x = "Time (Daily Proportion)", y = "Transition Probability") +
   facet_grid(rows = vars(end_st), cols = vars(start_st),
     labeller = as_labeller(state_names)) +
   scale_x_continuous(limits = c(-0.001, 1.001), expand = expansion(add = 0))+
@@ -517,7 +521,7 @@ file.remove(file.path("C:/TEMP/TEMP_Images", "Trans_Probs_Date_NO_LABEL.png"))
 
 # Clean up objects
 rm(df_trans_org, nest_dist_mode, df_trans, state_names,
-  tex_head, tex_end, tex_start, backgrd, time_prop_mode, julian_date_mode,
+  tex_head, tex_end, tex_start, time_prop_mode, julian_date_mode,
   gg_trans_date, plot_trans_date, trans_prob_date_fig, plot_trans_time,
   trans_prob_time_fig, trans_prob_time_fig_file, trans_prob_date_fig_file)
 
@@ -777,7 +781,7 @@ ggsave(filename = basename(movements_direction_no_lab_fig_file),
 
 # Create Tex Strings
 tex_head <- tibble(
-  tex_str = c("Probability (polar coordinates)", "Direction (radians)"),
+  tex_str = c("Probability (Polar Coordinates)", "Direction (Radians)"),
   tex_name = c("lab_density", "lab_direction"))
 tex_df <- bind_rows(
   bind_rows(tex_head) %>% mutate(title_size = 11))
@@ -1059,16 +1063,11 @@ gg_connest_pgamma <- ggplot(df_rescale, aes(x, y_pgamma)) +
   theme_latex +
   theme(text = element_text(family = "Latin Modern Roman")) +
   theme(line = element_line(size = line_size)) +
-  #theme(axis.text = element_text(size = 9)) +
-  #theme(axis.title = element_text(size = 11)) +
   guides(shape = guide_legend(override.aes = list(size = point_size)),
     color = guide_legend(override.aes = list(size = point_size))) +
-  #theme(legend.title = element_text(size = text_size),
-  #  legend.text  = element_text(size = text_size),
-  #  legend.key.size = unit(space_legend, "lines")) +
   theme(panel.grid.minor.x = element_blank()) +
   labs(x = 'Conspecific and Nest Distance Value (km)', y =
-      'Cumulative Distribution\nFunction(Probability)', title = NULL)
+      'Cumulative Distribution\nFunction (Probability)', title = NULL)
 gg_connest_pgamma
 ggsave(filename = "ConNest_PGamma.png", plot = gg_connest_pgamma,
   path = file.path(tex_dir, "Figures/Ch3"), scale = 1, width = 6, height = 2.5,
@@ -1080,13 +1079,8 @@ gg_connest_rescale <- ggplot(df_rescale, aes(x, y_rescale)) +
   theme_minimal() +
   theme_latex +
   theme(line = element_line(size = line_size)) +
-  #theme(axis.text = element_text(size = 9)) +
-  #theme(axis.title = element_text(size = 11)) +
   guides(shape = guide_legend(override.aes = list(size = point_size)),
     color = guide_legend(override.aes = list(size = point_size))) +
-  #theme(legend.title = element_text(size = text_size),
-  #  legend.text  = element_text(size = text_size),
-  #  legend.key.size = unit(space_legend, "lines")) +
   theme(panel.grid.minor.x = element_blank()) +
   labs(x = 'Conspecific and Nest Distance Value (km)', y =
       'IBM Logistic Scale\nParameter', title = NULL)
@@ -1150,20 +1144,14 @@ gg_connest_logistic <- ggplot(df_logistic) +
     size = line_size) +
   scale_color_viridis_d(name = "Conspecific and\nNest Distance\nValue (km)",
     option = "D", labels=c("1", "2", "3", "5", "8", "10", "20")) +
-  ylim(c(0, 1)) +
-  scale_x_continuous(limits = c(-5,5), breaks = -5:5) + #breaks = c(0:10),
+  scale_y_continuous(limits = c(0, 1), expand = expansion(0)) +
+  scale_x_continuous(limits = c(-5,5), breaks = -5:5, expand = expansion(0)) +
   theme_minimal() +
   theme_latex +
-  #theme(text = element_text(family = "Latin Modern Roman")) +
   theme(line = element_line(size = line_size)) +
-  #theme(axis.text = element_text(size = 9)) +
-  #theme(axis.title = element_text(size = 11)) +
-  #theme(plot.title = element_text(size = 13, hjust = 0.5)) +
   guides(shape = guide_legend(override.aes = list(size = point_size)),
     color = guide_legend(override.aes = list(size = point_size))) +
-  theme(legend.title = element_text(size = text_size),
-    legend.text  = element_text(size = text_size),
-    legend.key.size = unit(space_legend, "lines")) +
+  theme(legend.key.size = unit(space_legend, "lines")) +
   theme(panel.grid.minor.x = element_blank())
 gg_connest_logistic
 ggsave(filename = "ConNest_Logistic.png", plot = gg_connest_logistic,
@@ -1194,10 +1182,7 @@ gg_sim_dist <- ggplot(sim_perch_dist) +
   xlab("Hydro Distance (m)") +
   ylab(NULL) +
   theme_minimal() +
-  theme_latex +
-  theme(plot.title = element_text(hjust = 0.5)) +
-  theme(legend.title = element_text(hjust = 0.5)) +
-  theme(panel.grid.minor.x = element_blank())
+  theme_latex
 
 # Compare simulation and empirical data
 baea_perch_dist <- readRDS(file.path(baea_calibration_dir,
@@ -1211,16 +1196,13 @@ gg_baea_dist <- ggplot(baea_perch_dist) +
   xlab("Hydro Distance (m)") +
   ylab("Proportion of Perch Locations") +
   theme_minimal() +
-  theme_latex +
-  theme(plot.title = element_text(hjust = 0.5)) +
-  theme(legend.title = element_text(hjust = 0.5)) +
-  theme(panel.grid.minor.x = element_blank())
+  theme_latex
 
 gg_combine_hydro_dist <- gg_baea_dist + gg_sim_dist
 gg_combine_hydro_dist
 
 ggsave(filename = "Calibration_Hydro_Dist.svg", plot = gg_combine_hydro_dist,
-  path = file.path(tex_dir, "Figures/Ch3"), scale = 1, width = 6, height = 3,
+  path = file.path(tex_dir, "Figures/Ch3"), scale = 1, width = 6, height = 4,
   units = "in", dpi = 300)
 
 # Calibration Ridgeline Flights ------------------------------------------------
@@ -1246,22 +1228,23 @@ baea_ridge_sum <- readRDS(baea_ridge_sum_file) %>%
 
 # Graph ridge-crossing summary data
 gg_combine_ridge <- ggplot() +
-  geom_point(data = baea_ridge_sum, aes(x = nest_name, y = ridge_steps_prop))+
+  geom_errorbar(data = baea_ridge_sum,
+    aes(x = nest_name, #y = ridge_steps_prop,
+      ymin = quant_05, ymax = quant_95,
+      width = .125, color = "95% CI"), size = 1) +
   geom_jitter(data = sim_ridge_sum, aes(x = nest_name, y = ridge_steps_prop,
     fill = "Run Result"), color = "black",  shape = 24, size = 2, width = .05,
     show.legend = TRUE) +
-  geom_errorbar(data = baea_ridge_sum,
-    aes(x = nest_name, y = ridge_steps_prop, ymin = quant_05, ymax = quant_95,
-      width = .125, color = "Mean + 95% CI"), size = 1) +
-  geom_point(data = baea_ridge_sum,
-    aes(x = nest_name, y = ridge_steps_prop), size = 2, show.legend = FALSE) +
+  geom_point(data = baea_ridge_sum, aes(x = nest_name, y = ridge_steps_prop,
+    color = "Mean"),
+    size = 3) +
   scale_fill_manual(name = "Simulation", values = viridis(1, 1, direction= -1))+
-  scale_color_manual(name = "Empirical", values = c("black", "black")) +
-  guides(
-    colour = guide_legend(override.aes = list(
-    linetype = c("solid"),
-    shape = c(16)))) +
-  scale_y_continuous(limits = c(0, 0.15)) +
+  scale_color_manual(name = "Empirical Data", values = c("black", "blue")) +
+  guides(colour = guide_legend(override.aes =
+      list(linetype = c("solid", "blank"),
+        shape = c(NA, 16))))  +
+  scale_y_continuous(limits = c(0, 0.15), expand = expansion(0)) +
+  scale_x_discrete(expand = expansion(.1)) +
   theme_minimal() +
   theme_latex +
   theme(axis.text.x = element_text(color = "black")) +
@@ -1271,7 +1254,7 @@ gg_combine_ridge <- ggplot() +
 gg_combine_ridge
 
 ggsave(filename = "Calibration_Ridge_Crossings.svg", plot = gg_combine_ridge,
-  path = file.path(tex_dir, "Figures/Ch3"), scale = 1, width = 6, height = 3,
+  path = file.path(tex_dir, "Figures/Ch3"), scale = 1, width = 6, height = 4,
   units = "in", dpi = 300, bg = "white")
 
 # ---------------------------- CHAPTER 4 ---------------------------------------
@@ -1391,6 +1374,7 @@ for (i in c("Grand_Lake", "Wilson")){
     scale_fill_manual(values = cruise_flight_colors, name = "Behavior") +
     theme_latex +
     theme_transits  +
+    theme(axis.text = element_text(color = "black")) +
     theme(legend.key = element_blank())
   gg_transits_areas
 

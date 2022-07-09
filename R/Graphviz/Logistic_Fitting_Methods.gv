@@ -34,8 +34,9 @@ digraph {
     fillcolor = DeepSkyBlue, shape = oval]
   subgraph cluster_0 {
     rankdir = TB;
-    label = "Multi-scale Model Fitting Procedure Overview"
-    fontsize = "20"
+    label = "Multi-scale Model Fitting Procedure Overview";
+    fontname = "Helvetica-Bold"
+    fontsize = "16"
       subgraph cluster_01 {
         label = "Grand-Child one";
          a01, a02
