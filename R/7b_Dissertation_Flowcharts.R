@@ -4,34 +4,27 @@
 
 # Setup ------------------------------------------------------------------------
 # Load packages
-pacman::p_load(DiagrammeR, DiagrammeRsvg, rsvg, tidyverse)
+pacman::p_load(DiagrammeR, DiagrammeRsvg, magick, rsvg, tidyverse)
 
 # Directories
 tex_dir <- "C:/Users/Blake/OneDrive/Work/LaTeX/BMassey_Dissertation"
 
+
 # -------------------------- CHAPTER 1 -----------------------------------------
 
 # Multiscale Model-Fitting Overview --------------------------------------------
-logistic_fitting_methods <- readLines("R/Graphviz/Logistic_Fitting_Methods.gv")
-write(export_svg(grViz(logistic_fitting_methods, engine = 'circo')),
-  file = "Products/Graphs/Flow_Charts/Logistic_Fitting_Methods.svg")
+logistic_fitting_methods <- readLines(file.path("R/Graphviz",
+  "Multiscale_Fitting_Methods.gv"))
 
-# Export to Dissertation
-file.copy("Products/Graphs/Flow_Charts/Logistic_Fitting_Methods.svg",
-  file.path(tex_dir, "Figures/Ch1/Logistic_Fitting_Methods.svg"),
-  overwrite = TRUE)
+write(export_svg(grViz(logistic_fitting_methods, engine = 'circo')),
+  file = file.path(tex_dir, "Figures/Ch1/Multiscale_Fitting_Methods.svg"))
 
 # -------------------------- CHAPTER 3 -----------------------------------------
 
 # IBM Basic Steps Overview -----------------------------------------------------
 ibm_step_overview <- readLines("R/Graphviz/IBM_Basic_Step_Overview.gv")
 write(export_svg(grViz(ibm_step_overview, engine = 'circo')),
-  file = "Products/Graphs/Flow_Charts/IBM_Basic_Step_Overview.svg")
-
-# Export to Dissertation
-file.copy("Products/Graphs/Flow_Charts/IBM_Basic_Step_Overview.svg",
-  file.path(tex_dir, "Figures/Ch3/IBM_Basic_Step_Overview.svg"),
-  overwrite = TRUE)
+  file = file.path(tex_dir, "Figures/Ch3/IBM_Basic_Step_Overview.svg"))
 
 # Step-type Options ------------------------------------------------------------
 steptype_options <- readLines("R/Graphviz/StepType_Options.gv")
@@ -50,13 +43,9 @@ step_type_updated_svg  <- step_type_svg %>%
   str_replace_all(pattern = 'y=\"-31.5\"', replace =  'y=\"-32.5\"') %>% #End
   str_replace_all(pattern = 'y=\"-15.9\"', replace =  'y=\"-14.9\"') #Beh
 
-writeLines(step_type_updated_svg,
-  con = "Products/Graphs/Flow_Charts/StepType_Options.svg")
-
 # Export to Dissertation
-file.copy("Products/Graphs/Flow_Charts/StepType_Options.svg",
-  file.path(tex_dir, "Figures/Ch3/StepType_Options.svg"),
-  overwrite = TRUE)
+writeLines(step_type_updated_svg, file = file.path(tex_dir,
+  "Figures/Ch3/StepType_Options.svg"))
 
 # Step-type Legend Options -----------------------------------------------------
 steptype_options_legend <- readLines("R/Graphviz/StepType_Options_Legend.gv")
@@ -74,13 +63,9 @@ step_type_legend_updated_svg  <- step_type_legend_svg %>%
   str_replace_all(pattern = 'y=\"-69.7\"', replace =  'y=\"-70.7\"') %>% #Locat
   str_replace_all(pattern = 'y=\"-54.1\"', replace =  'y=\"-53.1\"') #Changes
 
-writeLines(step_type_legend_updated_svg,
-  con = "Products/Graphs/Flow_Charts/StepType_Options_Legend.svg")
-
 # Export to Dissertation
-file.copy("Products/Graphs/Flow_Charts/StepType_Options_Legend.svg",
-  file.path(tex_dir, "Figures/Ch3/StepType_Options_Legend.svg"),
-  overwrite = TRUE)
+writeLines(step_type_legend_updated_svg,
+  file.path(tex_dir, "Figures/Ch3/StepType_Options_Legend.svg"))
 
 #------------------------------------------------------------------------------#
 ################################ OLD CODE ######################################

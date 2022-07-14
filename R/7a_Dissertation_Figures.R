@@ -1,6 +1,6 @@
 #------------------------ Dissertation Figures --------------------------------#
 # Maps and Flowcharts: Save as .svg
-# Figures: Save as .pdf or .png
+# Figures: Save as .png
 # Note: When Overleaf compiles identically named files in different directories
 #   the second file is not recognized and the first file is repeated in PDF.
 #------------------------------------------------------------------------------#
@@ -212,10 +212,10 @@ hr_metrics_cover_95 <- hr_metrics_org %>%
   mutate(Forest = ud_95_forest_prop) %>%
   mutate('Open\nWater' = ud_95_open_water_prop) %>%
   mutate(Pasture = ud_95_pasture_prop) %>%
-  mutate('Shrub\nHerb' = ud_95_shrub_herb_prop) %>%
+  mutate('Shrub/\nHerb' = ud_95_shrub_herb_prop) %>%
   mutate('Wetland' = ud_95_wetland_prop) %>%
   mutate(Area_km = ud_95_total) %>%
-  dplyr::select(id, Developed, Forest, 'Open\nWater', Pasture, 'Shrub\nHerb',
+  dplyr::select(id, Developed, Forest, 'Open\nWater', Pasture, 'Shrub/\nHerb',
       Wetland) %>%
     melt(., id.var = "id") %>%
   mutate(ud = "95%") %>% map_if(is.factor, as.character)
@@ -225,9 +225,9 @@ hr_metrics_cover_50 <- hr_metrics_org %>%
   mutate(Forest = ud_50_forest_prop) %>%
   mutate('Open\nWater' = ud_50_open_water_prop) %>%
   mutate(Pasture = ud_50_pasture_prop) %>%
-  mutate('Shrub\nHerb' = ud_50_shrub_herb_prop) %>%
+  mutate('Shrub/\nHerb' = ud_50_shrub_herb_prop) %>%
   mutate('Wetland' = ud_50_wetland_prop) %>%
-  dplyr::select(id, Developed, Forest, 'Open\nWater', Pasture, 'Shrub\nHerb',
+  dplyr::select(id, Developed, Forest, 'Open\nWater', Pasture, 'Shrub/\nHerb',
       Wetland) %>%
     melt(., id.var = "id") %>%
   mutate(ud = "50%") %>% map_if(is.factor, as.character)
@@ -282,8 +282,6 @@ baea_dist_lines <- data.frame(x=baea_dist$con_nest_km,
     fits_baea_dist$weibull$estimate["scale"])) %>%
   filter(x > 0)
 
-line_size = .8
-
 gg_baea_dist <- ggplot(baea_dist) +
   geom_histogram(aes(x = con_nest_km, y = ..density..), boundary = 0, bins = 11,
     color = "black", fill = "grey80") +
@@ -291,15 +289,15 @@ gg_baea_dist <- ggplot(baea_dist) +
   xlab("Nest and Conspecific Distance Metric (km)") +
   ylab("Probability Density") +
   geom_line(data = baea_dist_lines, aes(x, HalfNorm, color = "Half Normal"),
-    size = line_size) +
+    size = .8) +
   geom_line(data = baea_dist_lines, aes(x, Exponential, color = "Exponential"),
-    size = line_size) +
+    size = .8) +
   geom_line(data = baea_dist_lines, aes(x, Gamma, color = "Gamma"),
-    size = line_size) +
+    size = .8) +
   geom_line(data = baea_dist_lines, aes(x, Weibull, color = "Weibull"),
-    size = line_size) +
+    size = .8) +
   geom_line(data = baea_dist_lines, aes(x, Pareto, color = "Pareto"),
-    size = line_size) +
+    size = .8) +
   scale_color_viridis_d(name = "    Fitted \nDistributions", option = "D") +
   scale_x_continuous(expand = expansion(add = c(.25, 0)),
     limits = c(0,10), breaks = c(0:10)) +
@@ -1201,7 +1199,7 @@ gg_baea_dist <- ggplot(baea_perch_dist) +
 gg_combine_hydro_dist <- gg_baea_dist + gg_sim_dist
 gg_combine_hydro_dist
 
-ggsave(filename = "Calibration_Hydro_Dist.svg", plot = gg_combine_hydro_dist,
+ggsave(filename = "Calibration_Hydro_Dist.png", plot = gg_combine_hydro_dist,
   path = file.path(tex_dir, "Figures/Ch3"), scale = 1, width = 6, height = 4,
   units = "in", dpi = 300)
 
@@ -1253,7 +1251,7 @@ gg_combine_ridge <- ggplot() +
   theme(legend.position = "right")
 gg_combine_ridge
 
-ggsave(filename = "Calibration_Ridge_Crossings.svg", plot = gg_combine_ridge,
+ggsave(filename = "Calibration_Ridge_Crossings.png", plot = gg_combine_ridge,
   path = file.path(tex_dir, "Figures/Ch3"), scale = 1, width = 6, height = 4,
   units = "in", dpi = 300, bg = "white")
 
@@ -1270,12 +1268,12 @@ for (i in c("Grand_Lake", "Wilson")){
   # Get Windrose Data ----------------------------------------------------------
   if(nest_str == "Wilson"){
     site_wind <- readRDS("Output/Analysis/Wind/greenville_wind.rds")
-    windrose_filename <- "Greenville_Windrose.svg"
+    windrose_filename <- "Greenville_Windrose.png"
   }
 
   if(nest_str == "Grand_Lake"){
     site_wind <- readRDS("Output/Analysis/Wind/millinocket_wind.rds")
-    windrose_filename <- "Millinocket_Windrose.svg"
+    windrose_filename <- "Millinocket_Windrose.png"
   }
 
   wind_df <- site_wind %>%
@@ -1378,7 +1376,7 @@ for (i in c("Grand_Lake", "Wilson")){
     theme(legend.key = element_blank())
   gg_transits_areas
 
-  ggsave(filename = paste0("Wind_Areas_", nest_str, ".svg"),
+  ggsave(filename = paste0("Wind_Areas_", nest_str, ".png"),
     plot = gg_transits_areas,
     path = file.path(tex_dir, "Figures/Ch4/Transits"), scale = 1,
     width = 6, height = 4, units = "in", dpi = 300)
@@ -1419,7 +1417,7 @@ for (i in c("Grand_Lake", "Wilson")){
   gg_transits_turbines
 
   # Save SVG file
-  ggsave(filename = paste0("Wind_Turbines_", nest_str, ".svg"),
+  ggsave(filename = paste0("Wind_Turbines_", nest_str, ".png"),
     plot = gg_transits_turbines,
     path = file.path(tex_dir, "Figures/Ch4/Transits"), scale = 1,
     width = 6, height = 4, units = "in", dpi = 300)
@@ -1484,7 +1482,7 @@ for (i in c("Grand_Lake", "Wilson")){
   gg_flights_stats
 
   # Save SVG
-  ggsave(filename = paste0("Flights_Stats_", nest_str, ".svg"),
+  ggsave(filename = paste0("Flights_Stats_", nest_str, ".png"),
     plot = gg_flights_stats,
     path = file.path(tex_dir, "Figures/Ch4/Transits"), scale = 1,
     width = 6, height = 4, units = "in", dpi = 300)
@@ -1530,7 +1528,7 @@ for (i in c("Grand_Lake", "Wilson")){
   gg_turbines_ns_crm
 
   # Save SVG
-  ggsave(filename = paste0("Turbines_NS_CRM_", nest_str, ".svg"),
+  ggsave(filename = paste0("Turbines_NS_CRM_", nest_str, ".png"),
     plot = gg_turbines_ns_crm,
     path = file.path(tex_dir, "Figures/Ch4/Collision_Risk"), scale = 1,
     width = 6, height = 4, units = "in", dpi = 300)
@@ -1563,7 +1561,7 @@ for (i in c("Grand_Lake", "Wilson")){
     theme(legend.position = "none")
   gg_turbines_all_crm
 
-  ggsave(filename = paste0("Turbines_All_CRM_", nest_str, ".svg"),
+  ggsave(filename = paste0("Turbines_All_CRM_", nest_str, ".png"),
     plot = gg_turbines_all_crm,
     path = file.path(tex_dir, "Figures/Ch4/Collision_Risk"), scale = 1,
     width = 6, height = 4, units = "in", dpi = 300)

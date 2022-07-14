@@ -144,7 +144,7 @@ print(hr_metrics_xtable,
   size="\\fontsize{11pt}{12pt}\\selectfont",
   sanitize.colnames.function=BoldText,
   file = file.path("C:/Users/blake/OneDrive/Work/LaTeX/BMassey_Dissertation",
-                   "Tables/Ch2/Homerange_Metrics.tex"))
+                   "Tables/Appendix/Homerange_Metrics.tex"))
 
 # SSF Analysis Covariates ------------------------------------------------------
 
@@ -532,7 +532,7 @@ for (j in seq_len(length(model_fit_files))){
   # For LaTeX Folder
   writeLines(model_fits_top10_j_xtable_output_final,
     file.path("C:/Users/blake/OneDrive/Work/LaTeX/BMassey_Dissertation",
-      "Tables/Appendix3", paste0("SSF_Fits_Top10_",step_type_j_start, "_",
+      "Tables/Appendix", paste0("SSF_Fits_Top10_", step_type_j_start, "_",
       step_type_j_end, ".tex")))
 }
 
