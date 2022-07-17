@@ -1017,10 +1017,10 @@ for (j in seq_len(nrow(nests_sim))){
       tm_shape(ssf_prob_i_mask, raster.downsample = FALSE) +
       tm_raster(palette = viridis(20, direction = 1), alpha = .6,
         legend.reverse = TRUE, style = "cont", title = "Probability") +
-      tm_scale_bar(breaks = c(0, 5, 10), text.size = .65, lwd = .25,
-        position = c(.03, .0)) +
-      tm_compass(type = "4star", text.size = 0.75, show.labels = 1, size = 1.5,
-        position = c(.795, .675), lwd = .25) +
+      tm_scale_bar(breaks = c(0, 5, 10), text.size = .8, lwd = .25,
+        position = c(.03, -.04)) +
+      tm_compass(type = "4star", text.size = 0.9, show.labels = 1,
+        size = 1.6, position = c(.74, .645), lwd = .25) +
       tm_shape(nests_sim) +
       tm_symbols(shape = 21, border.col = "black", border.lwd = 1,
         col = nest_color, size = .125) +
@@ -1030,15 +1030,16 @@ for (j in seq_len(nrow(nests_sim))){
         title.color = "black",
         title.bg.color = NA, #"ivory3",
         title.bg.alpha = .85,
-        title.position = c(.21,.94),
+        title.position = c(.03, .94),
         title.fontfamily = "Latin Modern Roman",
         title.fontface = "bold",
         title = step_type_i_arrow,
-        title.size = .85,
+        title.size = 1,
         title.snap.to.legend = FALSE,
         legend.show = FALSE)  +
-        tm_credits(legend_label, bg.color = "white", position = c(.875, .05),
-          just = "center", size = 0.7, width = .105)
+          tm_credits(legend_label, bg.color = "gainsboro",
+            position = c(.875, .05),
+            just = "center", size = 0.75, width = .1095)
 
     tmap_position <- switch(step_type_i_numeric,
       "1_1" = 1,  "1_2" = 2,  "1_4" = 3,
@@ -1293,7 +1294,7 @@ for (j in unique(sim_step_data$baea_id)){
     tm_raster(alpha = .9, palette = "viridis", legend.reverse = TRUE,
       title = "DEFAULT", style = "cont", breaks = raster_breaks) +
     density_ridges_map +
-    tm_layout(main.title = paste0(j, " - Empirical Data"),
+    tm_layout(main.title = paste0(j, "\nEmpirical Data"),
       main.title.size = 1.85,
       main.title.position = "center")
 
@@ -1303,7 +1304,7 @@ for (j in unique(sim_step_data$baea_id)){
     tm_raster(alpha = .9, palette = "viridis", legend.reverse = TRUE,
       title = "DEFAULT", style = "cont", breaks = raster_breaks) +
     density_ridges_map +
-    tm_layout(main.title = paste0(j, " - Simulation Data (n = 10)"),
+    tm_layout(main.title = paste0(j, "\nSimulation Data (n = 10)"),
       main.title.size = 1.85,
       main.title.position = "center")
 
@@ -1348,24 +1349,38 @@ for (j in unique(sim_step_data$baea_id)){
     image_trim(.) %>%
     image_resize(., "864x864")
 
-  legend_img <- legend_file %>%
+  legend_title_img <- legend_file %>%
     image_read(.) %>%
-    image_trim(.)
-  legend_img_height <- image_info(legend_img) %>%
-    pull (height)
-  legend_y_offset <- 865 - legend_img_height - 250
+    image_trim(.) %>%
+    image_crop("223x100+0+0")
+
+  legend_scale_img <- legend_file %>%
+    image_read(.) %>%
+    image_trim(.) %>%
+    image_crop("223x500+0+100")
+
+  legend_scale_height <- image_info(legend_scale_img) %>%
+    pull(height)
+  legend_scale_offset <- 875 - legend_scale_height - 250
+
+  legend_title_height <- image_info(legend_title_img) %>%
+    pull(height)
+  legend_title_offset <- 875 - legend_title_height - legend_scale_height - 250
 
   overview_img <- overview_file %>%
     image_read(.) %>%
     image_trim(.)
 
-  backgrd <- image_blank(height = 865, width = 1915, color = "white")
+  backgrd <- image_blank(height = 875, width = 1752, color = "white")
 
   density_fig <- backgrd %>%
-    image_composite(., baea_map_img, offset = "+0+0") %>%
-    image_composite(., sim_map_img, offset = "+835+0") %>%
-    image_composite(., legend_img, offset = paste0("+1670+",legend_y_offset))%>%
-    image_composite(., overview_img, offset = "+1665+650")
+    image_composite(., baea_map_img, offset = "+0+10") %>%
+    image_composite(., sim_map_img, offset = "+755+10") %>%
+    image_composite(., legend_title_img, offset = paste0("+1520+",
+      legend_title_offset)) %>%
+    image_composite(., legend_scale_img, offset = paste0("+1560+",
+      legend_scale_offset)) %>%
+    image_composite(., overview_img, offset = "+1505+680")
   density_fig
 
   # Export PNG
@@ -1664,10 +1679,10 @@ for (i in c("Grand_Lake", "Wilson")){
        tm_shape(ssf_prob_i_mask, raster.downsample = FALSE) +
        tm_raster(palette = viridis(20, direction = 1), alpha = .6,
          legend.reverse = TRUE, style = "cont", title = "Probability") +
-        tm_scale_bar(breaks = c(0, 5, 10), text.size = .65, lwd = .25,
-          position = c(.03, .0)) +
-        tm_compass(type = "4star", text.size = 0.75, show.labels = 1,
-          size = 1.5, position = c(.795, .675), lwd = .25) +
+        tm_scale_bar(breaks = c(0, 5, 10), text.size = .8, lwd = .25,
+          position = c(.03, -.04)) +
+        tm_compass(type = "4star", text.size = 0.9, show.labels = 1,
+          size = 1.6, position = c(.74, .645), lwd = .25) +
         tm_shape(nest) +
         tm_symbols(shape = 21, border.col = "black", border.lwd = 1,
           col = nest_color, size = .125) +
@@ -1677,15 +1692,41 @@ for (i in c("Grand_Lake", "Wilson")){
           title.color = "black",
           title.bg.color = NA, #"ivory3",
           title.bg.alpha = .85,
-          title.position = c(.19,.94),
+          title.position = c(.03, .94),
           title.fontfamily = "Latin Modern Roman",
           title.fontface = "bold",
           title = step_type_i_arrow,
-          title.size = .85,
+          title.size = 1,
           title.snap.to.legend = FALSE,
           legend.show = FALSE)  +
-          tm_credits(legend_label, bg.color = "white", position = c(.875, .05),
-            just = "center", size = 0.7, width = .105)
+          tm_credits(legend_label, bg.color = "gainsboro",
+            position = c(.875, .05),
+            just = "center", size = 0.75, width = .1095)
+
+      if(exp_scenario_j_name == "SSF_Rasters_C"){
+        ssf_prob_i_nest_map_final <- ssf_prob_i_nest_map
+      }
+      if(exp_scenario_j_name == "SSF_Rasters_N"){
+        ssf_prob_i_nest_map_final <- ssf_prob_i_nest_map +
+          tm_shape(nest_wt_n_buff, title = "Wind Turbines") +
+          tm_symbols(shape = 21, border.col = "black", border.lwd = 1,
+            col = turbine_color, size = .05)
+      }
+      if(exp_scenario_j_name == "SSF_Rasters_S"){
+        ssf_prob_i_nest_map_final <- ssf_prob_i_nest_map +
+          tm_shape(nest_wt_s_buff, title = "Wind Turbines") +
+          tm_symbols(shape = 21, border.col = "black", border.lwd = 1,
+            col = turbine_color, size = .05)
+      }
+      if(exp_scenario_j_name == "SSF_Rasters_NS"){
+        ssf_prob_i_nest_map_final <- ssf_prob_i_nest_map +
+          tm_shape(nest_wt_n_buff, title = "Wind Turbines") +
+          tm_symbols(shape = 21, border.col = "black", border.lwd = 1,
+            col = turbine_color, size = .05) +
+          tm_shape(nest_wt_s_buff, title = "Wind Turbines") +
+          tm_symbols(shape = 21, border.col = "black", border.lwd = 1,
+            col = turbine_color, size = .05)
+      }
 
       tmap_position <- switch(step_type_i_numeric,
         "1_1" = 1,  "1_2" = 2,  "1_4" = 3,
@@ -1694,7 +1735,7 @@ for (i in c("Grand_Lake", "Wilson")){
         "4_1" = 13, "4_2" = 14, "4_4" = 15, "4_5" = 16,
                     "5_2" = 18, "5_4" = 19)
       writeLines(as.character(tmap_position))
-      ssf_tmap_list[[tmap_position]] <- ssf_prob_i_nest_map
+      ssf_tmap_list[[tmap_position]] <- ssf_prob_i_nest_map_final
     }
 
     tmap_blank <-
@@ -2203,6 +2244,7 @@ maine_bb_sf <- st_as_sfc(bb(maine, relative = TRUE, height = 1, width = 2))
 maine_bb <- bb_poly(bb(maine_bb_sf, ext = 1.15))
 maine_om = read_osm(maine_bb, zoom = 5, minNumTiles = 9, type = om_nat_geo)
 
+if(FALSE) i <- "Ellis"; j <- 2015 # For testing
 # For mapping
 for (i in unique(baea_hr$id)){
   baea_hr_i <- baea_hr %>% filter(id == i) %>% arrange(datetime)
@@ -2236,8 +2278,16 @@ for (i in unique(baea_hr$id)){
     baea_dist_sf <- st_as_sfc(bb(baea_k, relative = TRUE, height = 1, width =1))
     baea_k_x_dist <- as.numeric(approx_distances(bb(baea_dist_sf,
       ext = 1.15))[1])/1000/5
-    baea_k_x_breaks <- as.numeric(unlist(scales::cbreaks(c(0, baea_k_x_dist),
-      scales::pretty_breaks(2))[1]))
+    # baea_k_x_breaks <- as.numeric(unlist(scales::cbreaks(c(0, baea_k_x_dist),
+    #   scales::pretty_breaks(2))[1]))
+    if(baea_k_x_dist <= 5){
+      baea_k_x_breaks <- c(0, 2, 4)
+    } else if (baea_k_x_dist > 5 & baea_k_x_dist <= 10){
+      baea_k_x_breaks <- c(0, 5, 10)
+    } else if (baea_k_x_dist > 10){
+      baea_k_x_breaks <- c(0, 10, 20)
+    }
+
     print(baea_k_x_breaks)
 
     # Home range, points, and flight paths
@@ -2285,7 +2335,7 @@ for (i in unique(baea_hr$id)){
     tmap_save(tm = baea_k_hr_paths, filename = file.path(tex_dir,
       "Figures/Appendix/HR_Maps", paste0(i, "_", j, ".svg")),
       insets_tm = maine_overview,
-      insets_vp =  viewport(x = 0.871, y = 0.1026, width = 0.225,
+      insets_vp =  viewport(x = 0.871, y = 0.1035, width = 0.225,
         height = 0.225),
       unit = "in", dpi = 300, height = 6, width = 6)
   }

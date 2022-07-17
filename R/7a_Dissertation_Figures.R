@@ -247,10 +247,11 @@ gg_hr_cover <- ggplot(data = hr_metrics_cover %>% filter(variable != "Area_km"),
   theme(legend.position = "right") +
   theme(legend.title = element_text(size = 10),
     legend.text  = element_text(size = 10),
-    legend.key.size = unit(2, "lines")) +
+    legend.key.size = unit(1, "lines")) +
   theme(panel.grid.major.x = element_blank())+
   theme(plot.background = element_rect(fill = "white", color = "white",
     inherit.blank = FALSE))
+
 gg_hr_cover
 
 ggsave(filename = "Homerange_Cover_Type.png", plot = gg_hr_cover,
@@ -571,7 +572,7 @@ ind_list <- lapply(sort(unique(baea_movements_wb$behavior_behavior)),
   scale_y_continuous(labels = Multiplier100)  +
   scale_x_continuous(labels = MetersToKilometers)  +
   theme(plot.margin = margin(0, 6, 3, 6, "pt")) +
-  theme(axis.text = element_text(size = 10)) +
+  theme(axis.text = element_text(size = 13)) +
   theme(axis.text.x = element_text(angle = 0, vjust = .5, hjust = 0.5)) +
   theme(plot.title = element_text(size = 11, vjust = -2, hjust = 0.5))
   # Old code for annotations of Weibull parameters:
@@ -742,8 +743,7 @@ ind_list = lapply(sort(unique(baea_movements_vm_sub$behavior_behavior)),
     theme_minimal() +
     theme_latex +
     theme(plot.margin = margin(0, 6, 3, 6, "pt")) +
-    theme(axis.text = element_text(size = 9)) +
-#    theme(axis.text = element_text(size = 7)) +
+    theme(axis.text = element_text(size = 12)) +
     theme(axis.text.x = element_text(angle = 0, vjust = .5, hjust = 0.5)) +
     theme(plot.title = element_text(size = 10, vjust = -2, hjust = 0.5)) +
     #theme(plot.title = element_text(size = 8, vjust = -2, hjust = 0.5)) +
@@ -859,12 +859,7 @@ ind_list = lapply(sort(unique(move_dens$behavior_behavior)), function(i){
     theme_minimal() +
     theme_latex +
     theme(plot.margin = margin(3, 6, 3, 6, "pt")) +
-    #theme(axis.text = element_text(size = 7)) +
     theme(axis.text.x = element_text(angle = 0, vjust = .5, hjust = 0.5)) +
-    #theme(legend.text = element_text(size = 7)) +
-    #theme(legend.title = element_text(size = 8)) +
-    #theme(plot.title = element_text(size = 9, vjust = -1, hjust = 0.5)) +
-    #guides(fill = guide_colourbar(barwidth = .5, barheight = 3)) +
     theme(legend.position = "none") +
     ggtitle(NULL) + labs(x = NULL, y = NULL)
   return(gg_move_kernel)
@@ -1088,7 +1083,7 @@ ggsave(filename = "ConNest_Rescale.png", plot = gg_connest_rescale,
   units = "in", dpi = 300)
 
 # Plot Logistic Function -------------------------------------------------------
-x <- seq(-5, 5, .1)
+x <- seq(-10, 10, .1)
 pred_logistic_lines <- data.frame(x=x,
   y_01 = LogisticByInflection(x, inflection = 0, scale = df_rescale %>%
       filter(x == 1) %>% pull(y_rescale)),
@@ -1116,7 +1111,8 @@ pred_logistic_lines <- data.frame(x=x,
   mutate(y_02 = ifelse(x < -2, NA, y_02)) %>%
   mutate(y_03 = ifelse(x < -3, NA, y_03)) %>%
   mutate(y_04 = ifelse(x < -4, NA, y_04)) %>%
-  mutate(y_05 = ifelse(x < -5, NA, y_05))
+  mutate(y_05 = ifelse(x < -5, NA, y_05)) %>%
+  mutate(y_08 = ifelse(x < -8, NA, y_08))
 
 # Make plot with multiple lines
 df_logistic <- as.data.frame(cbind(x, pred_logistic_lines))
@@ -1143,7 +1139,8 @@ gg_connest_logistic <- ggplot(df_logistic) +
   scale_color_viridis_d(name = "Conspecific and\nNest Distance\nValue (km)",
     option = "D", labels=c("1", "2", "3", "5", "8", "10", "20")) +
   scale_y_continuous(limits = c(0, 1), expand = expansion(0)) +
-  scale_x_continuous(limits = c(-5,5), breaks = -5:5, expand = expansion(0)) +
+  scale_x_continuous(limits = c(-10,10), breaks = seq(-10, 10, by = 2),
+    expand = expansion(0)) +
   theme_minimal() +
   theme_latex +
   theme(line = element_line(size = line_size)) +

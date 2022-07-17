@@ -204,7 +204,7 @@ fits_baea_dist_xtable <- xtable(fits_baea_dist_df,
 #& exponential & halfnorm & gamma &  & pareto &  & weibull &
 
 align(fits_baea_dist_xtable) <- c("L{0}",
-"L{.65}", "R{.35}", "R{.35}", "R{.35}", "R{.5}", "R{.4}", "R{.4}")
+"L{.65}", "L{.35}", "L{.35}", "R{.35}", "R{.5}", "R{.4}", "L{.4}")
 
 str_replace_all(align(fits_baea_dist_xtable), "[^[//.||0-9]]", "") %>%
   as.numeric(.) %>% sum()
@@ -331,7 +331,7 @@ ssf_fits_best <- ssf_fits_best %>%
 
 step_type_groups <- ssf_fits_best %>% pull(step_type_group_name) %>% unique(.)
 
-#i <- step_type_groups[8]; j <- 1  # for testing
+if(FALSE) i <- step_type_groups[8]; j <- 1  # for testing
 for (i in step_type_groups){
   i_underscore <- str_replace_all(str_to_title(i), " ", "_")
   ssf_fits_best_i <- ssf_fits_best %>% filter(step_type_group_name == i)
@@ -396,8 +396,9 @@ for (i in step_type_groups){
     sanitize.text.function = identity,
     print.results = FALSE)
 
-  caption_label_tex <- paste0("\\\\caption[Step-selection Model Fits for ",
-    str_to_title(i), "]\n", "{\\\\label{tab:SSF_Fits_Terms_", i_underscore,
+  caption_label_tex <- paste0("\\\\caption[Bald Eagle step-selection model ",
+    "fits for ", str_to_lower(i), " steps]\n", "{\\\\label{tab:SSF_Fits_Terms_",
+    i_underscore,
     "} Step-selection model terms and metrics for step-types with ",
     i, " behavior for Bald Eagles in Maine.}\\\\\\\\ \n ")
 
@@ -407,6 +408,9 @@ for (i in step_type_groups){
     str_replace_all(., paste0("\\\\begin\\{sideways\\} ",
       "\\{\\\\textbf\\{Step Type\\}\\} \\\\end\\{sideways\\}"),
       "\\{\\\\textbf\\{Step Type\\}\\}") %>%
+    str_replace_all(., paste0("\\\\begin\\{sideways\\} ",
+      "\\{\\\\textbf\\{Term\\}\\} \\\\end\\{sideways\\}"),
+      "\\{\\\\textbf\\{Term\\}\\}") %>%
     str_replace_all(., "\\{\\\\textbf\\{p-value\\}\\}",
       "\\{\\\\textit\\{\\\\textbf\\{p\\}\\}\\\\textbf\\{-value\\}\\}")
 
