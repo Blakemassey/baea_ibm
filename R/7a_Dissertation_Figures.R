@@ -248,7 +248,7 @@ gg_hr_cover <- ggplot(data = hr_metrics_cover %>% filter(variable != "Area_km"),
   theme(legend.title = element_text(size = 10),
     legend.text  = element_text(size = 10),
     legend.key.size = unit(1, "lines")) +
-  theme(panel.grid.major.x = element_blank())+
+  theme(panel.grid.major.x = element_blank()) +
   theme(plot.background = element_rect(fill = "white", color = "white",
     inherit.blank = FALSE))
 
@@ -358,8 +358,8 @@ gg_behave_prop <- ggplot(baea_behavior_sum, aes(x = bins_mid, y = value,
   scale_x_continuous(breaks = seq(0, 1, .1),
     expand = expansion(mult = c(.01, .01))) +
   scale_y_continuous(expand = expansion(mult = c(.00, .01))) +
-  theme(axis.ticks = element_line(color = "grey50", size = .65)) +
-  theme(axis.ticks.length = unit(5, "pt")) +
+  theme(axis.ticks = element_line(color = "black", size = .65)) +
+  theme(axis.ticks.length = unit(3, "pt")) +
   theme(plot.background = element_rect(fill = "white", color = "white",
     inherit.blank = FALSE))
 
@@ -367,6 +367,16 @@ gg_behave_prop <- ggplot(baea_behavior_sum, aes(x = bins_mid, y = value,
 ggsave(filename = "Behavior_Proportion_Bar.png", plot = gg_behave_prop,
   path = file.path(tex_dir, "Figures/Ch2"), scale = 1, width = 6, height = 4,
   units = "in", dpi = 300)
+
+if(FALSE){ # Testing for different background colors (for presentations)
+  gg_behave_prop_bg <- gg_behave_prop +
+    theme(plot.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb",
+    inherit.blank = FALSE))
+
+  ggsave(filename = "Behavior_Proportion_Bar_BG.png", plot = gg_behave_prop_bg,
+    path = file.path(tex_dir, "Figures/Ch2"), scale = 1, width = 6, height = 4,
+    units = "in", dpi = 300)
+}
 
 rm(baea_behavior, baea_behavior_simple, breaks, baea_behavior_sum,
   gg_behave_prop)
@@ -569,10 +579,10 @@ ind_list <- lapply(sort(unique(baea_movements_wb$behavior_behavior)),
   xlab(NULL) + ylab(NULL) + ggtitle(NULL) +
   theme_minimal() +
   theme_latex +
-  scale_y_continuous(labels = Multiplier100)  +
-  scale_x_continuous(labels = MetersToKilometers)  +
-  theme(plot.margin = margin(0, 6, 3, 6, "pt")) +
-  theme(axis.text = element_text(size = 13)) +
+  scale_y_continuous(labels = Multiplier100, expand = c(0,0))  +
+  scale_x_continuous(labels = MetersToKilometers, expand = c(0,0))  +
+  theme(plot.margin = margin(3, 6, 3, 6, "pt")) +
+  theme(axis.text = element_text(size = 10)) +
   theme(axis.text.x = element_text(angle = 0, vjust = .5, hjust = 0.5)) +
   theme(plot.title = element_text(size = 11, vjust = -2, hjust = 0.5))
   # Old code for annotations of Weibull parameters:
@@ -672,8 +682,8 @@ movements_step_length_labels_fig <- backgrd %>%
   image_composite(., image_rotate(tex_start, 90), offset = "+1750+790") %>%
   image_composite(., tex_cruise, offset = "+275+65") %>%
   image_composite(., tex_flight, offset = "+660+65") %>%
-  image_composite(., tex_nest, offset = "+1065+65") %>%
-  image_composite(., tex_perch, offset = "+1440+65") %>%
+  image_composite(., tex_perch, offset = "+1065+65") %>%
+  image_composite(., tex_roost, offset = "+1440+65") %>%
   image_composite(., image_rotate(tex_cruise, 90), offset = "+1685+150") %>%
   image_composite(., image_rotate(tex_flight, 90), offset = "+1685+510") %>%
   image_composite(., image_rotate(tex_nest, 90), offset = "+1685+850") %>%
@@ -968,8 +978,8 @@ movements_kernel_labels_fig_ver_1 <- backgrd %>%
   image_composite(., image_rotate(tex_start, 90), offset = "+1620+790") %>%
   image_composite(., tex_cruise, offset = "+250+65") %>%
   image_composite(., tex_flight, offset = "+625+65") %>%
-  image_composite(., tex_nest, offset = "+985+65") %>%
-  image_composite(., tex_perch, offset = "+1305+65") %>%
+  image_composite(., tex_perch, offset = "+985+65") %>%
+  image_composite(., tex_roost, offset = "+1305+65") %>%
   image_composite(., image_rotate(tex_cruise, 90), offset = "+1550+150") %>%
   image_composite(., image_rotate(tex_flight, 90), offset = "+1550+510") %>%
   image_composite(., image_rotate(tex_nest, 90), offset = "+1550+850") %>%
@@ -1004,8 +1014,8 @@ movements_kernel_labels_fig_ver_2 <- backgrd %>%
   image_composite(., image_rotate(tex_start, 90), offset = "+1620+790") %>%
   image_composite(., tex_cruise, offset = "+250+65") %>%
   image_composite(., tex_flight, offset = "+625+65") %>%
-  image_composite(., tex_nest, offset = "+985+65") %>%
-  image_composite(., tex_perch, offset = "+1315+390") %>%
+  image_composite(., tex_perch, offset = "+985+65") %>%
+  image_composite(., tex_roost, offset = "+1315+390") %>%
   image_composite(., image_rotate(tex_cruise, 90), offset = "+1210+160") %>%
   image_composite(., image_rotate(tex_flight, 90), offset = "+1550+510") %>%
   image_composite(., image_rotate(tex_nest, 90), offset = "+1550+850") %>%

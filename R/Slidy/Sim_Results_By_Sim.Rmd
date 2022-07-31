@@ -18,6 +18,9 @@ title: "`r paste0('Sim Results By Sim - ', stringr::str_to_title(params$points))
 ---
 
 ```{r echo=FALSE, fig.width=6, message=FALSE, results="asis"}
+source(file.path("C:/Users/blake/OneDrive/Work/R/Projects/baea_ibm/R",
+ "5c_SIM_Simulation_Log.R"))
+
 pacman::p_load(imager, kableExtra, knitr, tidyverse, stringr)
 sim_id <- "sim_20210725"
 sim_dir <- file.path("C:/TEMP", paste0(sim_id, "-"))  

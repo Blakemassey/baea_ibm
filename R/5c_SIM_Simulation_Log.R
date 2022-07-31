@@ -1,6 +1,6 @@
 # Sim Run Parameters -----------------------------------------------------------
 
-library(tidyverse)
+pacman::p_load(tidyverse)
 
 sim_log <- tibble(
   sim = NA_character_,

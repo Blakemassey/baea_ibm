@@ -2,6 +2,7 @@ digraph {
   forcelabels = true;
   rankdir = TB;
   fontsize = 14;
+  fontname = "Modern Computer"
   node [shape = oval, style = filled];
   a01 [label = "Simulation Model Parameters \n (Intercept, Betas, Sigmas)",
     shape = polygon, style = filled, fillcolor = Khaki, fixedsize = true,
@@ -35,8 +36,7 @@ digraph {
     fillcolor = DeepSkyBlue, shape = oval]
   subgraph cluster_0 {
     rankdir = TB;
-    label = "Multi-scale Model Fitting Procedure Overview";
-    fontname = "Helvetica-Bold"
+    label = <<b>Multi-scale Model Fitting Procedure Overview</b>>;
     fontsize = 14
       subgraph cluster_01 {
         label = "Grand-Child one";

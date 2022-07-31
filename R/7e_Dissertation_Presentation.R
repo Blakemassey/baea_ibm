@@ -1,3 +1,8 @@
+#---------------------- DISSERTATION PRESENTATION -----------------------------#
+# This script is for testing and archiving interactive figures and maps for my
+# dissertation presentation
+#------------------------------------------------------------------------------#
+
 library(tidyverse)
 library(sf)
 library(leaflet)
@@ -61,26 +66,4 @@ leaflet(data = baea_points) %>%
       position = "topright",
       timeAttribute = "datetime",
       range = TRUE)) %>%
-  setView(-70.68667, 44.66776, 12)
-
-
-leaflet() %>%
-  addProviderTiles(providers$Esri.NatGeoWorldMap) %>%
-  addTimeslider(data = df_sf,
-             options = timesliderOptions(
-               alwaysShowDate = TRUE,
-               position = "topright",
-               timeAttribute = "datetime",
-               range = TRUE)) %>%
-  setView(-70.68667, 44.66776, 12)
-
-test <- bind_rows(baea_k, df_sf)
-leaflet() %>%
-  addProviderTiles(providers$Esri.NatGeoWorldMap) %>%
-  addTimeslider(data = test,
-             options = timesliderOptions(
-               alwaysShowDate = TRUE,
-               position = "topright",
-               timeAttribute = "datetime",
-               range = TRUE)) %>%
   setView(-70.68667, 44.66776, 12)

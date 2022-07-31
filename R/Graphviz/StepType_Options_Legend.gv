@@ -2,16 +2,17 @@ digraph G {
   rankdir = TB;
   forcelabels = true;
   fontsize = 13;
+  fontname = "Modern Computer"
   graph [margin = 0, pad = 0, ranksep = .35, nodesep = .4];
-	edge [color = grey25, penwidth = 2.5, fontsize = 11; fontname = "Helvetica"];
+	edge [color = grey25, penwidth = 2.5, fontsize = 11];
   node [fontsize = 4, fixedsize = true, height = .15, width = .1, style = invis];
     subgraph cluster_0 {
-      edge[color = white, fontsize = 13; fontname = "Helvetica-Bold"];
-      start1 -> end1 [label = "Location\nChanges"];
+      edge[color = white, fontsize = 13];
+      start1 -> end1 [label = <<b>Location<br/>Changes</b>>];
 		  color = invis
 	  }
     subgraph cluster_1 {
-      edge[color = white, fontsize = 13; fontname = "Helvetica"];
+      edge[color = white, fontsize = 13];
       start2 -> end2 [label = "       "];
 		  color = invis
 	  }
@@ -29,7 +30,7 @@ digraph G {
 		  color = invis
 	  }
 	  subgraph cluster_5 {
-      edge[color = white, fontsize = 13; fontname = "Helvetica"];
+      edge[color = white, fontsize = 13];
       start3 -> end3 [label = "   "];
 		  color = invis
 	  }

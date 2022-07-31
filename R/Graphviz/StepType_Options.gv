@@ -1,25 +1,25 @@
 digraph G {
   rankdir = TB;
   forcelabels = true;
+  fontname = "Modern Computer";
   graph [margin = 0, pad = 0, ranksep = 1.9, nodesep = .75,  color = black];
 
-  node [shape = plaintext, fontsize = 13; fontname = "Helvetica-Bold"];
-  start01[label = "Start\nBehavior"]
-  end02[label = "End\nBehavior"]
+  node [shape = plaintext, fontsize = 13; fontname = "Modern Computer"];
+  start01[label = <<b>Start<br/>Behavior</b>>]
+  end02[label = <<b>End<br/>Behavior</b>>]
 
-  node [shape = oval, style = "filled",  fontsize = 11;
-    fontname = "Helvetica"];
-  c01 [label = "Cruise", fillcolor = CornFlowerBlue];
-  f01 [label = "Flight", fillcolor = FireBrick1];
-  n01 [label = "Nest",  fillcolor = Yellow2];
-  p01 [label = "Perch",  fillcolor = Sienna1];
-  r01 [label = "Roost",  fillcolor = Orchid];
+  node [shape = oval, style = "filled",  fontsize = 11];
+  c01 [label = "Cruise", fillcolor = "#44AA99"];
+  f01 [label = "Flight", fillcolor = "#3322DD"];
+  n01 [label = "Nest",  fillcolor = "#DDCC77"];
+  p01 [label = "Perch",  fillcolor = "#117733"];
+  r01 [label = "Roost",  fillcolor = "#AA4499"];
 
-  c02 [label = "Cruise", fillcolor = CornFlowerBlue];
-  f02 [label = "Flight", fillcolor = FireBrick1];
-  n02 [label = "Nest",  fillcolor = Yellow2];
-  p02 [label = "Perch",  fillcolor = Sienna1];
-  r02 [label = "Roost",  fillcolor = Orchid];
+  c02 [label = "Cruise", fillcolor = "#44AA99"];
+  f02 [label = "Flight", fillcolor = "#3322DD"];
+  n02 [label = "Nest",  fillcolor = "#DDCC77"];
+  p02 [label = "Perch",  fillcolor = "#117733"];
+  r02 [label = "Roost",  fillcolor = "#AA4499"];
 
 	edge[color = grey25, style = solid, dir = front, penwidth = 2.5, ];
 

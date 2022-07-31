@@ -9,7 +9,6 @@ pacman::p_load(DiagrammeR, DiagrammeRsvg, magick, rsvg, tidyverse)
 # Directories
 tex_dir <- "C:/Users/Blake/OneDrive/Work/LaTeX/BMassey_Dissertation"
 
-
 # -------------------------- CHAPTER 1 -----------------------------------------
 
 # Multiscale Model-Fitting Overview --------------------------------------------
@@ -18,6 +17,15 @@ logistic_fitting_methods <- readLines(file.path("R/Graphviz",
 
 write(export_svg(grViz(logistic_fitting_methods, engine = 'circo')),
   file = file.path(tex_dir, "Figures/Ch1/Multiscale_Fitting_Methods.svg"))
+
+# -------------------------- CHAPTER 2 -----------------------------------------
+
+# Behavior Transisitons Model --------------------------------------------------
+behavior_transitions <- readLines(file.path("R/Graphviz",
+  "Behavior_Transitions.gv"))
+
+write(export_svg(grViz(behavior_transitions, engine = 'circo')),
+  file = file.path(tex_dir, "Figures/Ch2/Behavior_Transitions.svg"))
 
 # -------------------------- CHAPTER 3 -----------------------------------------
 
@@ -44,7 +52,7 @@ step_type_updated_svg  <- step_type_svg %>%
   str_replace_all(pattern = 'y=\"-15.9\"', replace =  'y=\"-14.9\"') #Beh
 
 # Export to Dissertation
-writeLines(step_type_updated_svg, file = file.path(tex_dir,
+writeLines(step_type_updated_svg, file.path(tex_dir,
   "Figures/Ch3/StepType_Options.svg"))
 
 # Step-type Legend Options -----------------------------------------------------

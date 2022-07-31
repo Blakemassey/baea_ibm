@@ -1,0 +1,40 @@
+digraph
+{
+    layout = circo
+    rankdir = TB;
+    graph [pad=".5", ranksep="1", nodesep=".1"];
+    node [shape = oval, fontsize = 16; style = filled];
+    c01 [label = "Cruise", fillcolor = "#44AA99"];
+    f01 [label = "Flight", fillcolor = "#332288"];
+    n01 [label = "Nest",  fillcolor = "#DDCC77"];
+    p01 [label = "Perch",  fillcolor = "#117733"];
+    r01 [label = "Roost",  fillcolor = "#AA4499"];
+
+    c01:ne -> c01:e[headlabel=<<i>p</i><sub>a</sub>>, weight="1", labeldistance=2.5, labelangle=360];
+    c01 -> f01[headlabel=<<i>p</i><sub>b</sub>>, weight="1", labeldistance=5, labelangle=352];
+    c01 -> n01[headlabel=<<i>p</i><sub>c</sub>>, weight="1", labeldistance=9, labelangle=357];
+    c01 -> p01[headlabel=<<i>p</i><sub>d</sub>>, weight="1", labeldistance=5, labelangle=350];
+
+    f01 -> c01[headlabel=<<i>p</i><sub>e</sub>>, weight="1", labeldistance=5, labelangle=347];
+    f01:ne -> f01:e[headlabel=<<i>p</i><sub>f</sub>>, weight="1", labeldistance=2.5, labelangle=360];
+    f01 -> n01[headlabel=<<i>p</i><sub>g</sub>>, weight="1", labeldistance=4.5, labelangle=349];
+    f01 -> p01[headlabel=<<i>p</i><sub>h</sub>>, weight="1", labeldistance=9, labelangle=353];
+    f01 -> r01[headlabel=<<i>p</i><sub>i</sub>>, weight="1", labeldistance=9.5, labelangle=355];
+
+    n01 -> c01[headlabel=<<i>p</i><sub>j</sub>>, weight="1", labeldistance=8.25, labelangle=350];
+    n01 -> f01[headlabel=<<i>p</i><sub>k</sub>>, weight="1", labeldistance=4, labelangle=340];
+    n01:nw -> n01:w[headlabel=<<i>p</i><sub>l</sub>>, weight="1", labeldistance=2.75, labelangle=350];
+    n01 -> p01[headlabel=<<i>p</i><sub>m</sub>>, weight="1", labeldistance=9, labelangle=352];
+    n01 -> r01[headlabel=<<i>p</i><sub>n</sub>>, weight="5", labeldistance=5.6, labelangle=350];
+
+    p01 -> c01[headlabel=<<i>p</i><sub>o</sub>>, weight="1", labeldistance=5, labelangle=345];
+    p01 -> f01[headlabel=<<i>p</i><sub>p</sub>>, weight="1", labeldistance=10.3, labelangle=355];
+    p01 -> n01[headlabel=<<i>p</i><sub>q</sub>>, weight="1", labeldistance=10, labelangle=358];
+    p01:ne -> p01:e[headlabel=<<i>p</i><sub>r</sub>>, weight="1", labeldistance=2.5, labelangle=360];
+    p01 -> r01[headlabel=<<i>p</i><sub>s</sub>>, weight="1", labeldistance=4, labelangle=352];
+
+    r01 -> f01[headlabel=<<i>p</i><sub>t</sub>>, weight="1", labeldistance=9, labelangle=353];
+    r01 -> n01[headlabel=<<i>p</i><sub>u</sub>>, weight="1", labeldistance=5, labelangle=350];
+    r01 -> p01[headlabel=<<i>p</i><sub>v</sub>>, weight="1", labeldistance=4, labelangle=343];
+    r01:nw -> r01:w[headlabel=<<i>p</i><sub>w</sub>>, weight="1", labeldistance=2.75, labelangle=350];
+}

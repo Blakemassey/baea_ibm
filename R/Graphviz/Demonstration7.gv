@@ -1,0 +1,43 @@
+digraph G {
+
+  rankdir = TB;
+  graph [pad=".1", ranksep=".5", nodesep=".1"];
+  node [shape = oval, fontname = 'Modern Computer', fontsize = 16; style = filled];
+  c01 [label = "Cruise", fillcolor = CornFlowerBlue];
+  f01 [label = "Flight", fillcolor = FireBrick1];
+  n01 [label = "Nest",  fillcolor = Yellow2];
+  p01 [label = "Perch",  fillcolor = Sienna1];
+  r01 [label = "Roost",  fillcolor = Orchid];
+
+  { rank = same; c01 }
+  { rank = same; f01 n01 }
+  { rank = same; p01 r01 }
+
+  c01:ne -> c01:nw[label="p"];
+  c01 -> f01[label="p"];
+  c01 -> n01[label="p"];
+  c01 -> p01[label="p"];
+  c01 -> r01[label="p"];
+
+  f01 -> c01[label="p"];
+  f01 -> n01[label="p"];
+  f01 -> p01[label="p"];
+  f01 -> r01[label="p"];
+
+  n01 -> c01[label="p"];
+  n01 -> f01[label="p"];
+  n01 -> p01[label="p"];
+  n01 -> r01[label="p"];
+
+  p01 -> c01[label="p"];
+  p01 -> f01[label="p"];
+  p01 -> n01[label="p"];
+  p01 -> r01[label="p"];
+
+  r01 -> c01[label="p"];
+  r01 -> f01[label="p"];
+  r01 -> n01[label="p"];
+  r01 -> p01[label="p"];
+
+
+}
