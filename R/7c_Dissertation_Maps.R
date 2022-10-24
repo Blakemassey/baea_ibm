@@ -790,7 +790,7 @@ for (i in seq_len(length(ssf_prob_files))){
   if(start_behavior == "Perch"){
     step_type_top <- expression(Perch %->% phantom(x))
   }
-  if(start_behavior == "Root"){
+  if(start_behavior == "Roost"){
     step_type_top <- expression(Roost %->% phantom(x))
   }
 
@@ -804,10 +804,10 @@ for (i in seq_len(length(ssf_prob_files))){
   if(end_behavior == "Nest"){
     step_type_bottom <- expression(Nest)
   }
-  if(start_behavior == "Perch"){
+  if(end_behavior == "Perch"){
     step_type_bottom <- expression(Perch)
   }
-  if(start_behavior == "Root"){
+  if(end_behavior == "Roost"){
     step_type_bottom <- expression(Roost)
   }
 
@@ -902,9 +902,236 @@ ssf_maps_fig_file <- file.path(tex_dir, "Figures/Ch2",
 image_write(ssf_maps_fig, path = ssf_maps_fig_file, format = ".png")
 
 file.remove(maps_file)
-file.remove(legend_a_file)
-file.remove(legend_b_file)
-file.remove(legend_c_file)
+if(FALSE){
+  file.remove(legend_a_file)
+  file.remove(legend_b_file)
+  file.remove(legend_c_file)
+}
+
+# FOR DISSERTATION PRESENTATION -----------------------------------------------
+
+for (i in seq_len(length(ssf_prob_files))){
+  print(i)
+  ssf_prob_i <- read_stars(ssf_prob_files[i])
+  ssf_prob_i_max <- round(maxValue(raster(ssf_prob_files[i])), 2)
+  ssf_prob_i_min <- round(minValue(raster(ssf_prob_files[i])), 2)
+  if((ssf_prob_i_max) >= .75 & (ssf_prob_i_min) <= .5){
+    raster_breaks <- seq(0, 1, by = .5)
+    legend_label <- "A"
+    legend_a_only <- tm_shape(ssf_prob_i, raster.downsample = FALSE) +
+      tm_raster(palette = viridis(20, direction = 1), breaks = raster_breaks,
+        legend.reverse = TRUE, style = "cont",
+        title = "A) Probability") +
+      tm_layout(fontfamily = "Latin Modern Roman",
+        legend.only = TRUE,
+        legend.title.size = 1.75,
+        legend.text.size = 1.25)
+    legend_a_only
+    legend_a_file <- file.path("C:/TEMP/TEMP_Images", paste0("Legend_A.png"))
+    if(!file.exists(legend_a_file)){
+      tmap_save(tm = legend_a_only, filename = legend_a_file, unit = "in",
+      dpi = 300, height = 3, width = 3.5)
+    }
+  }
+  if((ssf_prob_i_max) >= .75 & (ssf_prob_i_min) >= .5) {
+    raster_breaks <- seq(.5, 1, by = .25)
+    legend_label <- "B"
+    legend_b_only <- tm_shape(ssf_prob_i, raster.downsample = FALSE) +
+      tm_raster(palette = viridis(20, direction = 1), breaks = raster_breaks,
+        legend.reverse = TRUE, style = "cont",
+        title = "B) Probability") +
+      tm_layout(fontfamily = "Latin Modern Roman",
+        legend.only = TRUE,
+        legend.title.size = 1.5,
+        legend.text.size = 1)
+    legend_b_file <- file.path("C:/TEMP/TEMP_Images", paste0("Legend_B.png"))
+    if(!file.exists(legend_b_file)){
+      tmap_save(tm = legend_b_only, filename = legend_b_file, unit = "in",
+      dpi = 300, height = 3, width = 3.5)
+    }
+  }
+  if((ssf_prob_i_max) <= .5){
+    raster_breaks <- seq(0, .5, by = .25)
+    legend_label <- "C"
+    legend_c_only <- tm_shape(ssf_prob_i, raster.downsample = FALSE) +
+      tm_raster(palette = viridis(20, direction = 1), breaks = raster_breaks,
+        legend.reverse = TRUE, style = "cont",
+        title = "C) Probability") +
+      tm_layout(fontfamily = "Latin Modern Roman",
+        legend.only = TRUE,
+        legend.title.size = 1.5,
+        legend.text.size = 1)
+    legend_c_file <- file.path("C:/TEMP/TEMP_Images", paste0("Legend_C.png"))
+    if(!file.exists(legend_c_file)){
+      tmap_save(tm = legend_c_only, filename = legend_c_file, unit = "in",
+      dpi = 300, height = 3, width = 3.5)
+    }
+  }
+  step_type_numeric <- basename(tools::file_path_sans_ext(ssf_prob_files[i]))
+  step_type_latex <- step_type_numeric %>% # This is no longer used
+    str_replace_all("1", "Cruise") %>%
+    str_replace_all("2", "Flight") %>%
+    str_replace_all("3", "Nest") %>%
+    str_replace_all("4", "Perch") %>%
+    str_replace_all("5", "Roost") %>%
+    str_replace_all("_", "$\\\\rightarrow$ ") %>%
+    latex2exp::TeX(.)
+  step_type <- step_type_numeric %>%
+    str_replace_all("1", "Cruise") %>%
+    str_replace_all("2", "Flight") %>%
+    str_replace_all("3", "Nest") %>%
+    str_replace_all("4", "Perch") %>%
+    str_replace_all("5", "Roost")
+  print(paste0(step_type, " ", ssf_prob_i_min, " ", ssf_prob_i_max))
+
+  start_behavior <- str_split(step_type, "_") %>% pluck(., 1) %>% .[1]
+  end_behavior <- str_split(step_type, "_") %>% pluck(., 1) %>% .[2]
+
+  # Old way of having 2 rows of text (however there's too much space btwn lines)
+  step_type <- paste0("$\\overset{", start_behavior,
+    "$\\rightarrow$ phantom(x)}{", end_behavior, "}$") %>%
+    latex2exp::TeX(.)
+
+  # Had to do this manually - couldn't find way to use bquote with tmap
+  if(start_behavior == "Cruise"){
+    step_type_top <- expression(Cruise %->% phantom(x))
+  }
+  if(start_behavior == "Flight"){
+    step_type_top <- expression(Flight %->% phantom(x))
+  }
+  if(start_behavior == "Nest"){
+    step_type_top <- expression(Nest %->% phantom(x))
+  }
+  if(start_behavior == "Perch"){
+    step_type_top <- expression(Perch %->% phantom(x))
+  }
+  if(start_behavior == "Roost"){
+    step_type_top <- expression(Roost %->% phantom(x))
+  }
+
+  # Had to do this manually - couldn't find way to use bquote with tmap
+  if(end_behavior == "Cruise"){
+    step_type_bottom <- expression(Cruise)
+  }
+  if(end_behavior == "Flight"){
+    step_type_bottom <- expression(Flight)
+  }
+  if(end_behavior == "Nest"){
+    step_type_bottom <- expression(Nest)
+  }
+  if(end_behavior == "Perch"){
+    step_type_bottom <- expression(Perch)
+  }
+  if(end_behavior == "Roost"){
+    step_type_bottom <- expression(Roost)
+  }
+
+  ssf_prob_i_map <-
+    tm_shape(ssf_prob_i, raster.downsample = FALSE) +
+      tm_raster(palette = viridis(20, direction = 1), breaks = raster_breaks,
+        legend.reverse = TRUE, style = "cont", title = "Probability") +
+      tm_layout(asp = .8,
+        fontfamily = "Latin Modern Roman",
+        title.position = c(.65, .15),
+        title.fontfamily = "Latin Modern Roman",
+        title = legend_label,
+        title.size = 1,
+        title.snap.to.legend =  FALSE,
+        legend.show = FALSE,
+        legend.position = c("RIGHT", "BOTTOM"),
+        legend.height = .5,
+        legend.title.size = .5,
+        legend.text.size = .8,
+        legend.title.fontfamily = "Latin Modern Roman",
+        legend.text.fontfamily = "Latin Modern Roman",
+        frame = FALSE) +
+      tm_credits(step_type_top, size = 1, fontface = "bold",
+        position = c(.0, .85)) +
+      tm_credits(step_type_bottom, size = 1, fontface = "bold",
+        position = c(.025, .72))
+
+  ssf_prob_i_map
+  ssf_tmap_list[[i]] <- ssf_prob_i_map
+}
+
+tmap_blank <- tm_shape(ssf_prob_i, raster.downsample = TRUE) +
+  tm_raster(palette = "white", style = "cont") +
+  tm_layout(asp = .75, legend.show = FALSE, frame = FALSE)
+
+# For testing
+if(FALSE){
+  ssf_tmap_arrange <- tmap_arrange(
+    ssf_tmap_list[[1]], ssf_tmap_list[[2]], ssf_tmap_list[[3]], tmap_blank,
+    tmap_blank, tmap_blank, tmap_blank,
+    tmap_blank, tmap_blank, tmap_blank,
+    tmap_blank, tmap_blank, tmap_blank,
+    tmap_blank, tmap_blank, tmap_blank,
+    tmap_blank, ssf_tmap_list[[16]], ssf_tmap_list[[17]], tmap_blank,
+    ncol = 4)
+}
+
+# Full set of maps
+ssf_tmap_arrange <- tmap_arrange(
+  ssf_tmap_list[[1]], ssf_tmap_list[[2]], ssf_tmap_list[[3]], tmap_blank,
+  ssf_tmap_list[[4]], ssf_tmap_list[[5]], ssf_tmap_list[[6]],
+  ssf_tmap_list[[7]], ssf_tmap_list[[8]], ssf_tmap_list[[9]],
+  ssf_tmap_list[[10]], ssf_tmap_list[[11]], ssf_tmap_list[[12]],
+  ssf_tmap_list[[13]], ssf_tmap_list[[14]], ssf_tmap_list[[15]],
+  tmap_blank, ssf_tmap_list[[16]], ssf_tmap_list[[17]], tmap_blank,
+  ncol = 4)
+
+maps_file <- file.path("C:/TEMP/TEMP_Images", "SSF_Maps.png")
+tmap_save(tm = ssf_tmap_arrange, filename = maps_file, unit = "in",
+  dpi = 300, height = 8, width = 8)
+
+# BE AWARE: Legend figures should come from the 'SSF for Maine - Combined' code
+map_img <- maps_file %>% image_read(.) %>% image_trim(.)
+legend_a_img <- legend_a_file %>% image_read(.) %>% image_trim(.)
+legend_title <- legend_a_img %>% image_crop(., "250x75+70+00") %>%
+  image_resize(., "325x")
+legend_title
+legend_a_title <- legend_a_img %>% image_crop(., "55x50+0+0") %>%
+  image_resize(., "70x")
+legend_a_title
+legend_a_scale <- legend_a_img %>% image_crop(., "150x165+0+70") %>%
+  image_resize(., "200x")
+legend_a_scale
+
+legend_b_img <- legend_b_file %>% image_read(.) %>% image_trim(.)
+legend_b_title <- legend_b_img %>% image_crop(., "55x50+0+0") %>%
+  image_resize(., "70x")
+legend_b_scale <- legend_b_img %>% image_crop(., "150x155+0+70") %>%
+  image_resize(., "200x")
+
+legend_c_img <- legend_c_file %>% image_read(.) %>% image_trim(.)
+legend_c_title <- legend_c_img %>% image_crop(., "55x50+0+0") %>%
+  image_resize(., "70x")
+legend_c_scale <- legend_c_img %>% image_crop(., "150x155+0+70") %>%
+  image_resize(., "200x")
+
+ssf_maps_fig <- image_blank(2800, 2395, color = "white") %>%
+  image_composite(., map_img, offset = "+0+0") %>%
+  image_composite(., legend_title,   offset = "+2400+700") %>%
+  image_composite(., legend_a_title, offset = "+2400+800") %>%
+  image_composite(., legend_a_scale, offset = "+2500+800") %>%
+  image_composite(., legend_b_title, offset = "+2400+1050") %>%
+  image_composite(., legend_b_scale, offset = "+2500+1050") %>%
+  image_composite(., legend_c_title, offset = "+2400+1300") %>%
+  image_composite(., legend_c_scale, offset = "+2500+1300")
+ssf_maps_fig
+
+# Export
+ssf_maps_fig_file <- file.path("C:/Users/blake/OneDrive/Work/R/Projects",
+  "dissertation_presentation/Assets/Images/Ch2_Extra",
+  "SSF_Probability_Maps_Overview.png")
+image_write(ssf_maps_fig, path = ssf_maps_fig_file, format = ".png")
+
+file.remove(maps_file)
+if(FALSE){
+  file.remove(legend_a_file)
+  file.remove(legend_b_file)
+  file.remove(legend_c_file)
+}
 
 # SSF at Nests - Combined ------------------------------------------------------
 
@@ -1128,6 +1355,226 @@ for (j in seq_len(nrow(nests_sim))){
   file.remove(legend_c_file)
 }
 
+# FOR DISSERTATION PRESENTATION ------------------------------------------------
+
+# Get nest
+j <- 1
+nest_j <- nests_sim %>% slice(j)
+nest_j_name <- nest_j %>% pull(name)
+# List for output
+ssf_tmap_list <- vector(mode = "list", length = 20)
+for (i in seq_len(nrow(ssf_fits_best))){
+  step_type_i_numeric <- ssf_fits_best %>% slice(i) %>% pull(step_type) %>%
+    str_replace_all(c("cruise" = "1", "flight" = "2", "nest" = "3",
+      "perch" = "4", "roost" = "5"))
+  ssf_prob_file <- list.files(ssf_prob_dir, pattern =
+      paste0(step_type_i_numeric, "\\.tif$"), full.names = TRUE)
+  if (i ==  1){
+    # Use "Tmap_baselayers.R" script to get other baselayers
+    nest_bbox <- st_as_sfc(st_bbox(st_buffer(nest_j, dist = 10000)))
+    nest_buffer <- st_buffer(nest_j, dist = 10000)
+    nest_bb_sf <- st_as_sfc(bb(nest_buffer, relative = TRUE, height = 1.35,
+      width = 1.35))
+    Sys.sleep(1)
+    nest_om = read_osm(nest_bb_sf, type = om_nat_geo, zoom = 11)
+    #type = "osm", minNumTiles=9,
+    nest_om_bb <- bb_poly(nest_om)
+  }
+  ssf_prob_i <- raster(ssf_prob_file) #%>% slice(1)
+  ssf_prob_i_crop <- crop(ssf_prob_i, nest_buffer)
+  ssf_prob_i_mask <- mask(ssf_prob_i_crop, nest_buffer)
+
+  ssf_prob_i_max <- round(maxValue(ssf_prob_i_mask), 2)
+  ssf_prob_i_min <- round(minValue(ssf_prob_i_mask), 2)
+  if((ssf_prob_i_max) >= .75 & (ssf_prob_i_min) <= .5){
+    raster_breaks <- seq(0, 1, by = .5)
+    #legend_label <- "Legend\n   A"
+    legend_label <- "A"
+    legend_a_only <- tm_shape(ssf_prob_i_mask, raster.downsample = FALSE) +
+      tm_raster(palette = viridis(20, direction = 1), breaks = raster_breaks,
+        legend.reverse = TRUE, style = "cont",
+        title = "A) Probability") +
+      tm_layout(fontfamily = "Latin Modern Roman",
+        legend.only = TRUE,
+        legend.title.size = 1.75,
+        legend.text.size = 1.25)
+    legend_a_only
+    legend_a_file <- file.path("C:/TEMP/TEMP_Images", paste0("Legend_A.png"))
+    if(!file.exists(legend_a_file)){
+      tmap_save(tm = legend_a_only, filename = legend_a_file, unit = "in",
+        dpi = 300, height = 3, width = 3.5)
+    }
+  }
+  if((ssf_prob_i_max) >= .75 & (ssf_prob_i_min) >= .5) {
+    raster_breaks <- seq(.5, 1, by = .25)
+    legend_label <- "B"
+    legend_b_only <- tm_shape(ssf_prob_i_mask, raster.downsample = FALSE) +
+      tm_raster(palette = viridis(20, direction = 1), breaks = raster_breaks,
+        legend.reverse = TRUE, style = "cont",
+        title = "B) Probability") +
+      tm_layout(fontfamily = "Latin Modern Roman",
+        legend.only = TRUE,
+        legend.title.size = 1.75,
+        legend.text.size = 1.25)
+    legend_b_file <- file.path("C:/TEMP/TEMP_Images", paste0("Legend_B.png"))
+    if(!file.exists(legend_b_file)){
+      tmap_save(tm = legend_b_only, filename = legend_b_file, unit = "in",
+        dpi = 300, height = 3, width = 3.5)
+    }
+  }
+  if((ssf_prob_i_max) <= .5){
+    raster_breaks <- seq(0, .5, by = .25)
+    legend_label <- "C"
+    legend_c_only <- tm_shape(ssf_prob_i_mask, raster.downsample = FALSE) +
+      tm_raster(palette = viridis(20, direction = 1), breaks = raster_breaks,
+        legend.reverse = TRUE, style = "cont",
+        title = "C) Probability") +
+      tm_layout(fontfamily = "Latin Modern Roman",
+        legend.only = TRUE,
+        legend.title.size = 1.75,
+        legend.text.size = 1.25)
+    legend_c_file <- file.path("C:/TEMP/TEMP_Images", paste0("Legend_C.png"))
+    if(!file.exists(legend_c_file)){
+      tmap_save(tm = legend_c_only, filename = legend_c_file, unit = "in",
+        dpi = 300, height = 3, width = 3.5)
+    }
+  }
+
+  step_type_i_text <- step_type_i_numeric %>%
+    str_replace_all("1", "Cruise") %>%
+    str_replace_all("2", "Flight") %>%
+    str_replace_all("3", "Nest") %>%
+    str_replace_all("4", "Perch") %>%
+    str_replace_all("5", "Roost")
+  writeLines(paste0("Mapping: ", step_type_i_text))
+  step_type_i_arrow <- step_type_i_text %>%
+    str_replace_all("_", "$\\\\rightarrow$ ") %>%
+    latex2exp::TeX(.)
+  ssf_prob_i_nest_map <-
+    tm_shape(nest_om) +
+    tm_rgb() +
+    tm_shape(ssf_prob_i_mask, raster.downsample = FALSE) +
+    tm_raster(palette = viridis(20, direction = 1), alpha = .6,
+      legend.reverse = TRUE, style = "cont", title = "Probability") +
+    tm_scale_bar(breaks = c(0, 5, 10), text.size = .8, lwd = .25,
+      position = c(.11, -.04)) +
+    tm_compass(type = "4star", text.size = 0.9, show.labels = 1,
+      size = 1.6, position = c(.69, .645), lwd = .25) +
+    tm_shape(nests_sim) +
+    tm_symbols(shape = 21, border.col = "black", border.lwd = 1,
+      col = nest_color, size = .15) +
+    tm_layout(asp = .8,
+      fontfamily = "Latin Modern Roman",
+      frame = NA,
+      title.color = "black",
+      title.bg.color = NA, #"ivory3",
+      title.bg.alpha = .85,
+      title.position = c(.12, .94),
+      title.fontfamily = "Latin Modern Roman",
+      title.fontface = "bold",
+      title = step_type_i_arrow,
+      title.size = 1,
+      title.snap.to.legend = FALSE,
+      legend.show = FALSE)  +
+    tm_credits(legend_label, bg.color = "gainsboro",
+      position = c(.825, .05),
+      just = "center", size = 0.75, width = .10)
+
+  tmap_position <- switch(step_type_i_numeric,
+    "1_1" = 1,  "1_2" = 2,  "1_4" = 3,
+    "2_1" = 5,  "2_2" = 6,  "2_4" = 7,  "2_5" = 8,
+    "3_1" = 9,  "3_2" = 10, "3_4" = 11, "3_5" = 12,
+    "4_1" = 13, "4_2" = 14, "4_4" = 15, "4_5" = 16,
+    "5_2" = 18, "5_4" = 19)
+  writeLines(as.character(tmap_position))
+  ssf_prob_i_nest_map
+  ssf_tmap_list[[tmap_position]] <- ssf_prob_i_nest_map
+}
+
+tmap_blank <-
+  tm_shape(nest_om_bb, is.master = TRUE) +
+  tm_fill(col = "white") +
+  tm_shape(nest_buffer, is.master = TRUE) +
+  tm_polygons(col = "white", border.col = "white") +
+  tm_layout(asp = .8, legend.show = FALSE, frame = FALSE)
+
+for (i in seq_len(length(ssf_tmap_list))){
+  if(is.null(ssf_tmap_list[[i]])) ssf_tmap_list[[i]] <- tmap_blank
+}
+
+# For testing
+if(FALSE){
+  ssf_tmap_nest_arrange <- tmap_arrange(
+    ssf_tmap_list[[1]], tmap_blank, tmap_blank, tmap_blank,
+    tmap_blank, tmap_blank, tmap_blank, tmap_blank,
+    tmap_blank, tmap_blank, tmap_blank, tmap_blank,
+    tmap_blank, tmap_blank, tmap_blank, tmap_blank,
+    tmap_blank, tmap_blank, tmap_blank, tmap_blank,
+    ncol = 4)
+}
+
+# Arrange map of probability surfaces for testing
+ssf_tmap_nest_arrange <- tmap_arrange(
+  ssf_tmap_list[[1]], ssf_tmap_list[[2]], ssf_tmap_list[[3]],
+  ssf_tmap_list[[4]], ssf_tmap_list[[5]], ssf_tmap_list[[6]],
+  ssf_tmap_list[[7]], ssf_tmap_list[[8]], ssf_tmap_list[[9]],
+  ssf_tmap_list[[10]], ssf_tmap_list[[11]], ssf_tmap_list[[12]],
+  ssf_tmap_list[[13]], ssf_tmap_list[[14]], ssf_tmap_list[[15]],
+  ssf_tmap_list[[16]], ssf_tmap_list[[17]], ssf_tmap_list[[18]],
+  ssf_tmap_list[[19]], ssf_tmap_list[[20]], ncol = 4)
+
+map_file <- file.path("C:/TEMP/TEMP_Images", "SSF_Maps.png")
+tmap_save(tm = ssf_tmap_nest_arrange, filename = map_file, unit = "in",
+  dpi = 300, height = 8, width = 8)
+
+# BE AWARE: Legend figures should come from the 'SSF for Maine - Combined' code
+map_img <- map_file %>% image_read(.) %>% image_trim(.)
+legend_a_img <- legend_a_file %>% image_read(.) %>% image_trim(.)
+legend_title <- legend_a_img %>% image_crop(., "250x75+70+00") %>%
+  image_resize(., "325x")
+legend_title
+legend_a_title <- legend_a_img %>% image_crop(., "55x50+0+0") %>%
+  image_resize(., "70x")
+legend_a_title
+legend_a_scale <- legend_a_img %>% image_crop(., "150x165+0+70") %>%
+  image_resize(., "200x")
+legend_a_scale
+
+legend_b_img <- legend_b_file %>% image_read(.) %>% image_trim(.)
+legend_b_title <- legend_b_img %>% image_crop(., "55x50+0+0") %>%
+  image_resize(., "70x")
+legend_b_scale <- legend_b_img %>% image_crop(., "150x155+0+70") %>%
+  image_resize(., "200x")
+
+legend_c_img <- legend_c_file %>% image_read(.) %>% image_trim(.)
+legend_c_title <- legend_c_img %>% image_crop(., "55x50+0+0") %>%
+  image_resize(., "70x")
+legend_c_scale <- legend_c_img %>% image_crop(., "150x155+0+70") %>%
+  image_resize(., "200x")
+
+ssf_maps_fig <- image_blank(2800, 2400, color = "white") %>%
+  image_composite(., map_img, offset = "+0+0") %>%
+  image_composite(., legend_title,   offset = "+2400+700") %>%
+  image_composite(., legend_a_title, offset = "+2400+800") %>%
+  image_composite(., legend_a_scale, offset = "+2500+800") %>%
+  image_composite(., legend_b_title, offset = "+2400+1050") %>%
+  image_composite(., legend_b_scale, offset = "+2500+1050") %>%
+  image_composite(., legend_c_title, offset = "+2400+1300") %>%
+  image_composite(., legend_c_scale, offset = "+2500+1300")
+ssf_maps_fig
+
+# Export
+ssf_nest_map_fig_file <- file.path("C:/Users/blake/OneDrive/Work/R/Projects",
+  "dissertation_presentation/Assets/Images/Ch2_Extra",
+  paste0("SSF_Probability_Maps_", nest_j_name, ".png"))
+
+image_write(ssf_maps_fig, path = ssf_nest_map_fig_file, format = ".png")
+
+file.remove(map_file)
+file.remove(legend_a_file)
+file.remove(legend_b_file)
+file.remove(legend_c_file)
+
 # CHAPTER 3 --------------------------------------------------------------------
 
 # BAEA/Sim Step Density Maps ---------------------------------------------------
@@ -1274,8 +1721,8 @@ for (j in unique(sim_step_data$baea_id)){
 
   density_ridges_map <-
     tm_shape(nests_sim) +
-    tm_symbols(shape = 21, border.col = "black", border.lwd = 1,
-      col = nest_color, size = .25) +
+    tm_symbols(shape = 21, border.col = "black", border.lwd = 2,
+      col = nest_color, size = .75) + # FOR DISSERTATION use size = .25
     tm_shape(ridge_poly_clip) +
     tm_borders(col = "wheat4", alpha = .6) +
     tm_shape(ridge_poly_clip) +
@@ -1383,11 +1830,6 @@ for (j in unique(sim_step_data$baea_id)){
     image_composite(., overview_img, offset = "+1505+680")
   density_fig
 
-  # Export PNG
-  density_fig_file = file.path(tex_dir, "Figures/Ch3", "Density_Maps",
-    paste0(j, "_BAEA_Sim_Density_Map.png"))
-  image_write(density_fig, path = density_fig_file, format = "png")
-
   # Export SVG
   if(FALSE){
     density_fig_file = file.path(tex_dir, "Figures/Ch3", "Density_Maps",
@@ -1395,6 +1837,31 @@ for (j in unique(sim_step_data$baea_id)){
     image_write(density_fig, path = density_fig_file, format = "svg",
       flatten = TRUE)
   }
+
+  # FOR DISSERTATION PRESENTATION ------------------------------------------
+
+  legend_scale_height <- image_info(legend_scale_img) %>%
+    pull(height)
+  legend_scale_offset <- 350
+
+  legend_title_height <- image_info(legend_title_img) %>%
+    pull(height)
+  legend_title_offset <- 250
+
+  density_presentation_fig <- backgrd %>%
+    image_composite(., baea_map_img, offset = "+0+10") %>%
+    image_composite(., sim_map_img, offset = "+755+10") %>%
+    image_composite(., legend_title_img, offset = paste0("+1520+",
+      legend_title_offset)) %>%
+    image_composite(., legend_scale_img, offset = paste0("+1560+",
+      legend_scale_offset))
+  density_presentation_fig
+
+  # Export PNG
+  image_write(density_presentation_fig, path = file.path("C:/Users",
+    "blake/OneDrive/Work/R/Projects/dissertation_presentation/Assets/Images",
+    "Ch3_Extra", paste0(j, "_BAEA_Sim_Density_Map.svg")), format = "svg",
+    flatten = TRUE)
 
   # Clean up files
   if(TRUE){

@@ -52,6 +52,8 @@ GetDestinationCell <- function(prob_raster_sample_bin) {
 }
 
 
+# THIS SUBMODEL WAS USED FOR THE EXPERIMENT
+# IT IS BASED ON THE sim_20210725-77 CALIBRATION PARAMETERS
 MovementSubModelBAEA <- function(sim = sim,
                                  agent_states = agent_states,
                                  step_data = step_data,

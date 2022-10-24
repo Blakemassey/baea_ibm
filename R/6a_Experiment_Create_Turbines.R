@@ -152,7 +152,7 @@ wilson_study_nest <- nests_study %>%
   st_transform(crs = 32619)
 
 # Save wilson_map_center
-saveRDS(wilson_study_nest, file.path(wind_output_dir, "wilson_study_nest.rds"))
+saveRDS(wilson_study_nest, file.path(wind_output_dir, "wilson_nest.rds"))
 
 wilson_map_center <- wilson_study_nest
 wilson_sfc <- st_sfc(st_point(c(st_coordinates(wilson_study_nest)[1] + 300,
@@ -230,7 +230,7 @@ rm(wilson_bb_5km, wind_class, wilson_n_area, wilson_s_area_full, cranberry_sfc,
 base <- raster(base_file)
 
 # Import Wilson nest
-wilson_nest <- readRDS(file.path(wind_output_dir, "wilson_study_nest.rds"))
+wilson_nest <- readRDS(file.path(wind_output_dir, "wilson_nest.rds"))
 
 # Create 50km buffer for Wilson wind areas
 wilson_bb_50km <- st_buffer(wilson_nest, 50000) %>% st_bbox(.) %>%
@@ -281,6 +281,9 @@ wilson_n_area_buffer_150m <- wilson_n_area %>% st_buffer(., dist = 150)
 # Check grid and run genetric algorithm for Wilson North
 wilson_n_grid <- grid_area_fixed(shape = wilson_n_area_buffer_150m,
   size = (rotor_radius*grid_spacing), prop = area_proportion, plotGrid = TRUE)
+saveRDS(wilson_n_grid, file.path("C:/Users/blake/OneDrive/Work/R/Projects",
+  "dissertation_presentation/Assets/Data/wilson_n_grid.rds"))
+
 # Running optimization without topographic effects
 wilson_n_result <- genetic_algorithm_fixed(Polygon1 = wilson_n_area_buffer_150m,
   n = turbines_n, Rotor = rotor_radius, fcrR = grid_spacing,
@@ -296,6 +299,15 @@ wilson_n_result_topo <- genetic_algorithm_fixed(
     "wilson_base_50km.tif"),
   Proportionality = area_proportion, Projection = "EPSG:32619",
   vdirspe = greenville_wind_formatted)
+
+# Plot of Evolution and Heatmap
+svg(file="Output/Analysis/Wind/Wilson_N_Evolution.svg", width = 6, height = 6)
+plot_evolution(wilson_n_result, ask = FALSE, spar = 0.1)
+dev.off()
+
+svg(file="Output/Analysis/Wind/Wilson_N_Heatmap.svg", width = 6, height = 6)
+plot_heatmap(wilson_n_result, si = 4)
+dev.off()
 
 # Extract "best" turbine arrangement based on "EnergyOverall"
 wilson_n_turbines_sf <- ConvertBestResultsToSF(wilson_n_result) %>%

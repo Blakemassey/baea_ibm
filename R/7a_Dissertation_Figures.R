@@ -1034,6 +1034,145 @@ image_write(movements_kernel_labels_fig_ver_2, path =movements_kernel_fig_file,
 file.remove(movements_kernel_no_label_fig_file)
 file.remove(movements_kernel_legend_fig_file)
 
+# FOR DISSERTATION PRESENTATION ------------------------------------------------
+
+# All plots on one figure
+ind_list = lapply(sort(unique(move_dens$behavior_behavior)), function(i){
+  grp_i = str_replace_all(i, "->", "$\\\\rightarrow$")
+  gg_move_kernel <- move_dens %>%
+      filter(behavior_behavior == i) %>%
+    ggplot(., aes(x = x, y = y)) +
+    geom_raster(aes(fill = dens)) +
+    coord_fixed(ratio = 1) +
+    scale_fill_viridis_c(name = "Probability", option = "C", direction = -1,
+      labels = scales::scientific) +
+    scale_x_continuous(expand = c(0.005, 0.005), labels = MetersToKilometers) +
+    scale_y_continuous(expand = c(0.005, 0.005), labels = MetersToKilometers) +
+    theme_minimal() +
+    theme_latex +
+    theme(axis.text = element_text(color = "black", size = 16)) +
+    theme(plot.margin = margin(3, 6, 3, 6, "pt")) +
+    theme(axis.text.x = element_text(size = angle = 0, vjust = .5, hjust = 0.5)) +
+    theme(legend.position = "none") +
+    ggtitle(NULL) + labs(x = NULL, y = NULL)
+  return(gg_move_kernel)
+})
+
+layout <- '
+ABC#
+DEXG
+HIJK
+LMNO
+#PQ#'
+
+movements_kernel_plots <- wrap_plots(A = ind_list[[1]],
+  B = ind_list[[2]], C = ind_list[[3]], D = ind_list[[4]], E = ind_list[[5]],
+  X = ind_list[[6]], G = ind_list[[7]], H = ind_list[[8]], I = ind_list[[9]],
+  J = ind_list[[10]], K = ind_list[[11]], L = ind_list[[12]], M =ind_list[[13]],
+  N = ind_list[[14]], O = ind_list[[15]], P = ind_list[[16]], Q =ind_list[[17]],
+  design = layout)
+movements_kernel_plots
+
+ggsave(filename = basename(movements_kernel_no_label_fig_file),
+  plot =  movements_kernel_plots,
+  path = dirname(movements_kernel_no_label_fig_file), scale = 1, width = 6,
+  height = 6.5, units = "in", dpi = 300)
+
+# Create Tex Strings
+tex_head <- tibble(
+  tex_str = c("Distance (km)"),
+  tex_name = c("lab_distance"))
+tex_head_df <- bind_rows(
+  bind_rows(tex_head) %>% mutate(title_size = 16))
+
+# Create Tex Strings
+tex_state <- tibble(
+  tex_str = c("Start State", "End State"),
+  tex_name = c("start", "end"))
+tex_state_df <- bind_rows(
+  bind_rows(tex_state) %>% mutate(title_size = 18))
+
+# Create Tex Strings
+tex_behavior <- tibble(
+  tex_str = c("Cruise", "Flight", "Nest", "Perch", "Roost"),
+  tex_name = c("cruise", "flight", "nest", "perch", "roost"))
+tex_behavior_df <- bind_rows(
+  bind_rows(tex_behavior) %>% mutate(title_size = 14))
+
+tex_df <- bind_rows(tex_head_df, tex_state_df, tex_behavior_df)
+
+# Create Tex Text Plots
+for (i in seq_len(nrow(tex_df))){
+  tex_str_i <- tex_df %>% slice(i) %>% pull(tex_str)
+  tex_name_i <- tex_df %>% slice(i) %>% pull(tex_name)
+  title_size_i <- tex_df %>% slice(i) %>% pull(title_size)
+  gg_tex <- ggplot() + theme_blank + labs(title = latex2exp::TeX(tex_str_i)) +
+    theme(plot.title = element_text(size = title_size_i))
+  ggsave(file = "C:/TEMP/TEMP_Images/TEMP.png", plot = gg_tex,
+         width = 5, height = .75)
+  tex_i <- image_trim(image_read("C:/TEMP/TEMP_Images/TEMP.png"))
+  file.remove("C:/TEMP/TEMP_Images/TEMP.png")
+  assign(paste0("tex_", tex_name_i), tex_i)
+}
+
+rm(i, tex_head, tex_head_df, tex_state, tex_state_df, tex_behavior,
+  tex_behavior_df, tex_df, tex_name_i, tex_str_i, tex_i)
+
+# Create Manual Legend
+legend_tbl <- tibble(x = c(0, 1), y = c(.5, .5))
+gg_legend <- legend_tbl %>%
+  ggplot(., aes(x = x, y = y)) +
+  geom_point(aes(fill = x)) +
+  coord_fixed(ratio = 1) +
+  guides(fill = guide_colourbar(ticks = FALSE, barwidth = .75,
+    barheight = 2.75)) +
+  scale_fill_viridis_c(name = "Probability", option = "C", direction = -1,
+    breaks = c(min(legend_tbl$x), max(legend_tbl$x)),
+    labels = c("Min (kernel)", "Max (kernel)")) +
+  theme_latex +
+  theme(legend.text = element_text(color = "black", size = 14)) +
+  theme(legend.title = element_text(color = "black", size = 16))
+
+gg_legend_only <- as_ggplot(get_legend(gg_legend))
+gg_legend_only
+
+# Save Temp (No Label) File
+movements_kernel_legend_fig_file = file.path("C:/TEMP/TEMP_Images",
+  "Movements_Kernel_Legend.png")
+ggsave(filename = basename(movements_kernel_legend_fig_file),
+  plot =  gg_legend_only,
+  path = dirname(movements_kernel_no_label_fig_file), scale = 1, width = 3,
+  height = 2, units = "in", dpi = 300)
+
+# Create Final Plot and Export to Dissertation
+movements_kernel_fig <- image_read(movements_kernel_no_label_fig_file)
+movements_kernel_fig
+movements_legend_fig <- image_read(movements_kernel_legend_fig_file)
+movements_legend_fig
+
+movements_kernel_labels_fig_ver_3 <- image_blank(2400, 2150, color = "white")%>%
+  image_composite(., movements_kernel_fig, offset = "+20+135") %>%
+  image_composite(., image_rotate(tex_lab_distance, 270),
+    offset = "+10+760") %>%
+  image_composite(., tex_lab_distance, offset = "+820+2085") %>%
+  image_composite(., tex_end, offset = "+840+0") %>%
+  image_composite(., image_rotate(tex_start, 90), offset = "+1870+905") %>%
+  image_composite(., tex_cruise, offset = "+250+85") %>%
+  image_composite(., tex_flight, offset = "+700+85") %>%
+  image_composite(., tex_perch, offset = "+1115+85") %>%
+  image_composite(., tex_roost, offset = "+1500+85") %>%
+  image_composite(., image_rotate(tex_cruise, 90), offset = "+1775+220") %>%
+  image_composite(., image_rotate(tex_flight, 90), offset = "+1775+635") %>%
+  image_composite(., image_rotate(tex_nest, 90), offset = "+1775+1030") %>%
+  image_composite(., image_rotate(tex_perch, 90), offset = "+1775+1370") %>%
+  image_composite(., image_rotate(tex_roost, 90), offset = "+1775+1780") %>%
+  image_composite(., movements_legend_fig, offset = "+1700+1450")
+movements_kernel_labels_fig_ver_3
+
+image_write(movements_kernel_labels_fig_ver_3, path = file.path("C:/Users",
+  "blake/OneDrive/Work/R/Projects/dissertation_presentation/Assets/Images",
+  "Ch2_Extra/Movement_Kernels.png"), format = ".png")
+
 # ---------------------------- CHAPTER 3 ---------------------------------------
 
 # Plot ConNestDist Scale Logistic Function -------------------------------------
@@ -1210,6 +1349,24 @@ ggsave(filename = "Calibration_Hydro_Dist.png", plot = gg_combine_hydro_dist,
   path = file.path(tex_dir, "Figures/Ch3"), scale = 1, width = 6, height = 4,
   units = "in", dpi = 300)
 
+# FOR DISSERTATION PRESENTATION ------------------------------------------------
+
+gg_ellis_hydro_dist <- ggplot(baea_perch_dist %>% filter(id == "Ellis")) +
+  geom_histogram(aes(x = hydro_dist, y = after_stat(count/sum(count))),
+    boundary = 0, binwidth = 30, color = "black",
+    fill = behavior_colors["Perch"]) +
+  ggtitle("Empirical") +
+  xlab("Hydro Distance (m)") +
+  ylab("Proportion of Perch Locations") +
+  theme_minimal() +
+  theme_latex
+
+ggsave(filename = "Ellis_Hydro_Dist_Graph.png", plot = gg_ellis_hydro_dist,
+  path = file.path("C:/Users/blake/OneDrive/Work/R/Projects/",
+  "dissertation_presentation/Assets/Images/Ch3_Extra"),
+  scale = 1, width = 4, height = 4,
+  units = "in", dpi = 300, bg = "white")
+
 # Calibration Ridgeline Flights ------------------------------------------------
 
 for (i in seq_len(length(sims))){
@@ -1260,6 +1417,38 @@ gg_combine_ridge
 
 ggsave(filename = "Calibration_Ridge_Crossings.png", plot = gg_combine_ridge,
   path = file.path(tex_dir, "Figures/Ch3"), scale = 1, width = 6, height = 4,
+  units = "in", dpi = 300, bg = "white")
+
+# FOR DISSERTATION PRESENTATION ------------------------------------------------
+
+# Graph ridge-crossing summary data
+gg_ellis_ridge <- ggplot() +
+  geom_errorbar(data = baea_ridge_sum %>% filter(id == "Ellis"),
+    aes(x = nest_name, #y = ridge_steps_prop,
+      ymin = quant_05, ymax = quant_95,
+      width = .015, color = "95% CI"), size = 1) +
+  geom_point(data = baea_ridge_sum %>% filter(id == "Ellis"),
+    aes(x = nest_name, y = ridge_steps_prop,
+    color = "Mean"),
+    size = 3) +
+  scale_color_manual(name = "Empirical Data", values = c("black", "blue")) +
+  guides(colour = guide_legend(override.aes =
+      list(linetype = c("solid", "blank"),
+        shape = c(NA, 16))))  +
+  scale_y_continuous(limits = c(0, 0.055), expand = expansion(0)) +
+  scale_x_discrete(expand = expansion(.1)) +
+  theme_minimal() +
+  theme_latex +
+  theme(axis.text.x = element_text(color = "black")) +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  xlab("Nest Area") + ylab("Ridge-Crossing Step Proportion") +
+  theme(legend.position = "right")
+gg_ellis_ridge
+
+ggsave(filename = "Ellis_Ridgeline_Graph.png", plot = gg_ellis_ridge,
+  path = file.path("C:/Users/blake/OneDrive/Work/R/Projects/",
+  "dissertation_presentation/Assets/Images/Ch3_Extra"),
+  scale = 1, width = 4, height = 4,
   units = "in", dpi = 300, bg = "white")
 
 # ---------------------------- CHAPTER 4 ---------------------------------------
