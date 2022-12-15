@@ -56,7 +56,7 @@ saveRDS(baea_terr, "Data/BAEA/baea_terr.rds")
 
 # Calculate homerange distance
 con_nest <- CreateConNestDistRasters(baea_terr, nests_active, base,
-  output_dir = "Output/Analysis/Territorial", max_r = 30000,
+  output_dir = "Output/Analysis/Territorial", max_r = 45000,
   write_con_nest_all = TRUE)
 
 # Load Nest and Conspecific Distance Raster

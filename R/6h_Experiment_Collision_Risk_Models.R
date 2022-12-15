@@ -101,6 +101,9 @@ collision_risk_df <- tibble(
   down_length = rep(NA, rows_n),
   down_p = rep(NA, rows_n))
 
+# For dissertation text
+.24 * 4 # Chord min (excluding 0)
+
 # Single transit collision risk
 collision_risk_df <- collision_risk_df %>%
   mutate(alpha = bird_speed * rotation_period /

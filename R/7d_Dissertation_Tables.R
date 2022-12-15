@@ -227,9 +227,12 @@ print(fits_baea_dist_xtable,
 # Movement Parameter Fits ------------------------------------------------------
 
 fits_move_pars_org <- readRDS("Output/Analysis/Movements/move_pars.rds")
+step_pars_org <- readRDS("Output/Analysis/Movements/step_pars.rds")
 
 fits_move_pars_df  <- fits_move_pars_org %>%
-  dplyr::select(behavior, behavior_behavior, min_step:mvm_prop) %>%
+  left_join(., step_pars_org %>% dplyr::select(-c(min_step, max_step))) %>%
+  dplyr::select(behavior, behavior_behavior, min_step, mean_step,
+    max_step:mvm_prop) %>%
   mutate(behavior_behavior = str_replace_all(behavior_behavior, "->",
     "$\\\\rightarrow$")) %>%
   mutate(mvm_mu1 = ifelse(behavior %in% c("Nest", "Perch", "Roost"), NA,
@@ -244,22 +247,21 @@ fits_move_pars_df  <- fits_move_pars_org %>%
     mvm_prop)) %>%
   dplyr::select(-behavior)
 
-
-print(xtable(fits_move_pars_df, digits = c(0, 0, 0, 0, 2, 0, 2, 2, 2, 2, 2)),
+print(xtable(fits_move_pars_df, digits = c(0, 0, 0, 0, 0, 2, 0, 2, 2, 2, 2, 2)),
   sanitize.text.function=identity, latex.environments = "", include.rownames =F)
 
 fits_move_pars_xtable <- xtable(fits_move_pars_df,
-  digits = c(0, 0, 0, 0, 2, 0, 2, 2, 2, 2, 2), only.contents = TRUE,
+  digits = c(0, 0, 0, 0, 0, 2, 0, 2, 2, 2, 2, 2), only.contents = TRUE,
   floating = FALSE)
 
-# test the column width sum (should be 10, the number of columns)
-test <- "L{2.55}C{1.3}C{1.35}R{.5}R{.9}R{.555}R{.555}R{.92}R{.92}R{.45}"
+# test the column width sum (should be 11, the number of columns)
+test <- "L{2.97}R{.825}R{.94}R{1.15}R{.531}R{.903}R{.648}R{.648}R{1.06}R{.85}R{.475}"
 str_replace_all(str_split(test, "\\{", simplify = TRUE), "[^[//.||0-9]]", "")%>%
   str_subset(., "[0-9]") %>% as.numeric(.) %>% sum()
 
 align(fits_move_pars_xtable) <- c("L{0}",
-  "L{2.55}", "C{1.3}", "C{1.35}", "R{.5}", "R{.9}", "R{.555}", "R{.555}",
-  "R{.92}", "R{.92}", "R{.45}")
+  "L{2.97}", "R{.825}", "R{.94}", "R{1.15}", "R{.531}", "R{.903}", "R{.648}",
+  "R{.648}", "R{1.06}", "R{.85}", "R{.475}")
 
 str_replace_all(align(fits_move_pars_xtable), "[^[//.||0-9]]", "") %>%
   str_subset(., "[0-9]") %>% as.numeric(.) %>% sum()
@@ -272,11 +274,11 @@ addtorow <- list()
 addtorow$pos <- list(0)
 addtorow$command <- c(paste0(
   "\\multirow{2}{=}{\\centering \\textbf{\\hfil Movement\\newline Step Type}} ",
-  "& \\multicolumn{2}{c}{\\textbf{Step Length}} ",
+  "& \\multicolumn{3}{c}{\\textbf{Step Length (m)}} ",
   "& \\multicolumn{2}{c}{\\textbf{Weibull}} ",
   "& \\multicolumn{5}{c}{\\textbf{Mixed Von Mises}} \\\\ ",
-  "\\cmidrule(lr){2-3} \\cmidrule(lr){4-5} \\cmidrule(lr){6-10} ",
-  "& {Min (m)} & {Max (m)} & {$\\kappa$} ",
+  "\\cmidrule(lr){2-4} \\cmidrule(lr){5-6} \\cmidrule(lr){7-11} ",
+  "& {Min} & {Mean} & {Max} & {$\\kappa$} ",
   "& \\multicolumn{1}{c}{$\\lambda$} ",
   "& \\multicolumn{1}{c}{$\\mu\\textsubscript{1}$} ",
   "& \\multicolumn{1}{c}{$\\mu\\textsubscript{2}$} ",

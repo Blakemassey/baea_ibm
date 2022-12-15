@@ -8,8 +8,9 @@
 # Setup ------------------------------------------------------------------------
 
 # Load packages, helpers, and functions
-pacman::p_load(CircStats, extraDistr, gplots, ggplot2, ggpubr, gridExtra,
-  magick, latex2exp, patchwork, reshape2, rstatix, tidyverse, VGAM, viridis)
+pacman::p_load(CircStats, confintr, extraDistr, gplots, ggplot2, ggpubr,
+  gridExtra, magick, latex2exp, patchwork, reshape2, rstatix, tidyverse, VGAM,
+  viridis)
 suppressMessages(extrafont::loadfonts(device = "win"))
 pacman::p_load(baear, gisr, ibmr)
 
@@ -322,11 +323,28 @@ ggsave(filename = "Fits_Baea_Dist.png", plot = gg_baea_dist,
 # Load data
 baea_behavior <- readRDS("Data/Baea/baea_behavior.rds")
 baea_behavior_simple <- baea_behavior %>%
-  dplyr::select(datetime, id, time_proportion, bh_nest:behavior)
+  dplyr::select(datetime, id, sex, time_proportion, bh_nest:behavior)
+
+# Calculate overall time proportions
+
+baea_behavior_male <- baea_behavior_simple %>%
+  filter(sex == "male") %>%
+  mutate(behavior = as.factor(behavior)) %>%
+  count(behavior) %>%
+  mutate(prop = n/sum(n))
+
+baea_behavior_female <- baea_behavior_simple %>%
+  filter(sex == "female") %>%
+  mutate(behavior = as.factor(behavior)) %>%
+  count(behavior) %>%
+  mutate(prop = n/sum(n))
+
+baea_behavior_male
+baea_behavior_female
 
 # Summarize daily behavior by time_proportion
 breaks = 20
-baea_behavior_sum <- baea_behavior %>%
+baea_behavior_sum <- baea_behavior_simple %>%
   mutate(behavior = factor(behavior)) %>%
   mutate(bins = CutProportion(time_proportion, breaks)) %>%
   mutate(bins_mid = factor(CutProportionMid(time_proportion, breaks))) %>%
@@ -1225,7 +1243,7 @@ gg_connest_rescale <- ggplot(df_rescale, aes(x, y_rescale)) +
     color = guide_legend(override.aes = list(size = point_size))) +
   theme(panel.grid.minor.x = element_blank()) +
   labs(x = 'Conspecific and Nest Distance Value (km)', y =
-      'IBM Logistic Scale\nParameter', title = NULL)
+      'Territorial Kernel\nLogistic Scale Parameter', title = NULL)
 gg_connest_rescale
 ggsave(filename = "ConNest_Rescale.png", plot = gg_connest_rescale,
   path = file.path(tex_dir, "Figures/Ch3"), scale = 1, width = 6, height = 2.4,
@@ -1709,6 +1727,30 @@ for (i in c("Grand_Lake", "Wilson")){
     mutate(scenario = ordered(scenario, levels = c("North","South",
       "North\nand\nSouth")))
 
+  # Table for collision risk (for dissertation text)
+  collision_risk_sum_ns %>%
+    group_by(scenario) %>%
+    summarize(
+      collision_risk_mean = mean(collision_risk))
+
+  collision_risk_sum_ns %>%
+    filter(scenario == "North") %>%
+    pull(collision_risk) %>%
+    ci_mean(.)
+  collision_risk_sum_ns %>%
+    filter(scenario == "South") %>%
+    pull(collision_risk) %>%
+    ci_mean(.)
+  collision_risk_sum_ns %>%
+    filter(scenario == "North\nand\nSouth") %>%
+    filter(turbines == paste0(nest_title, "\nNorth Turbines")) %>%
+    pull(collision_risk) %>% ci_mean(.)
+  collision_risk_sum_ns %>%
+    filter(scenario == "North\nand\nSouth") %>%
+    filter(turbines == paste0(nest_title, "\nSouth Turbines")) %>%
+    pull(collision_risk) %>% ci_mean(.)
+
+
   # Collisions with North turbines (only relevant for North and North/South)
   gg_turbines_ns_crm <- collision_risk_sum_ns %>%
     ggplot(.) +
@@ -1733,6 +1775,8 @@ for (i in c("Grand_Lake", "Wilson")){
   rm(collision_risk_sum, collision_risk_sum_ns, gg_turbines_ns_crm)
 
   # Predicted Collision Risk All Turbines --------------------------------------
+  nest_lower <- "wilson"
+  nest_lower <- "grand_lake"
 
   collision_risk_sum_all <- readRDS(file.path(exp_dir,
       paste0("flight_collision_risk_", nest_lower, ".rds"))) %>%
@@ -1740,6 +1784,21 @@ for (i in c("Grand_Lake", "Wilson")){
       "North\nand\nSouth")) %>%
     dplyr::select(exp_id, scenario,
       collision_risk = turbines_collision_risk_95avoid)
+
+  # For dissertation text
+  collision_risk_sum_all %>%
+    group_by(scenario) %>%
+    summarize(
+      collision_risk_mean = mean(collision_risk))
+
+  collision_risk_sum_all %>%
+    filter(scenario == "North\nand\nSouth") %>%
+    pull(collision_risk) %>%
+    ci_mean(.)
+  collision_risk_sum_all %>%
+    filter(scenario == "South") %>%
+    pull(collision_risk) %>%
+    ci_mean(.)
 
   gg_turbines_all_crm <- collision_risk_sum_all %>%
     ggplot(.) +
@@ -1766,6 +1825,158 @@ for (i in c("Grand_Lake", "Wilson")){
   rm(collision_risk_sum_all, gg_turbines_all_crm)
 
 }
+
+# Combining the Figures --------------------------------------------------------
+
+## Wind Areas ----
+wilson_fig_file <- file.path(tex_dir, "Figures/Ch4/Transits",
+  paste0("Wind_Areas_Wilson.png"))
+grand_fig_file <- file.path(tex_dir, "Figures/Ch4/Transits",
+  paste0("Wind_Areas_Grand_Lake.png"))
+
+wilson_fig <- image_read(wilson_fig_file)
+grand_fig <- image_read(grand_fig_file)
+
+# Image background
+backgrd <- image_blank(1800, 2400, color = "white")
+white_patch <- image_blank(1800, 100, color = "white")
+
+# Create Final Plot and Export to Dissertation
+wind_area_fig <- backgrd %>%
+  image_composite(., wilson_fig, offset = "+0+0") %>%
+  image_composite(., grand_fig, offset = "+0+1200") %>%
+  image_composite(., white_patch, offset = "+0+1100")
+
+# Save File
+wind_areas_both_fig_file = file.path(tex_dir, "Figures/Ch4/Transits",
+  "Wind_Areas_Both.png")
+image_write(wind_area_fig, path = wind_areas_both_fig_file,
+  format = ".png")
+
+## Turbines ----
+wilson_fig_file <- file.path(tex_dir, "Figures/Ch4/Transits",
+  paste0("Wind_Turbines_Wilson.png"))
+grand_fig_file <- file.path(tex_dir, "Figures/Ch4/Transits",
+  paste0("Wind_Turbines_Grand_Lake.png"))
+
+wilson_fig <- image_read(wilson_fig_file)
+grand_fig <- image_read(grand_fig_file)
+
+# Image background
+backgrd <- image_blank(1800, 2400, color = "white")
+white_patch <- image_blank(1800, 100, color = "white")
+
+# Create Final Plot and Export to Dissertation
+wind_turbines_fig <- backgrd %>%
+  image_composite(., wilson_fig, offset = "+0+0") %>%
+  image_composite(., grand_fig, offset = "+0+1200") %>%
+  image_composite(., white_patch, offset = "+0+1100")
+
+# Save File
+wind_turbines_both_fig_file = file.path(tex_dir, "Figures/Ch4/Transits",
+  "Wind_Turbines_Both.png")
+image_write(wind_turbines_fig, path = wind_turbines_both_fig_file,
+  format = ".png")
+
+## Flights Stats ----
+wilson_fig_file <- file.path(tex_dir, "Figures/Ch4/Transits",
+  paste0("Flights_Stats_Wilson.png"))
+grand_fig_file <- file.path(tex_dir, "Figures/Ch4/Transits",
+  paste0("Flights_Stats_Grand_Lake.png"))
+
+wilson_fig <- image_read(wilson_fig_file)
+grand_fig <- image_read(grand_fig_file)
+
+# Image background
+backgrd <- image_blank(1800, 2400, color = "white")
+white_patch <- image_blank(1800, 100, color = "white")
+
+# Create Final Plot and Export to Dissertation
+flights_stats_fig <- backgrd %>%
+  image_composite(., wilson_fig, offset = "+0+0") %>%
+  image_composite(., grand_fig, offset = "+0+1200") %>%
+  image_composite(., white_patch, offset = "+0+1100")
+
+# Save File
+flights_stats_both_fig_file = file.path(tex_dir, "Figures/Ch4/Transits",
+  "Flight_Stats_Both.png")
+image_write(flights_stats_fig, path = flights_stats_both_fig_file,
+  format = ".png")
+
+## Flights Stats ----
+wilson_fig_file <- file.path(tex_dir, "Figures/Ch4/Transits",
+  paste0("Flights_Stats_Wilson.png"))
+grand_fig_file <- file.path(tex_dir, "Figures/Ch4/Transits",
+  paste0("Flights_Stats_Grand_Lake.png"))
+
+wilson_fig <- image_read(wilson_fig_file)
+grand_fig <- image_read(grand_fig_file)
+
+# Image background
+backgrd <- image_blank(1800, 2400, color = "white")
+white_patch <- image_blank(1800, 100, color = "white")
+
+# Create Final Plot and Export to Dissertation
+flights_stats_fig <- backgrd %>%
+  image_composite(., wilson_fig, offset = "+0+0") %>%
+  image_composite(., grand_fig, offset = "+0+1200") %>%
+  image_composite(., white_patch, offset = "+0+1100")
+
+# Save File
+flights_stats_both_fig_file = file.path(tex_dir, "Figures/Ch4/Transits",
+  "Flight_Stats_Both.png")
+image_write(flights_stats_fig, path = flights_stats_both_fig_file,
+  format = ".png")
+
+## North and South CRM ----
+wilson_fig_file <- file.path(tex_dir, "Figures/Ch4/Collision_Risk",
+  paste0("Turbines_NS_CRM_Wilson.png"))
+grand_fig_file <- file.path(tex_dir, "Figures/Ch4/Collision_Risk",
+  paste0("Turbines_NS_CRM_Grand_Lake.png"))
+
+wilson_fig <- image_read(wilson_fig_file)
+grand_fig <- image_read(grand_fig_file)
+
+# Image background
+backgrd <- image_blank(1800, 2400, color = "white")
+white_patch <- image_blank(1800, 100, color = "white")
+
+# Create Final Plot and Export to Dissertation
+crm_ns_fig <- backgrd %>%
+  image_composite(., wilson_fig, offset = "+0+0") %>%
+  image_composite(., grand_fig, offset = "+0+1200") %>%
+  image_composite(., white_patch, offset = "+0+1100")
+
+# Save File
+crm_ns_fig_file = file.path(tex_dir, "Figures/Ch4/Collision_Risk",
+  "Turbines_NS_CRM_Both.png")
+image_write(crm_ns_fig, path = crm_ns_fig_file,
+  format = ".png")
+
+## All CRM ----
+wilson_fig_file <- file.path(tex_dir, "Figures/Ch4/Collision_Risk",
+  paste0("Turbines_All_CRM_Wilson.png"))
+grand_fig_file <- file.path(tex_dir, "Figures/Ch4/Collision_Risk",
+  paste0("Turbines_All_CRM_Grand_Lake.png"))
+
+wilson_fig <- image_read(wilson_fig_file)
+grand_fig <- image_read(grand_fig_file)
+
+# Image background
+backgrd <- image_blank(1800, 2400, color = "white")
+white_patch <- image_blank(1800, 100, color = "white")
+
+# Create Final Plot and Export to Dissertation
+crm_all_fig <- backgrd %>%
+  image_composite(., wilson_fig, offset = "+0+0") %>%
+  image_composite(., grand_fig, offset = "+0+1200") %>%
+  image_composite(., white_patch, offset = "+0+1100")
+
+# Save File
+crm_all_fig_file = file.path(tex_dir, "Figures/Ch4/Collision_Risk",
+  "Turbines_All_CRM_Both.png")
+image_write(crm_all_fig, path = crm_all_fig_file,
+  format = ".png")
 
 # ---------------------------------------------------------------------------- #
 ################################ OLD CODE ######################################

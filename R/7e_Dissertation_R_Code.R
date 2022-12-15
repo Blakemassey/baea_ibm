@@ -34,13 +34,13 @@ RunSimulation <- function(sim = sim,
             UpdateAgentStates(agent_states)
         }
         sim$spatial <- UpdateSpatial(sim$spatial)
-      } # end of time_steps[[m]]
-    } # end of step_interval[[k]]
+      }
+    }
     sim$agents <- UpdateAgentsReport(sim, rep_intervals[[j]],
       step_intervals)
     sim$agents <- UpdatePopReport(sim, rep_intervals[[j]],
       step_intervals)
-  } # end of rep_interval[[j]]
+  }
   WriteSimList(write = write, run = names(runs[j]), sim = sim,
     output_dir = getwd(), components = "all")
   return(sim)

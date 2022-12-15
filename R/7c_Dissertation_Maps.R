@@ -621,7 +621,7 @@ con_nest_map <-
   tm_shape(con_nest_om, raster.downsample = FALSE) +
     tm_rgb() +
   tm_shape(con_nest_km) +
-  tm_raster("ConNest_All", palette = "-viridis", alpha = .8, style = "cont",
+  tm_raster("layer", palette = "-viridis", alpha = .8, style = "cont",
     title = "Conspecific\n     and\nHome Nest\n  Distance\nMetric (km)",
     legend.reverse = TRUE, legend.show = TRUE) +
   tm_shape(con_nests_sf) +
@@ -645,7 +645,7 @@ tmap_save(tm = con_nest_map, filename = con_nest_map_file, unit = "in",
   dpi = 300, height = 6, width = 6)
 
 legend_only <- tm_shape(con_nest_km) +
-  tm_raster("ConNest_All", palette = "-viridis", alpha = .8, style = "cont",
+  tm_raster("layer", palette = "-viridis", alpha = .8, style = "cont",
     title = "Conspecific and\n   Home Nest\n    Distance\n  Metric (km)",
     legend.reverse = TRUE, legend.show = TRUE) +
   tm_legend(legend.only = TRUE,
@@ -666,9 +666,9 @@ con_nest_map_img <- con_nest_map_file %>%
   image_trim(.)
 
 legend_img <- legend_file %>% image_read(.) %>% image_trim(.)
-legend_title <- legend_img %>% image_crop(., "400x320+0+0")
+legend_title <- legend_img %>% image_crop(., "400x300+0+0")
 legend_title
-legend_scale <- legend_img %>% image_crop(., "150x550+0+310")
+legend_scale <- legend_img %>% image_crop(., "150x550+0+300")
 legend_scale
 
 backgrd <- image_blank(2150, 1730, color = "white")
@@ -2711,7 +2711,7 @@ maine_bb_sf <- st_as_sfc(bb(maine, relative = TRUE, height = 1, width = 2))
 maine_bb <- bb_poly(bb(maine_bb_sf, ext = 1.15))
 maine_om = read_osm(maine_bb, zoom = 5, minNumTiles = 9, type = om_nat_geo)
 
-if(FALSE) i <- "Ellis"; j <- 2015 # For testing
+if(FALSE) i <- "Ellis"; j <- 2016 # For testing
 # For mapping
 for (i in unique(baea_hr$id)){
   baea_hr_i <- baea_hr %>% filter(id == i) %>% arrange(datetime)
@@ -2763,10 +2763,10 @@ for (i in unique(baea_hr$id)){
       tm_shape(baea_k_om, raster.downsample = FALSE) +
         tm_rgb() +
       tm_shape(baea_k_lines) +
-        tm_lines("#ffffff", lwd = 2, alpha = .25) +
+        tm_lines("cornsilk", lwd = 2, alpha = .75) +
       tm_shape(baea_k,
         bbox = bb(baea_k, ext = 1.15), is.master = TRUE) +
-        tm_dots(size = 0.075, col = "#700074", alpha = .5) +
+        tm_dots(size = 0.075, col = "#700074", alpha = .85) +
       tm_shape(ud_95_sf_k) +
         tm_polygons(col = "yellow", alpha = .15) +
       tm_shape(ud_95_sf_k) +
@@ -2808,7 +2808,7 @@ for (i in unique(baea_hr$id)){
   }
 }
 
-# SSF for Maine - Individual ---------------------------------------------------
++# SSF for Maine - Individual ---------------------------------------------------
 
 # This process assumes that the 'final' version of the SSF probablity layers
 # is in the ssf_prob_dir

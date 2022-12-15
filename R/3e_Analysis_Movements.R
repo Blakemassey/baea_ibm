@@ -101,6 +101,7 @@ for (i in unique(baea_movements_wb$behavior_behavior)){
     baea_movements_wb_i %>%
       summarize(
         count = n(),
+        mean_step = mean(step_length),
         min_step = min(step_length),
         max_step = max(step_length))
   weibull_pars[weibull_pars_row, "count"] <-
@@ -111,6 +112,22 @@ for (i in unique(baea_movements_wb$behavior_behavior)){
     baea_movements_wb_i_sum$max_step[1]
   rm(baea_movements_wb_i, weibull_pars_i, weibull_pars_row)
 }
+
+# Calculate mean step length values
+baea_movements_wb <- readRDS("Data/BAEA/baea_movements_wb.rds")
+
+baea_movements_step_metrics <- baea_movements_wb %>%
+  group_by(behavior_behavior) %>%
+  summarize(
+    count = n(),
+    mean_step = mean(step_length),
+    median_step = median(step_length),
+    sd_step = stats::sd(step_length),
+    min_step = min(step_length),
+    max_step = max(step_length))
+
+saveRDS(baea_movements_step_metrics,
+  file = "Output/Analysis/Movements/step_pars.rds")
 
 # Fitting von Mises
 von_mises_pars <- baea_movements %>%

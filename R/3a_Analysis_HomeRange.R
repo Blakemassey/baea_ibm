@@ -6,8 +6,8 @@
 
 # Load Packages
 pacman::p_load(ctmm, devtools, fitdistrplus, ggplot2, ggrepel, ggthemes,
-  lubridate, mapview, move, tidyverse, raster, reshape2, sf, tmaptools, units,
-  zoo)
+  lubridate, mapview, move, tidyverse, raster, reshape2, Rmisc, sf, tmaptools,
+  units, zoo)
 theme_update(plot.title = element_text(hjust = 0.5))
 library(baear)
 library(gisr)
@@ -470,23 +470,39 @@ hr_all_metrics <- left_join(hr_land_metrics, hr_hydro_metrics,
 # Home Range Size
 hr_area_sum <- hr_all_metrics %>%
   group_by(year, id) %>%
-  dplyr::summarize(ud_50_total, ud_95_total, locs = sum(locs))
+  dplyr::summarize(ud_50_total, ud_95_total, ud_95_open_water,
+    ud_50_open_water, locs = sum(locs))
 
-View(hr_area_sum)
-# Eskutassis appears to be an outlier for 50% and 95% UD
-remove_list <- c("Eskutassis")
+# Calculate Confidence Intervals
+
+CI(hr_area_sum$ud_50_total, ci=0.95)
+CI(hr_area_sum$ud_95_total, ci=0.95)
+CI(hr_area_sum$ud_50_open_water, ci=0.95)
+CI(hr_area_sum$ud_95_open_water, ci=0.95)
+
+# Calculatsion form Kocina 2021
+kocina_values <- c(22, 1, 0, 16538, 4151, 2923, 315, 307, 241, 9, 5)
+kocina_tbl <- tibble(hr = kocina_values)
+
+CI(kocina_tbl$hr, ci = 0.95)
+
+# Eskutassis appears to be an outlier for 50% and 95% UD, but it was retained
 
 library(dplyr)
 hr_area_sum_multi_yr <- hr_area_sum %>%
-  filter(!id %in% c(remove_list)) %>%
   group_by(id) %>%
-  filter(n() > 1)
+  filter(n() > 1) %>%
+  ungroup(.)
 
 mod_50_area_locs <- glm(ud_50_total ~ locs + id, data = hr_area_sum_multi_yr)
 summary(mod_50_area_locs)
+anova_test(data = hr_area_sum_multi_yr,
+  formula = ud_50_total ~ locs + id, type = 3, detailed = TRUE)
 
 mod_95_area_locs <- glm(ud_95_total ~ locs + id, data = hr_area_sum_multi_yr)
 summary(mod_95_area_locs)
+anova_test(data = hr_area_sum_multi_yr,
+  formula = ud_95_total ~ locs + id, type = 3, detailed = TRUE)
 
 # Check for relationship btwn # GPS locs and UD size
 # 50% UD
@@ -509,7 +525,7 @@ ggplot(hr_area_sum %>% filter(!id %in% c(remove_list)),
   scale_color_brewer(type = "qual", palette = "Paired") +
   guides(color = guide_legend(title = "Eagle\nID")) +
   ggtitle("95% UD")
-# Generally positive correlation
+# Generally positive correlation, but not statistically significant
 
 # Range of 50% UD values by ID
 ggplot(hr_area_sum %>% filter(!id %in% c(remove_list)),

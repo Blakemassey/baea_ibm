@@ -7,7 +7,7 @@ digraph {
   a01 [label = "Location", shape = oval, fillcolor = DeepSkyBlue];
   a02 [label = "Select Behavior", shape = rectangle, fillcolor = Thistle];
   a03 [label = "Behavior", shape = hexagon, fillcolor = Gold, margin =.05];
-  a04 [label = "Flight?", shape = diamond, fillcolor = LimeGreen];
+  a04 [label = "Move?", shape = diamond, fillcolor = LimeGreen];
   a05 [label = "Redistribution Kernel", shape = rectangle, fillcolor = Thistle,
     width = 2];
   a06 [label = "New Location", shape = hexagon, fillcolor = Gold, margin=.05];
@@ -16,13 +16,14 @@ digraph {
   a08 ;
   node [shape = polygon, style = filled, fillcolor = LightCoral,
     fixedsize = true, margin = 0, skew = 0.1];
-  b01 [label = "Julian Date", width = 1.55];
-  b02 [label = "Diurnal Period", width = 1.65];
-  b03 [label = "Current Behavior", width = 1.85];
+  b01 [label = "Current Behvaior", width = 1.85];
+  b02 [label = "Julian Date", width = 1.55];
+  b03 [label = "Diurnal Period", width = 1.65];
+
   node [shape = polygon, style = filled, fillcolor = Khaki, fixedsize = true,
     margin = 0, skew = 0.1];
-  c01 [label = "Step-Selection Function", width = 2.65];
-  c02 [label = "Movement Kernel", width = 2.05];
+  c01 [label = "Movement Kernel", width = 2.05];
+  c02 [label = "Resource Selection Surface", width = 2.65];
   c03 [label = "Conspecific and Nest Distance", width = 3.0];
   subgraph cluster_0 {
     label = <<b>Individual-based Model<br/>Step Process Overview</b>>;

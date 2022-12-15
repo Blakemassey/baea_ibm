@@ -22,11 +22,14 @@ baea_hr <- readRDS("Data/BAEA/baea_homerange.rds")
 
 # Table of duration and start/end dates of birds' location data
 baea_dates <- baea_hr %>%
+  as_tibble() %>%
   group_by(id) %>%
-  summarize(start_date = first(date), last_date = last(date), locs = n()) %>%
+  dplyr::summarize(start_date = first(date),
+    last_date = last(date),
+    locs = n()) %>%
   mutate(date_period = as.period(interval(start_date, last_date),
     unit="months")) %>%
-  ungroup() %>% as.data.frame()
+  ungroup() %>% data.frame()
 baea_dates
 
 # Filter location by criteria and add behaviors
@@ -44,7 +47,7 @@ baea_cruise <- AddCruiseBehavior(baea_flight, min_agl = 200, min_speed = 5,
 baea_perch <- baea_cruise %>%
   mutate(behavior = coalesce(bh_nest, bh_roost, bh_cruise, bh_flight)) %>%
   mutate(behavior = ifelse(behavior == "Arrive" | behavior == "Depart", "Roost",
-      behavior)) %>%
+    behavior)) %>%
   mutate(behavior = ifelse(is.na(behavior), "Perch", behavior)) # %>%
 baea_behavior <- baea_perch
 baea_behavior_simple <- baea_behavior %>%
