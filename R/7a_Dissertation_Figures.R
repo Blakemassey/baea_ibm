@@ -1367,6 +1367,74 @@ ggsave(filename = "Calibration_Hydro_Dist.png", plot = gg_combine_hydro_dist,
   path = file.path(tex_dir, "Figures/Ch3"), scale = 1, width = 6, height = 4,
   units = "in", dpi = 300)
 
+# SIDE-BY-SIDE VERSION
+baea_sim_perch_dist <- bind_rows(
+  baea_perch_dist %>% mutate(baea_sim = "Empricial"),
+  sim_perch_dist %>% mutate(baea_sim = "Simulation") %>%
+    mutate(hydro_dist = hydro_dist - 30) %>%
+    mutate(id = as.character(id))) %>%
+  select(hydro_dist, baea_sim) %>%
+  filter(!is.na(hydro_dist))
+table(baea_sim_perch_dist$baea_sim)
+
+min(sim_perch_dist$hydro_dist)
+
+breaks = seq(0,2760,30)
+baea_sim_perch_dist$dist_cut = cut(baea_sim_perch_dist$hydro_dist,
+  include.lowest = TRUE, breaks = breaks)
+baea_sim_perch_dist_cut <- baea_sim_perch_dist %>%
+  group_by(baea_sim, dist_cut) %>%
+  summarise (n = n()) %>%
+  mutate(freq = (n / sum(n))) %>%
+  ungroup(.)
+
+dist_labels = seq(0, 57*30, 30)
+dist_labels = c(0, 30, 60, 90, 120, 150, 180, 210, 240, 270,
+  300,330, 360, 390,  420, 450, 480, 510, 540, 570,
+  600, 630, 660, 690, 720, 750, 780, 810, 840, 870,
+  900, 930, 960, 990, 1020, 1050, 1080, 1110, 1140, 1170,
+  1200, 1230, 1260, 1290, 1320, 1350, 1380, 1410, 1440, 1470,
+  1500, 1530, 1560, 1590, 1620, 1650, 1680, 1710)
+dist_labels =
+  c(0, "", "", "", "", 150, "", "", "", "",
+  300, "", "", "", "", 450, "", "", "", "",
+  600, "", "", "", "", 750, "", "", "", "",
+  900, "", "", "", "", 1050, "", "", "", "",
+  1200, "", "", "", "", 1350, "", "", "", "",
+  1500, "", "", "", "", 1650, "", "")
+
+dist_labels =
+  c(0, "", "", "", "", "", "", "", "", "",
+  300, "", "", "", "", "", "", "", "", "",
+  600, "", "", "", "", "", "", "", "", "",
+  900, "", "", "", "", "", "", "", "", "",
+  1200, "", "", "", "", "", "", "", "", "",
+  1500, "", "", "", "", "", "", "")
+
+lines_df <- data.frame(x1 = 1, x2 = 1, y1 = 0, y2 = .5)
+
+gg_baea_sim_dist <- ggplot(baea_sim_perch_dist_cut,
+    aes(x = dist_cut, y = freq, fill = baea_sim)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  geom_segment(aes(x = 11, y = 0, xend = 11, yend = .76), color = "grey90") +
+  geom_segment(aes(x = 21, y = 0, xend = 21, yend = .76), color = "grey90") +
+  geom_segment(aes(x = 31, y = 0, xend = 31, yend = .76), color = "grey90") +
+  geom_segment(aes(x = 41, y = 0, xend = 41, yend = .76), color = "grey90") +
+  geom_segment(aes(x = 51, y = 0, xend = 51, yend = .76), color = "grey90") +
+  scale_fill_manual(values = c(viridis::viridis(2)[1], viridis::viridis(2)[2])) +
+  labs(fill = "Location Data") +
+  xlab("Hydro Distance (m)") +
+  ylab("Proportion of Perch Locations") +
+  scale_x_discrete(labels = dist_labels) +
+  theme_minimal() +
+  theme_latex +
+  theme(panel.grid.major.x = element_blank())
+gg_baea_sim_dist
+
+ggsave(filename = "Calibration_Hydro_Dist.png", plot = gg_baea_sim_dist,
+  path = file.path(tex_dir, "Figures/Ch3"), scale = 1, width = 6, height = 4,
+  units = "in", dpi = 300)
+
 # FOR DISSERTATION PRESENTATION ------------------------------------------------
 
 gg_ellis_hydro_dist <- ggplot(baea_perch_dist %>% filter(id == "Ellis")) +

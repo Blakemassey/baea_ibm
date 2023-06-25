@@ -277,6 +277,7 @@ if(!is.na(model_id) && !dir.exists(ssf_prob_model_id_dir)){
     # Create value raster and probability layers
     ssf_value_raster <- eval(parse(text = ssf_formula))
     ssf_prob_raster <- raster::calc(ssf_value_raster, fun = boot::inv.logit)
+    if(FALSE) plot(ssf_prob_raster)
     # Write Rasters to output dir
     step_type_i_numeric <- step_type_i %>% str_replace_all(c("cruise" = "1",
       "flight" = "2", "nest" = "3", "perch" = "4", "roost" = "5"))
